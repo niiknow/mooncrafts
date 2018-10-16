@@ -11,8 +11,17 @@ description = {
 	license = "MIT"
 }
 dependencies = {
-	"lua-resty-dns",
-	"lua-resty-lrucache"
+	"busted",
+	"lua-resty-jwt",
+	"lua-resty-http",
+	"moonscript",
+	"luacrypto",
+	"basexx",
+	"lua-log",
+	"lua-cjson",
+	"luasocket",
+	"ltn12",
+	"luasec"
 }
 build = {
 	type = "builtin",

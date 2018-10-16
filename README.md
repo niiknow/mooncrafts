@@ -10,8 +10,9 @@ I use it for network stuff.  You can even use it as common util in Function as a
 TODO
 
 # build and test
-osx, install lua/luarocks, then:
+osx, install lua/luarocks and openssl then:
 ```sh
+sudo luarocks install luasec OPENSSL_DIR=/usr/local/opt/openssl
 make init
 make test
 ```

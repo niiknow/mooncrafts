@@ -19,7 +19,7 @@ env:
     - LUAROCKS_VER=2.4.3
   matrix:
     - OPENRESTY_VER=1.11.2.2
-    - OPENRESTY_VER=1.11.2.4
+#    - OPENRESTY_VER=1.11.2.4
 #   - LINT=1
 
 install:
@@ -50,6 +50,7 @@ install:
   - sudo luarocks install busted > build.log 2>&1 || (cat build.log && exit 1)
   - sudo luarocks install moonscript > build.log 2>&1 || (cat build.log && exit 1)
   - sudo luarocks install luacov > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo luarocks install luasec OPENSSL_DIR=/usr OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu/ > build.log 2>&1 || (cat build.log && exit 1)
   - make init > build.log 2>&1 || (cat build.log && exit 1)
   - luarocks --version
   - nginx -V
