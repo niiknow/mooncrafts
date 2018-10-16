@@ -24,6 +24,7 @@ init:
 	sudo luarocks install basexx
 	sudo luarocks install lua-log
 	sudo luarocks install lua-cjson
+	sudo luarocks install luasocket
 	sudo luarocks install --server=http://luarocks.org/dev ltn12
 	# uncomment these if require lua "http.server"
 	# sudo luarocks install luasec 0.7-1 OPENSSL_DIR=/usr/local/opt/openssl
