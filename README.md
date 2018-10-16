@@ -1,13 +1,11 @@
 [![Build Status](https://travis-ci.org/niiknow/mooncrafts.svg?branch=master)](https://travis-ci.org/niiknow/mooncrafts)
 # mooncrafts
-> Network utilities (crafts) written in moonscript 
+> Network http utilities (crafts) written in moonscript 
 
 Utilities written in moonscript that can be use independently with lua http.server, moonscript, and/or openresty.
 
 # usage
-I use it for network stuff.  You can even use it as common util in Function as a Service *FaaS* platform.
-
-TODO
+A set of classes from [moonship](https://github.com/niiknow/moonship) for re-usability.  Originally inspired by webscript.io provided utility functions.
 
 # build and test
 osx, install lua/luarocks and openssl then:

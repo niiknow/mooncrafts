@@ -1,5 +1,5 @@
 
-.PHONY: test build watch clean
+.PHONY: test build watch clean init doc
 
 test: build
 	busted -c spec
