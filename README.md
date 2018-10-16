@@ -10,20 +10,9 @@ I use it for network stuff.  You can even use it as common util in Function as a
 TODO
 
 # build and test
-osx, install lua/luarocks:
+osx, install lua/luarocks, then:
 ```sh
-brew update
-brew install lua
-
-sudo luarocks install busted
-sudo luarocks install lua-resty-jwt
-sudo luarocks install lua-resty-http
-sudo luarocks install moonscript
-sudo luarocks install luacrypto
-sudo luarocks install basexx
-sudo luarocks install lua-log
-
-make install
+make init
 make test
 ```
 
