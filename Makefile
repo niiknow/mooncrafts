@@ -12,6 +12,7 @@ all: build ;
 install: all
 	$(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DIR)/mooncrafts
 	$(INSTALL) lib/mooncrafts/*.* $(DESTDIR)/$(LUA_LIB_DIR)/mooncrafts
+	$(INSTALL) lib/mooncrafts/nginx/*.* $(DESTDIR)/$(LUA_LIB_DIR)/mooncrafts/nginx
 
 test-resty: all
 	PATH=$(OPENRESTY_PREFIX)/nginx/sbin:$$PATH prove -I../test-nginx/lib -r t
