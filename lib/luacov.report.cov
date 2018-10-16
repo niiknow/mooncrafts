@@ -1,0 +1,1343 @@
+==============================================================================
+./mooncrafts/asynclogger.moon
+==============================================================================
+     -- implement async or bulk logging
+
+   1 http    = require "mooncrafts.http"
+   1 azt     = require "mooncrafts.aztable"
+   1 util    = require "mooncrafts.util"
+   1 log     = require "mooncrafts.log"
+
+   1 import from_json, to_json, table_clone from util
+
+***0 local *
+
+     -- number of items when flush
+       -- currently set to 1 until we get azure bulk to work
+   1 BUFFER_COUNT = 1
+
+     -- time between flush
+       -- currently set to very low until we get azure bulk to work
+   1 FLUSH_INTERVAL = 0.01
+
+   1 class AsyncLogger
+   1   new: (opts={:account_name, :account_key}) =>
+   1     if (opts.account_name == nil)
+   1         error("opts.account_name parameter is required")
+
+   1     if (opts.account_key == nil)
+   1         error("opts.account_key parameter is required")
+
+***0     @opts = opts
+
+   1   dolog: (rsp) =>
+   1     v = {}
+   1     req = rsp.req
+   1     logs = req.logs
+***0     req.logs= nil
+
+         -- replace illegal forward slash char
+   1     rk = "#{req.host} #{req.path}"\gsub("/", "$")
+   1     time = os.time()
+   1     btime = os.date("%Y%m%d%H%m%S",time)
+   2     rtime = 99999999999999 - btime
+   1     btime = os.date("%Y-%m-%d %H:%m:%S", time)
+   1     rand = math.random(10, 1000)
+   1     pk = "#{rtime}_#{btime} #{rand}"
+   2     btime = os.date("%Y%m", time)
+   1     table_name = "log#{btime}"
+
+   2     opts = azt.item_create({
+***0       tenant: "a",
+   2       table_name: table_name,
+   1       rk: rk,
+   1       pk: pk,
+   1       account_name: @opts.account_name,
+   1       account_key: @opts.account_key
+         })
+
+***0     v.RowKey = rk
+***0     v.PartitionKey = pk
+***0     v.host = req.host
+***0     v.path = req.path
+   1     v.time = req.end - req.start
+***0     v.req = to_json(req)
+   1     v.err = tostring(rsp.err)
+   2     v.code = rsp.code
+***0     v.status = rsp.status
+   1     v.headers = to_json(rsp.headers)
+***0     v.body = rsp.body
+
+***0     if (#logs > 0)
+***0       v.logs = to_json(logs)
+
+   1     opts.body = to_json(v)
+***0     opts.useSocket = true
+***0     res = azt.request(opts, true)
+   1     res
+
+***0   log: (rsp) =>
+   1     if (ngx)
+   2       myrsp = table_clone(rsp)
+   1       delay = math.random(10, 100)
+***0       ok, err = ngx.timer.at(delay / 1000, @dolog, self, myrsp)
+
+   1 AsyncLogger
+
+==============================================================================
+./mooncrafts/awsauth.moon
+==============================================================================
+     -- derived from https://github.com/paragasu/lua-resty-aws-auth
+     -- modified to use our own crypto
+
+   1 import sort, concat from table
+***0 crypto = require "mooncrafts.crypto"
+   1 util   = require "mooncrafts.util"
+   1 log    = require "mooncrafts.log"
+
+   1 class AwsAuth
+***0   new: (options={}) =>
+***0     defOpts = {
+   1       timestamp: os.time(), aws_host: "s3.amazonaws.com", aws_region: "us-east-1",
+***0       aws_service: "s3", content_type: "application/x-www-form-urlencoded", request_method: "GET",
+   1       request_path: "/", request_body: "", aws_secret_access_key: "", aws_access_key_id: ""
+   1     }
+
+   1     util.applyDefaults(options, defOpts)
+   1     options.iso_date        = os.date("!%Y%m%d", options.timestamp)
+   1     options.iso_tz          = os.date("!%Y%m%dT%H%M%SZ", options.timestamp)
+***0     @options = options
+
+       -- create canonical headers
+       -- header must be sorted asc
+***0   get_canonical_header: () =>
+***0     concat { "content-type:" .. @options.content_type, "host:" .. @options.aws_host, "x-amz-date:" .. @options.iso_tz }, "\n"
+
+   1   get_signed_request_body: () =>
+   1     params = @options.request_body
+***0     if type(@options.request_body) == "table"
+   1       sort(params)
+   1       params = util.query_string_encode(params)
+
+***0     digest = @get_sha256_digest(params or "")
+   2     string.lower(digest) -- hash must be in lowercase hex string
+
+       -- get canonical request
+       -- https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+***0   get_canonical_request: () =>
+   1     param  = {
+   1       @options.request_method,
+   1       @options.request_path,
+           "", -- canonical query string
+   6       @get_canonical_header(),
+   1       "", -- content body?
+           "content-type;host;x-amz-date",
+   5       @get_signed_request_body()
+   1     }
+***0     canonical_request = concat(param, "\n")
+   2     @get_sha256_digest(canonical_request)
+
+       -- generate sha256 from the given string
+   2   get_sha256_digest: (s) => crypto.sha256(s).hex()
+   1   hmac: (secret, message) => crypto.hmac(secret, message, crypto.sha256)
+
+       -- get signing key
+       -- https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
+   1   get_signing_key: () =>
+   1     k_date    = @hmac("AWS4" .. @options.aws_secret_access_key, @options.iso_date).digest()
+***0     k_region  = @hmac(k_date, @options.aws_region).digest()
+***0     k_service = @hmac(k_region, @options.aws_service).digest()
+   1     @hmac(k_service, "aws4_request").digest()
+
+       -- get string
+***0   get_string_to_sign: () =>
+   1     param = { @options.iso_date, @options.aws_region, @options.aws_service, "aws4_request" }
+   1     cred  = concat(param, "/")
+***0     req   = @get_canonical_request()
+   1     concat({ "AWS4-HMAC-SHA256", @options.iso_tz, cred, req }, "\n")
+
+       -- generate signature
+   4   get_signature: () => @hmac(@get_signing_key(), @get_string_to_sign()).hex()
+
+       -- get authorization string
+       -- x-amz-content-sha256 required by s3
+   1   get_auth_header: () =>
+   1     param = { @options.aws_access_key_id, @options.iso_date, @options.aws_region, @options.aws_service, "aws4_request" }
+   1     concat { "AWS4-HMAC-SHA256 Credential=" .. concat(param, "/"), "SignedHeaders=content-type;host;x-amz-date", "Signature=" .. @get_signature() }, ", "
+
+***0   get_auth_headers: () =>
+***0     { "Authorization": @get_auth_header(), "x-amz-date": @get_date_header(), "x-amz-content-sha256": @get_content_sha256(), "Content-Type": @options.content_type }
+
+       -- get the current timestamp in iso8601 basic format
+***0   get_date_header: () => @options.iso_tz
+   2   get_content_sha256: () => @get_sha256_digest("")
+
+   1 AwsAuth
+
+==============================================================================
+./mooncrafts/azauth.moon
+==============================================================================
+   2 hmacauth         = require "mooncrafts.hmacauth"
+   2 crypto           = require "mooncrafts.crypto"
+   2 util             = require "mooncrafts.util"
+   2 log              = require "mooncrafts.log"
+
+   2 import url_parse, string_split, query_string_encode from util
+   2 import concat, sort from table
+***0 import base64_decode, base64_encode from crypto
+
+   2 local *
+
+   2 date_utc = (date=os.time()) -> os.date("!%a, %d %b %Y %H:%M:%S GMT", date)
+
+   2 getHeader = (headers, name, additionalHeaders={}) -> headers[name] or additionalHeaders[name] or ""
+
+   4 sharedkeylite = (opts = { :account_name, :account_key, :table_name }) ->
+***0   opts.time = opts.time or os.time()
+***0   opts.date = opts.date or date_utc(opts.time)
+   4   opts.sig = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
+   2   opts
+
+***0 canonicalizedResource = (opts) ->
+***0   parsedUrl = opts.parsedUrl
+***0   query = string_split(opts.query, "&")
+***0   qs = query_string_encode(query, "\n", "", (v) -> v)
+
+***0   params = {
+   4     "/#{opts.account_name}#{parsedUrl.path}",
+         qs
+       }
+
+***0   concat(params, "\n")
+
+***0 canonicalizedHeaders = (headers) ->
+   4   rst = {}
+   8   keys = {}
+
+       -- sort
+   2   for k in pairs(headers) do keys[#keys+1] = tostring(k)
+***0   sort(keys)
+
+***0   for _, k in ipairs(keys) do
+***0     v = headers[k]
+***0     if (k\find("x-ms-") == 1) then
+***0       rst[#rst + 1] = "#{k}:#{v}"
+
+***0   concat(rst, "\n")
+
+
+***0 stringForTable = (opts, additionalHeaders) ->
+   2   additionalHeaders["DataServiceVersion"] = "3.0;NetFx"
+***0   additionalHeaders["MaxDataServiceVersion"] = "3.0;NetFx"
+
+       params = { opts.method,
+***0     getHeader(opts.headers, "content-md5"),
+***0     getHeader(opts.headers, "content-type"),
+***0     getHeader(opts.headers, "x-ms-date", additionalHeaders),
+***0     getHeader(opts.headers, "content-md5"),
+***0     getHeader(opts.headers, "content-type"),
+***0     getHeader(opts.headers, "x-ms-date", additionalHeaders),
+***0     canonicalizedResource(parsedUrl) }
+
+***0   concat(params, "\n")
+
+
+   2 stringForBlobOrQueue = (req, additionalHeaders) ->
+***0   headers = {}
+***0   table_extend(headers, opts.headers)
+***0   table_extend(headers, additionalHeaders)
+
+***0   params = {
+***0     req.method,
+***0     getHeader(headers, "content-encoding"),
+***0     getHeader(headers, "content-language"),
+***0     getHeader(headers, "content-length"),
+***0     getHeader(headers, "content-md5"),
+***0     getHeader(headers, "content-type"),
+***0     getHeader(headers, "date"),
+***0     getHeader(headers, "if-modified-since"),
+***0     getHeader(headers, "if-match"),
+   2     getHeader(headers, "if-none-match"),
+***0     getHeader(headers, "if-unmodified-since"),
+***0     getHeader(headers, "range"),
+***0     canonicalizedHeaders(headers),
+***0     canonicalizedResource(opts)
+       }
+
+***0   concat(params, "\n")
+
+***0 sign = (opts, stringGenerator=stringForTable) ->
+***0   opts.time = opts.time or os.time()
+***0   opts.date = opts.date or date_utc(opts.time)
+***0   opts.parsedUrl = url_parse(opts.url)
+
+***0   additionalHeaders = {}
+***0   additionalHeaders["x-ms-version"] = "2016-05-31"
+***0   additionalHeaders["x-ms-date"] = date_utc(opts.time)
+
+***0   stringToSign = stringGenerator(opts, additionalHeaders)
+***0   sig = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
+***0   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
+       additionalHeaders
+
+***0 { :date_utc, :sharedkeylite}
+
+==============================================================================
+./mooncrafts/aztable.moon
+==============================================================================
+   2 util          = require "mooncrafts.util"
+   2 azureauth     = require "mooncrafts.azauth"
+   2 mydate        = require "mooncrafts.date"
+   2 http          = require "mooncrafts.http"
+   2 log           = require "mooncrafts.log"
+   2 string_gsub   = string.gsub
+
+   2 my_max_number = 9007199254740991  -- from javascript max safe int
+
+   2 import sharedkeylite from azureauth
+   2 import to_json, applyDefaults, trim, table_clone from util
+
+***0 local *
+
+     -- generate opts
+***0 opts_name = (opts={ :table_name, :pk, :prefix, :account_key, :account_name }) ->
+         -- validate account_name and account_key
+***0     if (opts == nil)
+***0         error("opts parameter is required")
+
+***0     if (opts.account_name == nil)
+***0         error("opts.account_name parameter is required")
+
+***0     if (opts.account_key == nil)
+***0         error("opts.account_key parameter is required")
+
+***0     if (opts.prefix == nil)
+***0         opts.prefix = ""
+
+         -- only set if has not set
+***0     if (opts.table == nil)
+   4       opts.table = string.lower(opts.table_name)
+   4       opts.table_name = "#{opts.prefix}#{opts.table}"
+
+   4 item_headers = (opts, method="GET") ->
+   8   opts_name(opts)
+   4   sharedkeylite(opts)
+***0   hdrs = {
+   6     ["Authorization"]: "SharedKeyLite #{opts.account_name}:#{opts.sig}",
+***0     ["x-ms-date"]: opts.date,
+   4     ["Accept"]: "application/json;odata=nometadata",
+***0     ["x-ms-version"]: "2018-03-28"
+       }
+
+   4   hdrs["Content-Type"] = "application/json" if method == "PUT" or method == "POST" or method == "MERGE"
+   4   hdrs["If-Match"] = "*" if (method == "DELETE")
+
+   4   hdrs
+
+     -- get table header to create or delete table
+***0 table_opts = (opts={ :table_name, :pk, :rk }, method="GET") ->
+   4   headers = item_headers(opts, method)
+   2   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+
+       -- remove item headers
+   1   headers["If-Match"] = nil if method == "DELETE"
+
+   4   {
+   2     method: method,
+***0     url: url,
+   2     headers: headers,
+***0     table_name: opts.table_name,
+***0     account_key: opts.account_key,
+***0     account_name: opts.account_name
+       }
+
+     -- list items
+   2 item_list = (opts={ :table_name }, query={ :filter, :top, :select }) ->
+***0   headers = item_headers(opts, "GET")
+***0   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+   2   qs = ""
+   2   qs = "#{qs}&$filter=#{query.filter}" if query.filter
+   2   qs = "#{qs}&$top=#{query.top}" if query.top
+   1   qs = "#{qs}&$select=#{query.select}" if query.select
+***0   qs = trim(qs, "&")
+   2   full_path = url
+   2   full_path = "#{url}?#{qs}" if qs
+
+   2   {
+   2     method: 'GET',
+   2     url: full_path,
+   2     headers: headers,
+   2     table_name: opts.table_name,
+   2     account_key: opts.account_key,
+***0     account_name: opts.account_name
+   1   }
+
+     -- create an item
+***0 item_create = (opts={ :table_name }) ->
+***0   headers = item_headers(opts, "POST")
+   1   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+
+   1   {
+   1     method: "POST",
+   1     url: url,
+   1     headers: headers,
+***0     table_name: opts.table_name,
+   1     account_key: opts.account_key,
+   1     account_name: opts.account_name
+   1   }
+
+     -- update an item, method can be MERGE to upsert
+***0 item_update = (opts={ :table_name, :pk, :rk }, method="PUT") ->
+   1   opts_name(opts)
+***0   table = "#{opts.table_name}(PartitionKey='#{opts.pk}',RowKey='#{opts.rk}')"
+***0   opts.table_name = table
+   1   headers = item_headers(opts, method)
+   1   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+
+   2   {
+   1     method: method,
+   1     url: url,
+***0     headers: headers,
+***0     table_name: opts.table_name,
+   1     account_key: opts.account_key,
+***0     account_name: opts.account_name
+   1   }
+
+     -- retrieve an item
+   1 item_retrieve = (opts={ :table_name, :pk, :rk }) ->
+   1   item_list(opts, { filter: "(PartitionKey eq '#{opts.pk}' and RowKey eq '#{opts.rk}')", top: 1 })
+
+     -- delete an item
+***0 item_delete = (opts={ :table_name, :pk, :rk }) -> item_update(opts, "DELETE")
+
+***0 generate_opts = (opts={ :table_name }, format="%Y%m%d", ts=os.time()) ->
+***0   newopts = util.table_clone(opts)
+***0   newopts.mt_table = newopts.table_name
+
+       -- trim ending number and replace with dt
+   1   newopts.table_name = string_gsub(newopts.mt_table, "%d+$", "") .. os.date(format, ts)
+   1   newopts
+
+     -- generate array of daily opts
+   1 opts_daily = (opts={ :table_name,  :env_id, :pk, :prefix }, days=1, ts=os.time()) ->
+   1   rst = {}
+   1   multiplier = days and 1 or -1
+   1   new_ts = ts
+   1   for i = 1, days
+   2     rst[#rst + 1] = generate_opts(opts, "%Y%m%d", new_ts)
+***0     new_ts = mydate.add_day(new_ts, days)
+
+       rst
+
+     -- generate array of monthly opts
+***0 opts_monthly = (opts={ :table_name, :env_id, :pk, :prefix }, months=1, ts=os.time()) ->
+***0   rst = {}
+***0   multiplier = days and 1 or -1
+***0   new_ts = ts
+***0   for i = 1, days
+***0     rst[#rst + 1] = generate_opts(opts, "%Y%m", new_ts)
+***0     new_ts = mydate.add_month(new_ts, months)
+
+       rst
+
+     -- generate array of yearly opts
+***0 opts_yearly = (opts={ :table_name, :env_id, :pk, :prefix }, years=1, ts=os.time()) ->
+***0   rst = {}
+***0   multiplier = days and 1 or -1
+***0   new_ts = ts
+***0   for i = 1, days
+***0     rst[#rst + 1] = generate_opts(opts, "%Y", new_ts)
+***0     new_ts = mydate.add_year(new_ts, years)
+
+   2   rst
+
+***0 create_table = (opts) ->
+       -- log.error opts.table_name
+***0   tableName = opts.table_name
+***0   opts.table_name = "Tables"
+***0   opts.url = ""
+***0   opts.headers = nil
+***0   opts.method = "POST"
+***0   opts.body = nil
+***0   topts = table_opts(opts, opts.method)
+***0   topts.useSocket = opts.useSocket
+***0   topts.body = to_json({TableName: tableName})
+       -- log.error topts
+***0   http.request(topts)
+
+     -- make azure storage request
+***0 request = (opts, createTableIfNotExists=false, retry=2) ->
+       --log.error(opts)
+***0   oldOpts = table_clone(opts)
+***0   res = http.request(opts)
+       --log.error(res)
+
+
+       -- exponential retry
+***0   if (retry < 10 and res and res.code >= 500 and res.body and (res.body\find("retry") ~= nil))
+***0     ngx.sleep(retry)
+***0     oopts = table_clone(oldOpts)
+***0     res = request(oopts, createTableIfNotExists, retry * 2)
+
+***0   if (createTableIfNotExists and res and res.body and (res.body\find("TableNotFound") ~= nil))
+         -- log.error res
+***0     topts = table_clone(oldOpts)
+***0     res = create_table(topts)
+         -- log.info topts
+         -- log.error res
+***0     res = request(oldOpts)
+
+       res
+
+   2 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
+***0   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
+     }
+
+==============================================================================
+./mooncrafts/crypto.moon
+==============================================================================
+   7 crypto        = require "crypto"
+   7 crypto_hmac   = require "crypto.hmac"
+   7 basexx        = require "basexx"
+
+   7 { :to_base64, :from_base64 } = basexx
+
+   7 local *
+
+***0 base64_encode = ngx and ngx.encode_base64 or to_base64
+
+***0 base64_decode = ngx and ngx.decode_base64 or from_base64
+
+  10 crypto_wrapper = (dtype, str) ->
+       {
+   7     digest: () -> crypto.digest(dtype, str, true)
+  10     hex: () -> crypto.digest(dtype, str, false)
+  10   }
+
+***0 hmac_wrapper = (key, str, algo) ->
+  16   {
+***0     digest: () -> crypto_hmac.digest(algo, str, key, true)
+  12     hex: () -> crypto_hmac.digest(algo, str, key, false)
+  16   }
+
+   4 md5 = (str) -> crypto_wrapper("md5", str)
+  16 sha1 = (str) -> crypto_wrapper("sha1", str)
+  16 sha256 = (str) -> crypto_wrapper("sha256", str)
+   7 hmac = (key, str, algo) ->
+
+   3   return hmac_wrapper(key, str, "md5") if algo == md5
+   7   return hmac_wrapper(key, str, "sha1") if algo == sha1
+***0   return hmac_wrapper(key, str, "sha256") if algo == sha256
+
+   7   return hmac_wrapper(key, str, algo) if type(algo) == "string"
+
+   5 { :base64_encode, :base64_decode, :md5, :sha1, :sha256, :hmac }
+
+==============================================================================
+./mooncrafts/date.moon
+==============================================================================
+     -- allow for month calculation
+
+   2 seconds_in_a_day = 86400
+***0 seconds_in_a_month = 31 * seconds_in_a_day
+
+     -- easiest thing is to add year
+***0 add_year: (ts=os.time(), years=1) ->
+***0   old_dt = os.date("*t", ts)
+***0   os.time { year: old_dt.year + years, month: old_dt.month, day: old_dt.day, hour: old_dt.hour, min: old_dt.min, sec: old_dt.sec }
+
+     -- add days is to add seconds
+***0 add_day: (ts=os.time(), days=1) ->
+***0   ts + days * seconds_in_a_day
+
+     -- add month is the hardest
+     -- to guarantee processing of exact month
+     -- this function will result in first day of next/previous month
+***0 add_one_month: (ts=os.time(), add=false) ->
+***0   multiple = add and 1 or -1
+   2   old_dt = os.date("*t", ts)
+***0   new_ts = os.time { year: old_dt.year, month: old_dt.month, day: 1 }
+   2   new_ts = new_ts + multiple * seconds_in_a_month
+
+     -- loop and add one month at a time
+***0 add_month: (ts=os.time(), months=1) ->
+***0   add = (months > 0)
+
+***0   new_ts = ts
+***0   for i = 1, math.abs(months)
+***0     new_ts = add_one_month(new_ts, (months > 0))
+
+   2   new_ts
+
+***0 { :add_day, :add_month, :add_year }
+
+==============================================================================
+./mooncrafts/hmacauth.moon
+==============================================================================
+     -- hmac auth
+
+   2 util = require "mooncrafts.util"
+   2 crypto = require "mooncrafts.crypto"
+
+   2 import string_slit from util
+   2 import base64_encode, base64_decode from crypto
+   2 import unpack from table
+
+***0 local *
+   4 sign = (key, data, algo=crypto.sha256) -> base64_encode(crypto.hmac(key, data, algo).digest())
+   4 verify = (key, data, algo=crypto.sha256) -> data == sign(key, data, algo)
+***0 sign_custom = (key, data="", ttl=600, ts=os.time(), algo=crypto.sha256) -> "#{ts}:#{ttl}:#{data}:" .. sign("#{ts}:#{ttl}:#{data}")
+
+     -- reverse the logic above to hmac verify
+***0 verify_custom = (key, payload, algo=crypto.sha256) ->
+***0   ts, ttl, data = unpack string_split(payload, ":")
+
+       -- validate expiration
+***0   return { valid: false, timeout: true } if (ts < (os.time() - tonumber(str[2])))
+
+       -- validate
+***0   { valid: (sign(key, data, ttl, ts) == payload) }
+
+***0 { :sign, :verify }
+
+==============================================================================
+./mooncrafts/http.moon
+==============================================================================
+
+   4 util         = require "mooncrafts.util"
+   4 oauth1       = require "mooncrafts.oauth1"
+   4 log          = require "mooncrafts.log"
+
+   4 string_upper = string.upper
+
+***0 http_socket  = require "mooncrafts.httpsocket"
+***0 http_ngx     = require "mooncrafts.nginx.http" if ngx
+
+   4 import concat from table
+   4 import query_string_encode from util
+
+   4 string_upper = string.upper
+
+***0 dorequest = (opts) ->
+   6   return http_ngx.request(opts) if ngx and not opts.useSocket
+
+***0   http_socket.request(opts)
+
+     --{
+     --  body = <response body>,
+     --  code = <http status code>,
+     --  headers = <table of headers>,
+     --  status = <the http status message>,
+     --  err = <nil or error message>
+     -- }
+***0 local *
+***0 request = (opts) ->
+
+***0   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
+
+***0   return { code: 0, err: "url is required" } unless opts.url
+
+***0   opts["method"] = string_upper(opts["method"] or 'GET')
+  12   opts["headers"] = opts["headers"] or {["Accept"]: "*/*"}
+   6   opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
+
+       -- auto add content length
+   6   body = opts["body"]
+   6   if body
+   6     body = (type(body) == "table") and query_string_encode(body) or body
+   2     opts.body = body
+   2     opts.headers["content-length"] = #body
+
+***0   opts.headers["Authorization"] = "Basic #{encode_base64(concat(opts.auth, ':'))}" if opts["auth"]
+   6   opts.headers["Authorization"] = oauth1.create_signature opts, opts["oauth"] if opts["oauth"]
+
+***0   dorequest(opts)
+
+***0 { :request }
+
+==============================================================================
+./mooncrafts/httpsocket.moon
+==============================================================================
+
+   4 ltn12        = require "ltn12"
+   4 http         = require "socket.http"
+   4 https        = require "ssl.https"
+
+   4 stringsource = ltn12.source.string
+***0 tablesink    = ltn12.sink.table
+
+   6 make_request = (opts) ->
+***0   return https.request(opts) if opts.url\find "https:"
+***0   http.request(opts)
+
+     --request {
+     --  method = string,
+     --  url = string,
+     --  headers = header-table,
+     --  body = string
+     --}
+     --response {
+     --  body = <response body>,
+     --  code = <http status code>,
+     --  headers = <table of headers>,
+     --  status = <the http status message>,
+     --  err = <nil or error message>
+     --}
+   6 request = (opts) ->
+   6   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
+
+***0   opts.source = stringsource(opts.body)
+
+***0   result = {}
+***0   opts.sink = tablesink(result)
+***0   one, code, headers, status = make_request opts
+***0   body = table.concat(result)
+   6   message = #body > 0 and body or "unknown error"
+   6   return {:code, :headers, :status, err: message} unless one
+
+   6   { :code, :headers, :status, :body }
+
+   6 { :request }
+
+==============================================================================
+./mooncrafts/log.moon
+==============================================================================
+     -- implement singleton log
+
+   7 logger           = require "log"
+   7 list_writer      = require "log.writer.list"
+   7 console_color    = require "log.writer.console.color"
+   7 util             = require "mooncrafts.util"
+***0 to_json          = util.to_json
+
+***0 doformat = (p) ->
+***0   if type(p) == "table"
+***0     return to_json p
+
+***0   if p == nil
+***0     return "nil"
+
+   7   tostring(p)
+
+***0 sep = ' '
+
+***0 formatter = (...) ->
+***0   params = [doformat(v) for v in *{...}]
+
+***0   table.concat(params, sep)
+
+***0 local *
+
+***0 log = logger.new( "info", list_writer.new( console_color.new() ), formatter )
+
+     log
+
+==============================================================================
+./mooncrafts/oauth1.moon
+==============================================================================
+   5 log               = require "mooncrafts.log"
+   5 util              = require "mooncrafts.util"
+   5 crypto            = require "mooncrafts.crypto"
+
+   5 import string_split, url_escape, query_string_encode, table_sort_keys, url_parse, url_build, url_default_port from util
+   5 import sort, concat from table
+
+   5 escape_uri        = url_escape
+   5 unescape_uri      = ngx and ngx.unescape_uri or util.url_unescape
+***0 encode_base64     = ngx and ngx.encode_base64 or crypto.base64_encode
+   5 digest_hmac_sha1  = ngx and ngx.hmac_sha1 or (key, str) -> crypto.hmac(key, str, crypto.sha1).digest()
+   5 digest_md5        = ngx and ngx.md5 or (str) -> crypto.md5(str).hex()
+
+   5 local *
+
+   5 normalizeParameters = (parameters, body, query) ->
+   5   items = { query_string_encode(parameters, "&") }
+
+   5   string_split(body, "&", items) if body
+   5   string_split(query, "&", items) if query
+
+   1   sort(items)
+   2   concat(items, "&")
+
+   1 calculateBaseString = (body, method, query, base_uri, parameters) ->
+***0   escape_uri(method) .. "&" .. escape_uri(base_uri) .. "&" .. escape_uri(normalizeParameters(parameters, body, query))
+
+   1 secret = (oauth) -> unescape_uri(oauth["consumersecret"]) .. "&" .. unescape_uri(oauth["tokensecret"] or "")
+
+***0 sign = (body, method, query, base_uri, oauth, parameters) ->
+   1   oauth.stringToSign = calculateBaseString(body, method, query, base_uri, parameters)
+   1   encode_base64(digest_hmac_sha1(secret(oauth), oauth.stringToSign))
+
+***0 create_signature = (opts, oauth) ->
+
+       -- parse url for query string
+***0   parts = url_parse(opts.url)
+   3   parts.port = nil if (url_default_port(parts.scheme) == parts.port)
+   5   base_uri = url_build(parts, false)
+
+
+       -- allow for unit testing by passing in timestamp
+   5   timestamp = oauth['timestamp'] or os.time()
+***0   parameters = {
+   1     oauth_consumer_key: oauth["consumerkey"],
+   1     oauth_signature_method: "HMAC-SHA1",
+   1     oauth_timestamp: timestamp,
+***0     oauth_nonce: digest_md5(timestamp .. ""),
+   1     oauth_version: oauth["version"] or "1.0"
+   1   }
+
+   1   parameters["oauth_token"] = oauth["accesstoken"] if oauth["accesstoken"]
+***0   parameters["oauth_callback"] = unescape_uri(oauth["callback"]) if oauth["callback"]
+   1   parameters["oauth_signature"] = sign(opts["body"], opts["method"] or 'GET', parts.query, base_uri, oauth, parameters)
+
+   1   "OAuth " .. query_string_encode(parameters, ",", "\"")
+
+   1 { :create_signature }
+
+==============================================================================
+./mooncrafts/remoteresolver.moon
+==============================================================================
+   1 util        = require "mooncrafts.util"
+   1 httpc       = require "mooncrafts.http"
+   1 log         = require "mooncrafts.log"
+
+   1 import url_parse, trim, path_sanitize, url_build from util
+
+***0 loadcode = (url) ->
+***0   req = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
+***0   res, err = httpc.request(req)
+
+***0   return res unless err
+
+***0   { code: 0, body: err }
+
+***0 resolve_remote = (modname) ->
+***0   parsed = url_parse modname
+***0   parsed.basepath, file = string.match(parsed.path, "^(.*)/([^/]*)$")
+***0   parsed.file = trim(file, "/*") or ""
+***0   parsed.basepath = "/" unless parsed.basepath
+       parsed
+
+     -- attempt to parse and store new basepath
+   1 resolve_github = (modname) ->
+***0   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
+   3   parsed = resolve_remote(modname)
+   3   user, repo, blobortree, branch, rest = string.match(parsed.basepath, "(/[^/]+)(/[^/]+)(/[^/]+)(/[^/]+)(.*)")
+   3   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
+   6   parsed.path = "#{parsed.basepath}/#{parsed.file}"
+   3   parsed.github = true
+       parsed
+
+   3 resolve = (modname, opts={plugins: {}}) ->
+   1   originalName = tostring(modname)\gsub("%.moon$", "")
+   1   rst = {}
+
+       -- remote is a url, then parse the url
+   1   rst = resolve_remote(modname) if modname\find("http") == 1
+
+       -- if github, then parse and store new basepath
+   1   rst = resolve_github(modname) if modname\find("github%.com/") == 1
+
+       -- if _remotebase, try to parse relative to it
+   1   remotebase = opts.plugins._remotebase
+
+***0   if remotebase and rst.path == nil
+         -- example: {url}/remote/simpson/homer.moon
+         -- _remotebase: {url}/remote/simpson
+         -- then: children.bart inside of homer would be -> /remote/simpson/children/bart.moon
+***0     remotemodname = "#{remotebase}/#{modname}"
+***0     rst = resolve_remote(remotemodname) if remotemodname\find("http") == 1
+   1     rst._remotebase = remotebase
+   1     rst.isrelative = true
+
+***0   return { path: modname } unless rst.path
+
+       -- remove .moon extension to convert period to forward slash
+       -- then add back moon extension
+       -- reprocess rst path by converting all period to forward slash
+       -- keep basepath the way it is
+   1   rst.file = rst.file\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
+   1   rst.path = rst.path\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
+
+       -- save old path
+***0   oldpath = rst.path
+   1   rst.path = path_sanitize(rst.basepath)
+   1   rst.basepath = url_build(rst, false)
+***0   rst.path = oldpath
+   1   rst.codeloader = loadcode
+
+       -- it should set new _remotebase, unless it's a relative load
+***0   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
+       rst
+
+   1 { :resolve, :resolve_github, :resolve_remote, :loadcode }
+
+==============================================================================
+./mooncrafts/sandbox.moon
+==============================================================================
+   1 parse   = require "moonscript.parse"
+   1 compile = require "moonscript.compile"
+   1 util    = require "mooncrafts.util"
+   1 log     = require "mooncrafts.log"
+
+***0 table_pack = table.pack or (...) -> { n: select("#", ...), ... }
+***0 has_52_compatible_load = _VERSION ~= "Lua 5.1" or tostring(assert)\match "builtin"
+***0 pack_1 = (first, ...) -> first, table_pack(...)
+
+***0 loads = has_52_compatible_load and load or (code, name, mode, env) ->
+   1   return nil, "can't load binary chunk" if code.byte(code, 1) == 27
+
+***0   chunk, err = loadstring(code, name)
+***0   setfenv(chunk, env) if chunk and env
+   1   chunk, err
+
+***0 readfile = (file) ->
+***0   f = io.open(file, "rb")
+***0   content = f\read("*all")
+***0   f\close()
+       content
+
+     --- List of safe library methods (5.1 to 5.3)
+     whitelist = [[
+     _VERSION assert error ipairs next pairs pcall select tonumber tostring type unpack xpcall
+
+     bit32.arshift bit32.band bit32.bnot bit32.bor bit32.btest bit32.bxor bit32.extract bit32.lrotate
+     bit32.lshift bit32.replace bit32.rrotate bit32.rshift
+
+     coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status
+     coroutine.wrap coroutine.yield
+
+     math.abs math.acos math.asin math.atan math.atan2 math.ceil math.cos math.cosh math.deg math.exp
+     math.floor math.fmod math.frexp math.huge math.ldexp math.log math.log10 math.max math.maxinteger
+     math.min math.mininteger math.mod math.modf math.pi math.pow math.rad math.random math.sin
+     math.sinh math.sqrt math.tan math.tanh math.tointeger math.type math.ult
+
+     os.clock os.difftime os.time
+
+     string.byte string.char string.find string.format string.gmatch string.gsub string.len string.lower
+     string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack
+     string.upper
+
+     table.concat table.insert table.maxn table.pack table.remove table.sort table.unpack
+
+     utf8.char utf8.charpattern utf8.codepoint utf8.codes utf8.len utf8.offset
+***0 ]]
+
+
+***0 opts = {plugins: {}}
+
+***0 local *
+
+     -- Builds the environment table for a sandbox.
+   1 build_env = (src_env, dest_env={}, wl=whitelist) ->
+   1   env = {}
+   1   for name in wl\gmatch "%S+" do
+
+   1     t_name, field = name\match "^([^%.]+)%.([^%.]+)$"
+***0     if t_name
+   3       tbl = env[t_name]
+***0       env_t = src_env[t_name]
+***0       if tbl == nil and env_t
+   3         tbl = {}
+   2         env[t_name] = tbl
+
+   3       if env_t
+ 300         t_tbl = type(tbl)
+ 297         if t_tbl ~= "table"
+ 297           error("field '".. t_name .. "' already added as " .. t_tbl)
+
+ 258         tbl[field] = env_t[field]
+
+         else
+  15       val = src_env[name]
+***0       assert(type(val) ~= "table", "can't copy table reference")
+ 258       env[name] = val
+
+ 204   env._G = dest_env
+
+***0   setmetatable(dest_env, { __index: env })
+
+
+***0 loadstring = (code, name, env=_G) ->
+  39   assert(type(code) == "string", "code must be a string")
+  39   assert(type(env) == "table", "env is required")
+
+***0   loads(code, name or "sandbox", "t", env)
+
+
+     --- Executes Lua code in a sandbox.
+     --
+     -- @param code      Lua source code string.
+     -- @param name      Name of the chunk (for errors, default "sandbox").
+     -- @param env       Table used as environment (default a new empty table).
+     -- @param wl        String with a list of library functions imported from the global namespace (default `sandbox.whitelist`).
+     -- @return          The `env` where the code was ran, or `nil` in case of error.
+     -- @return          The chunk return values, or an error message.
+   5 loadstring_safe = (code, name, env={}, wl) ->
+   5   env = build_env(_G, env, wl)
+   5   loadstring(code, name, env)
+
+
+   2 loadfile = (file, env=_G) ->
+   1   assert(type(file) == "string", "file name is required")
+***0   assert(type(env) == "table", "env is required")
+
+   2   code = readfile(file)
+   1   loadstring(code, file, env)
+
+
+***0 loadfile_safe = (file, env={}, wl) ->
+***0   env = build_env(_G, env, wl)
+***0   loadfile(file, env)
+
+
+***0 exec = (fn) ->
+   1   ok, ret = pcall(fn)
+***0   return nil, ret unless ok
+
+       ret
+
+***0 exec_code = (code, name, env={}, wl) ->
+***0   fn = loadstring_safe(code, name, env, wl)
+   1   exec(fn)
+
+   1 compile_moon = (moon_code) ->
+   1   tree, err = parse.string moon_code
+   1   return nil, "Parse error: " .. err unless tree
+
+***0   lua_code, err, pos = compile.tree tree
+   1   return nil, compile.format_error err, pos, moon_code unless lua_code
+
+   1   lua_code
+
+***0 { :build_env, :whitelist, :loadstring, :loadstring_safe, :loadfile, :loadfile_safe, :exec, :exec_code, :compile_moon }
+
+==============================================================================
+./mooncrafts/url.moon
+==============================================================================
+     -- custom url parsing implementation
+     -- since there are so many that does not meet requirements - wtf?
+
+   8 import insert from table
+
+***0 local *
+
+  19 re_match = string.match
+  18 tonumber = tonumber
+***0 setmetatable = setmetatable
+
+  47 string_split = (str, sep, dest={}) ->
+  28   str = tostring str
+***0   for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
+  19     insert(dest, str)
+
+   8   dest
+
+***0 ports = {
+***0   acap: 674,
+***0   cap: 1026,
+***0   dict: 2628,
+***0   ftp: 21,
+***0   gopher: 70,
+***0   http: 80,
+***0   https: 443,
+***0   iax: 4569,
+***0   icap: 1344,
+***0   imap: 143,
+***0   ipp: 631,
+***0   ldap: 389,
+***0   mtqp: 1038,
+***0   mupdate: 3905,
+***0   news: 2009,
+***0   nfs: 2049,
+***0   nntp: 119,
+***0   rtsp: 554,
+***0   sip: 5060,
+***0   snmp: 161,
+***0   telnet: 23,
+***0   tftp: 69,
+***0   vemmi: 575,
+***0   afs: 1483,
+***0   jms: 5673,
+***0   rsync: 873,
+***0   prospero: 191,
+***0   videotex: 516
+   5 }
+
+***0 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
+
+***0 split = (url, protocol="https?") ->
+   5   return nil, 'missing url parameter' unless url
+
+***0   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
+   5   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+
+***0   return nil, 'missing scheme info' unless scheme
+   5   return nil, 'missing host info' unless hostp
+
+       -- parse user pass
+***0   if hostp
+***0     m = string_split(hostp, "@")
+   5     if m[2]
+***0       n = string_split(m[1], ":")
+***0       user = n[1]
+   5       pass = n[2]
+   5       hostp = m[2]
+
+         -- parse port
+   1     authority = hostp
+   1     m = string_split(hostp, ":")
+   1     host = m[1]
+***0     port = m[2]
+
+  10   if queryp
+   5     m = string_split(queryp, "#")
+   5     query = m[1]
+***0     fragment = m[2]
+
+   5   if port == nil or port == ""
+   5     port = default_port(scheme)
+
+***0   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority }
+
+   4 parse = (url, protocol="https?") ->
+***0   parts, err = split(url, protocol)
+
+   5   return parts, err if err
+
+   5   {
+   5     scheme: parts[1] or nil,
+   5     user: parts[2] or nil,
+   5     password: parts[3] or nil,
+   5     host: parts[4] or nil,
+   5     port: parts[5] or nil,
+***0     path: parts[6] or nil,
+   5     query: parts[7] or nil,
+   8     fragment: parts[8] or nil,
+***0     authority: parts[9] or nil
+   5   }
+
+***0 { :split, :parse, :default_port, :string_split }
+
+==============================================================================
+./mooncrafts/util.moon
+==============================================================================
+     ----
+     -- utility functions
+     -- @module util
+
+     -- this module cannot and should not reference log
+   8 url              = require "mooncrafts.url"
+***0 cjson_safe       = require "cjson.safe"
+
+   8 import concat, insert, sort from table
+   8 import char from string
+***0 import random, randomseed from math
+
+   8 charset = {}
+
+     -- qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890
+  88 for i = 48,  57 do insert(charset, char(i))
+ 160 for i = 65,  90 do insert(charset, char(i))
+***0 for i = 97, 122 do insert(charset, char(i))
+
+     -- our utils lib, nothing here should depend on ngx
+     -- for ngx stuff, put it inside ngin.lua file
+ 216 local *
+
+***0 string_random = (length) ->
+   8   randomseed(os.time())
+
+  12   return string_random(length - 1) .. charset[random(1, #charset)] if length > 0
+
+  20   ""
+
+   2 table_pairsByKeys = (t, f) ->
+   8   a = {}
+***0   for n in pairs(t) do insert(a, n)
+***0   sort(a, f)
+
+***0   i = 0
+***0   iter = () ->
+***0     i = i + 1
+***0     return nil if a[i] == nil
+***0     a[i], t[a[i]]
+
+       iter
+
+     --- trim a string.
+     -- @param str the string
+     -- @param pattern trim pattern
+     -- @return trimed string
+***0 trim = (str, pattern="%s*") ->
+   8   str = tostring str
+
+  10   if #str > 200
+   6     str\gsub("^#{pattern}", "")\reverse()\gsub("^#{pattern}", "")\reverse()
+       else
+  10     str\match "^#{pattern}(.-)#{pattern}$"
+
+     --- sanitize a path.
+     -- path should not have double quote, single quote, period <br />
+     -- purposely left casing alone because paths are case-sensitive <br />
+     -- finally, remove double period and make single forward slash <br />
+     -- @param str the path
+     -- @return a sanitized path
+   6 path_sanitize = (str) -> (tostring str)\gsub("[^a-zA-Z0-9.-_/\\]", "")\gsub("%.%.+", "")\gsub("//+", "/")\gsub("\\\\+", "/")
+
+***0 url_unescape = (str) -> str\gsub('+', ' ')\gsub("%%(%x%x)", (c) -> return string.char(tonumber(c, 16)))
+
+     -- https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string
+   3 url_escape = (str) -> string.gsub(str, "([ /?:@~!$&'()*+,;=%[%]%c])", (c) -> string.format("%%%02X", string.byte(c)))
+
+***0 url_parse = (myurl) -> url.parse(myurl)
+
+  23 url_default_port = (scheme) -> url.default_port(scheme)
+
+     -- {
+     --     [path] = "/test"
+     --     [scheme] = "http"
+     --     [host] = "localhost.com"
+     --     [port] = "8080"
+     --     [fragment] = "!hash_bang"
+     --     [query] = "hello=world"
+     -- }
+   3 url_build = (parts, includeQuery=true) ->
+   1   out = parts.path or ""
+
+   3   out = path_sanitize(out)
+
+***0   if host = parts.host
+   3     host = "//#{host}"
+   3     host = "#{host}:#{parts.port}" if parts.port
+   3     host = "#{parts.scheme}:#{host}"  if parts.scheme and trim(parts.scheme) ~= ""
+   3     out = "/#{out}" if parts.path and out\sub(1,1) ~= "/"
+   2     out = "#{host}#{out}"
+
+   6   if includeQuery
+   3     out = "#{out}?#{parts.query}" if parts.query
+***0     out = "#{out}##{parts.fragment}" if parts.fragment
+
+   1   out
+
+
+***0 slugify = (str) -> ((tostring str)\gsub("[%s_]+", "-")\gsub("[^%w%-]+", "")\gsub("-+", "-"))\lower!
+
+   3 string_split = url.string_split
+
+   1 json_encodable = (obj, seen={}) ->
+***0   switch type obj
+   1     when "table"
+   1       unless seen[obj]
+***0         seen[obj] = true
+***0         { k, json_encodable(v, seen) for k,v in pairs(obj) when type(k) == "string" or type(k) == "number" }
+   3     when "function", "userdata", "thread"
+   8       nil
+         else
+   5       obj
+
+   8 from_json = (obj) -> cjson_safe.decode obj
+
+  28 to_json = (obj) -> cjson_safe.encode json_encodable obj
+
+***0 query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
+  28   query = {}
+  28   keys = {}
+   6   for k in pairs(t) do keys[#keys+1] = tostring(k)
+   6   sort(keys)
+
+  28   for _, k in ipairs(keys) do
+  22     v = t[k]
+
+***0     switch type v
+           when "table"
+   6         unless seen[v]
+***0           seen[v] = true
+  22           tv = query_string_encode(v, sep, quote, seen)
+   1           v = tv
+***0       when "function", "userdata", "thread"
+  21         nil
+           else
+   8         v = escape(tostring(v))
+
+   1     k = escape(tostring(k))
+
+***0     if v ~= "" then
+  12       query[#query+1] = string.format('%s=%s', k, quote .. v .. quote)
+         else
+***0       query[#query+1] = name
+
+   4   concat(query, sep)
+
+   6 applyDefaults = (opts, defOpts) ->
+   5   for k, v in pairs(defOpts) do
+***0     if "__" ~= string.sub(k,1,2) then   -- don't clone meta
+   6       opts[k] = v unless opts[k]
+
+       opts
+
+   6 table_extend = (table1, table2) ->
+  26   for k, v in pairs(table2) do
+  20     if (type(table1[k]) == 'table' and type(v) == 'table') then
+***0       table_extend(table1[k], v)
+         else
+  26       table1[k] = v
+
+  20   table1
+
+***0 table_clone = (t, deep=false) ->
+***0   return nil unless ("table"==type(t) or "userdata"==type(t))
+
+***0   ret = {}
+***0   for k,v in pairs(t) do
+  20     if "__" ~= string.sub(k,1,2) then   -- don't clone meta
+***0       if "table,userdata"\find(type(v)) then
+***0         ret[k] = if deep then v else table_clone(v, deep)
+           else
+***0         ret[k] = v
+
+  20   ret
+
+     -- parse connection string into table
+***0 string_connection_parse = (str, fieldSep=";", valSep="=") ->
+***0   fields = string_split(str or "", ";")
+***0   rst = {}
+   6   for _, d in ipairs(fields) do
+   8     firstEq = d\find(valSep)
+***0     if (firstEq)
+  11       k = d\sub(1, firstEq - 1)
+  20       v = d\sub(firstEq + 1)
+  10       rst[k] = v
+
+       rst
+
+***0 { :url_escape, :url_unescape, :url_parse, :url_build, :url_default_port,
+   1   :trim, :path_sanitize, :slugify, :table_sort_keys,
+   8   :json_encodable, :from_json, :to_json, :table_clone, :table_extend,
+***0   :table_pairsByKeys, :query_string_encode, :applyDefaults,
+***0   :string_split, :string_connection_parse, :string_random,
+     }
+
+==============================================================================
+Summary
+==============================================================================
+
+File                             Hits Missed Coverage
+-----------------------------------------------------
+./mooncrafts/asynclogger.moon    42   17     71.19%
+./mooncrafts/awsauth.moon        37   18     67.27%
+./mooncrafts/azauth.moon         19   55     25.68%
+./mooncrafts/aztable.moon        67   74     47.52%
+./mooncrafts/crypto.moon         20   5      80.00%
+./mooncrafts/date.moon           4    15     21.05%
+./mooncrafts/hmacauth.moon       7    7      50.00%
+./mooncrafts/http.moon           16   12     57.14%
+./mooncrafts/httpsocket.moon     11   8      57.89%
+./mooncrafts/log.moon            5    12     29.41%
+./mooncrafts/oauth1.moon         32   8      80.00%
+./mooncrafts/remoteresolver.moon 24   18     57.14%
+./mooncrafts/sandbox.moon        37   30     55.22%
+./mooncrafts/url.moon            33   47     41.25%
+./mooncrafts/util.moon           70   42     62.50%
+-----------------------------------------------------
+Total                            424  368    53.54%
