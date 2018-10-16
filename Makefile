@@ -1,4 +1,4 @@
-VERSION          = 0.3.1
+VERSION          = 0.3.2
 OPENRESTY_PREFIX = /usr/local/openresty
 PREFIX          ?= /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include
@@ -41,5 +41,5 @@ doc:
 
 upload:
 	@rm -f *-0.**.rockspec*
-	@sed -e "s/git\-1/$(VERSION)\-1/g" mooncrafts-git-1.rockspec > mooncrafts-$(VERSION)-1.rockspec
+	@sed -e "s/master/$(VERSION)/g" mooncrafts-master-1.rockspec > mooncrafts-$(VERSION)-1.rockspec
 	@echo "luarocks upload mooncrafts-$(VERSION)-1.rockspec --api-key=?"
