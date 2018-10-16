@@ -1,7 +1,8 @@
 package = "mooncrafts"
 version = "git-1"
 source = {
-	url = "git://github.com/niiknow/mooncrafts.git"
+	url = "git://github.com/niiknow/mooncrafts.git",
+	tag = "git-1"
 }
 description = {
 	summary = "Network utilities (crafts) written in moonscript",

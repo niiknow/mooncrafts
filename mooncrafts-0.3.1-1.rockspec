@@ -2,7 +2,7 @@ package = "mooncrafts"
 version = "0.3.1-1"
 source = {
 	url = "git://github.com/niiknow/mooncrafts.git",
-	tag = "0.3.1"
+	tag = "0.3.1-1"
 }
 description = {
 	summary = "Network utilities (crafts) written in moonscript",

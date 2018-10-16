@@ -1,9 +1,9 @@
-OPENRESTY_PREFIX=/usr/local/openresty
-
-PREFIX ?=          /usr/local
+VERSION          = 0.3.1
+OPENRESTY_PREFIX = /usr/local/openresty
+PREFIX          ?= /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include
-LUA_LIB_DIR ?=     $(PREFIX)/lib/lua/$(LUA_VERSION)
-INSTALL ?= install
+LUA_LIB_DIR     ?= $(PREFIX)/lib/lua/$(LUA_VERSION)
+INSTALL         ?= install
 
 .PHONY: all install test build local global test-spec clean doc
 
@@ -38,3 +38,8 @@ init:
 
 doc:
 	cd lib && $(MAKE) doc
+
+upload:
+	@rm -f *-0.**.rockspec*
+	@sed -e "s/git\-1/$(VERSION)\-1/g" mooncrafts-git-1.rockspec > mooncrafts-$(VERSION)-1.rockspec
+	@echo "luarocks upload mooncrafts-$(VERSION)-1.rockspec --api-key=?"
