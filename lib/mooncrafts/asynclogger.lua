@@ -4,58 +4,60 @@ local util = require("mooncrafts.util")
 local log = require("mooncrafts.log")
 local from_json, to_json, table_clone
 from_json, to_json, table_clone = util.from_json, util.to_json, util.table_clone
-local BUFFER_COUNT, FLUSH_INTERVAL, AsyncLogger
+local BUFFER_COUNT, FLUSH_INTERVAL, myopts, dolog, AsyncLogger
 BUFFER_COUNT = 1
 FLUSH_INTERVAL = 0.01
+myopts = { }
+dolog = function(self, rsp)
+  local v = { }
+  local req = rsp.req
+  local logs = req.logs
+  req.logs = nil
+  local rk = (tostring(req.host) .. " " .. tostring(req.path)):gsub("/", "$")
+  local time = os.time()
+  local btime = os.date("%Y%m%d%H%m%S", time)
+  local rtime = 99999999999999 - btime
+  btime = os.date("%Y-%m-%d %H:%m:%S", time)
+  local rand = math.random(10, 1000)
+  local pk = tostring(rtime) .. "_" .. tostring(btime) .. " " .. tostring(rand)
+  btime = os.date("%Y%m", time)
+  local table_name = "log" .. tostring(btime)
+  local opts = azt.item_create({
+    tenant = "a",
+    table_name = table_name,
+    rk = rk,
+    pk = pk,
+    account_name = myopts.account_name,
+    account_key = myopts.account_key
+  })
+  v.RowKey = rk
+  v.PartitionKey = pk
+  v.host = req.host
+  v.path = req.path
+  v.time = req["end"] - req.start
+  v.req = to_json(req)
+  v.err = tostring(rsp.err)
+  v.code = rsp.code
+  v.status = rsp.status
+  v.headers = to_json(rsp.headers)
+  v.body = rsp.body
+  if (#logs > 0) then
+    v.logs = to_json(logs)
+  end
+  opts.body = to_json(v)
+  opts.useSocket = true
+  local res = azt.request(opts, true)
+  return res
+end
 do
   local _class_0
   local _base_0 = {
-    dolog = function(self, rsp)
-      local v = { }
-      local req = rsp.req
-      local logs = req.logs
-      req.logs = nil
-      local rk = (tostring(req.host) .. " " .. tostring(req.path)):gsub("/", "$")
-      local time = os.time()
-      local btime = os.date("%Y%m%d%H%m%S", time)
-      local rtime = 99999999999999 - btime
-      btime = os.date("%Y-%m-%d %H:%m:%S", time)
-      local rand = math.random(10, 1000)
-      local pk = tostring(rtime) .. "_" .. tostring(btime) .. " " .. tostring(rand)
-      btime = os.date("%Y%m", time)
-      local table_name = "log" .. tostring(btime)
-      local opts = azt.item_create({
-        tenant = "a",
-        table_name = table_name,
-        rk = rk,
-        pk = pk,
-        account_name = self.opts.account_name,
-        account_key = self.opts.account_key
-      })
-      v.RowKey = rk
-      v.PartitionKey = pk
-      v.host = req.host
-      v.path = req.path
-      v.time = req["end"] - req.start
-      v.req = to_json(req)
-      v.err = tostring(rsp.err)
-      v.code = rsp.code
-      v.status = rsp.status
-      v.headers = to_json(rsp.headers)
-      v.body = rsp.body
-      if (#logs > 0) then
-        v.logs = to_json(logs)
-      end
-      opts.body = to_json(v)
-      opts.useSocket = true
-      local res = azt.request(opts, true)
-      return res
-    end,
+    dolog = dolog,
     log = function(self, rsp)
       if (ngx) then
         local myrsp = table_clone(rsp)
         local delay = math.random(10, 100)
-        local ok, err = ngx.timer.at(delay / 1000, self.dolog, self, myrsp)
+        local ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
       end
     end
   }
@@ -74,7 +76,7 @@ do
       if (opts.account_key == nil) then
         error("opts.account_key parameter is required")
       end
-      self.opts = opts
+      myopts = opts
     end,
     __base = _base_0,
     __name = "AsyncLogger"

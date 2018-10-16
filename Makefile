@@ -1,4 +1,4 @@
-VERSION          = 0.3.2
+VERSION          = 0.3.3
 OPENRESTY_PREFIX = /usr/local/openresty
 PREFIX          ?= /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include
@@ -32,6 +32,7 @@ test:
 clean:
 	rm -rf doc/
 	rm -rf t/servroot/
+	cd lib && $(MAKE) clean
 
 init:
 	cd lib && $(MAKE) init

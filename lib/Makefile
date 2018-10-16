@@ -12,8 +12,6 @@ watch: build
 
 clean: build
 	rm $$(find ./ | grep \.lua$$)
-	rm -rf ./t/localhost
-	mkdir -p ./t/localhost
 
 init:
 	sudo luarocks install busted

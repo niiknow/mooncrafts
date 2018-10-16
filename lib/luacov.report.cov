@@ -10,7 +10,7 @@
 
    1 import from_json, to_json, table_clone from util
 
-***0 local *
+   1 local *
 
      -- number of items when flush
        -- currently set to 1 until we get azure bulk to work
@@ -20,69 +20,72 @@
        -- currently set to very low until we get azure bulk to work
    1 FLUSH_INTERVAL = 0.01
 
-   1 class AsyncLogger
-   1   new: (opts={:account_name, :account_key}) =>
-   1     if (opts.account_name == nil)
-   1         error("opts.account_name parameter is required")
+   1 myopts = {}
+
+   1 dolog = (rsp) =>
+   1   v = {}
+   1   req = rsp.req
+   2   logs = req.logs
+***0   req.logs= nil
+
+       -- replace illegal forward slash char
+   1   rk = "#{req.host} #{req.path}"\gsub("/", "$")
+   1   time = os.time()
+   1   btime = os.date("%Y%m%d%H%m%S",time)
+***0   rtime = 99999999999999 - btime
+   1   btime = os.date("%Y-%m-%d %H:%m:%S", time)
+   1   rand = math.random(10, 1000)
+   1   pk = "#{rtime}_#{btime} #{rand}"
+   1   btime = os.date("%Y%m", time)
+   1   table_name = "log#{btime}"
+
+   1   opts = azt.item_create({
+   1     tenant: "a",
+   1     table_name: table_name,
+   2     rk: rk,
+   1     pk: pk,
+   1     account_name: myopts.account_name,
+   2     account_key: myopts.account_key
+       })
+
+   1   v.RowKey = rk
+   1   v.PartitionKey = pk
+   1   v.host = req.host
+   1   v.path = req.path
+***0   v.time = req.end - req.start
+   1   v.req = to_json(req)
+   1   v.err = tostring(rsp.err)
+   1   v.code = rsp.code
+***0   v.status = rsp.status
+***0   v.headers = to_json(rsp.headers)
+***0   v.body = rsp.body
+
+***0   if (#logs > 0)
+***0     v.logs = to_json(logs)
+
+***0   opts.body = to_json(v)
+   1   opts.useSocket = true
+   2   res = azt.request(opts, true)
+       res
+
+     class AsyncLogger
+***0   new: (opts={:account_name, :account_key}) =>
+***0     if (opts.account_name == nil)
+***0         error("opts.account_name parameter is required")
 
    1     if (opts.account_key == nil)
-   1         error("opts.account_key parameter is required")
+***0         error("opts.account_key parameter is required")
 
-***0     @opts = opts
+   1     myopts = opts
 
-   1   dolog: (rsp) =>
-   1     v = {}
-   1     req = rsp.req
-   1     logs = req.logs
-***0     req.logs= nil
+***0   dolog: dolog
+   1   log: (rsp) =>
+   2     if (ngx)
+   1       myrsp = table_clone(rsp)
+***0       delay = math.random(10, 100)
+   1       ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
 
-         -- replace illegal forward slash char
-   1     rk = "#{req.host} #{req.path}"\gsub("/", "$")
-   1     time = os.time()
-   1     btime = os.date("%Y%m%d%H%m%S",time)
-   2     rtime = 99999999999999 - btime
-   1     btime = os.date("%Y-%m-%d %H:%m:%S", time)
-   1     rand = math.random(10, 1000)
-   1     pk = "#{rtime}_#{btime} #{rand}"
-   2     btime = os.date("%Y%m", time)
-   1     table_name = "log#{btime}"
-
-   2     opts = azt.item_create({
-***0       tenant: "a",
-   2       table_name: table_name,
-   1       rk: rk,
-   1       pk: pk,
-   1       account_name: @opts.account_name,
-   1       account_key: @opts.account_key
-         })
-
-***0     v.RowKey = rk
-***0     v.PartitionKey = pk
-***0     v.host = req.host
-***0     v.path = req.path
-   1     v.time = req.end - req.start
-***0     v.req = to_json(req)
-   1     v.err = tostring(rsp.err)
-   2     v.code = rsp.code
-***0     v.status = rsp.status
-   1     v.headers = to_json(rsp.headers)
-***0     v.body = rsp.body
-
-***0     if (#logs > 0)
-***0       v.logs = to_json(logs)
-
-   1     opts.body = to_json(v)
-***0     opts.useSocket = true
-***0     res = azt.request(opts, true)
-   1     res
-
-***0   log: (rsp) =>
-   1     if (ngx)
-   2       myrsp = table_clone(rsp)
-   1       delay = math.random(10, 100)
-***0       ok, err = ngx.timer.at(delay / 1000, @dolog, self, myrsp)
-
-   1 AsyncLogger
+     AsyncLogger
 
 ==============================================================================
 ./mooncrafts/awsauth.moon
@@ -1324,7 +1327,7 @@ Summary
 
 File                             Hits Missed Coverage
 -----------------------------------------------------
-./mooncrafts/asynclogger.moon    42   17     71.19%
+./mooncrafts/asynclogger.moon    43   15     74.14%
 ./mooncrafts/awsauth.moon        37   18     67.27%
 ./mooncrafts/azauth.moon         19   55     25.68%
 ./mooncrafts/aztable.moon        67   74     47.52%
@@ -1340,4 +1343,4 @@ File                             Hits Missed Coverage
 ./mooncrafts/url.moon            33   47     41.25%
 ./mooncrafts/util.moon           70   42     62.50%
 -----------------------------------------------------
-Total                            424  368    53.54%
+Total                            425  366    53.73%
