@@ -1,9 +1,11 @@
 -- custom url parsing implementation
 -- since there are so many that does not meet requirements - wtf?
 util = require "mooncrafts.util"
+log  = require "mooncrafts.log"
 
 import insert from table
 import url_unescape from util
+
 
 local *
 
@@ -14,6 +16,9 @@ string_split = util.string_split
 table_insert = table.insert
 string_sub   = string.sub
 trim         = util.trim
+url_escape   = util.url_escape
+string_join  = table.concat
+string_gsub  = string.gsub
 
 HTTPPHRASE = {
   [100]: "Continue",
@@ -98,6 +103,7 @@ split = (url, pathOnly=false) ->
   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
+
   if pathOnly
     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
   else
@@ -121,14 +127,17 @@ split = (url, pathOnly=false) ->
   else
     path, queryp = string.match(url, "([^?#]*)?*(.*)")
 
+  pathAndQuery = path
+
   if queryp
     m = string_split(queryp, "#")
     query = m[1]
     fragment = m[2]
+    pathAndQuery = path .. "?" .. queryp
 
   port = default_port(scheme)  if port == nil or port == ""
 
-  return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority }
+  return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority or nil, pathAndQuery }
 
 parse = (url, pathOnly=false) ->
   parts, err = split(url, pathOnly)
@@ -144,7 +153,8 @@ parse = (url, pathOnly=false) ->
     path: parts[6] or nil,
     query: parts[7] or nil,
     fragment: parts[8] or nil,
-    authority: parts[9] or nil
+    authority: parts[9] or nil,
+    pathAndQuery: parts[10] or nil
   }
 
 compile_pattern = (pattern) ->
@@ -195,6 +205,16 @@ match = (pattern, path) ->
 
   false, nil
 
+build = (dest, matches) ->
+  -- add spaces so we can do split and join
+  url = dest
+  -- split url by each params
+  for k, v in pairs(matches)
+    url = string_gsub(url, ":" .. k, v)
+
+  trim(url)
+
 { :HTTPPHRASE, :split, :parse, :default_port,
-  :compile_pattern, :match, :extract_parameters
+  :compile_pattern, :match, :extract_parameters,
+  :build
 }

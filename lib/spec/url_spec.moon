@@ -112,6 +112,7 @@ tests = {
       "password": "ho",
       "host": 'example.com',
       "path": '/hello/',
+      "pathAndQuery": '/hello/?cruel=world#yes',
       "port": '443',
       "query": 'cruel=world',
       "scheme": 'https'
@@ -125,9 +126,20 @@ tests = {
 
     {
       "fragment": 'yes',
-      "path": '/hello/'
+      "path": '/hello/',
+      "pathAndQuery": '/hello/?cruel=world#yes',
       "query": 'cruel=world'
     }
+  }
+
+  {
+    "compile, match, replace '/:foo.:bar'"
+    ->
+      rst = url.compile_pattern('/:foo.:bar')
+      match, params = url.match(rst, "/tom@example.com")
+      url.build('/hi/:bar.:foo', params)
+
+    "/hi/com.tom@example"
   }
 }
 

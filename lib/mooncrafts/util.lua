@@ -21,8 +21,9 @@ end
 for i = 97, 122 do
   insert(charset, char(i))
 end
-local string_sub, string_random, trim, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
+local string_sub, string_gmatch, string_random, trim, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
 string_sub = string.sub
+string_gmatch = string.gmatch
 string_random = function(length)
   randomseed(os.time())
   if length > 0 then
@@ -94,7 +95,7 @@ string_split = function(str, sep, dest)
     dest = { }
   end
   str = tostring(str)
-  for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
+  for str in string_gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
     insert(dest, str)
   end
   return dest

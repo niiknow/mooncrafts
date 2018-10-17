@@ -19,7 +19,8 @@ for i = 97, 122 do insert(charset, char(i))
 -- our utils lib, nothing here should depend on ngx
 -- for ngx stuff, put it inside ngin.lua file
 local *
-string_sub = string.sub
+string_sub    = string.sub
+string_gmatch = string.gmatch
 
 string_random = (length) ->
   randomseed(os.time())
@@ -83,7 +84,7 @@ slugify = (str) -> ((tostring str)\gsub("[%s_]+", "-")\gsub("[^%w%-]+", "")\gsub
 
 string_split = (str, sep, dest={}) ->
   str = tostring str
-  for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
+  for str in string_gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
     insert(dest, str)
 
   dest

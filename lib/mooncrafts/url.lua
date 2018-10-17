@@ -1,9 +1,10 @@
 local util = require("mooncrafts.util")
+local log = require("mooncrafts.log")
 local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match
+local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match, build
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
@@ -11,6 +12,9 @@ string_split = util.string_split
 table_insert = table.insert
 string_sub = string.sub
 trim = util.trim
+url_escape = util.url_escape
+string_join = table.concat
+string_gsub = string.gsub
 HTTPPHRASE = {
   [100] = "Continue",
   [101] = "Switching Protocols",
@@ -117,10 +121,12 @@ split = function(url, pathOnly)
   else
     path, queryp = string.match(url, "([^?#]*)?*(.*)")
   end
+  local pathAndQuery = path
   if queryp then
     local m = string_split(queryp, "#")
     query = m[1]
     fragment = m[2]
+    pathAndQuery = path .. "?" .. queryp
   end
   if port == nil or port == "" then
     port = default_port(scheme)
@@ -134,7 +140,8 @@ split = function(url, pathOnly)
     path or nil,
     query or nil,
     fragment or nil,
-    authority
+    authority or nil,
+    pathAndQuery
   }
 end
 parse = function(url, pathOnly)
@@ -154,7 +161,8 @@ parse = function(url, pathOnly)
     path = parts[6] or nil,
     query = parts[7] or nil,
     fragment = parts[8] or nil,
-    authority = parts[9] or nil
+    authority = parts[9] or nil,
+    pathAndQuery = parts[10] or nil
   }
 end
 compile_pattern = function(pattern)
@@ -210,6 +218,18 @@ match = function(pattern, path)
   end
   return false, nil
 end
+build = function(dest, matches)
+  local url = ' ' .. dest .. ' '
+  log.error((url))
+  for k, v in pairs(matches) do
+    log.error((k))
+    local parts = string_split(url, ":" .. k)
+    log.error((parts))
+    url = string_join(parts, v)
+  end
+  url = string_gsub(url, "%:^w+", "")
+  return trim(url)
+end
 return {
   HTTPPHRASE = HTTPPHRASE,
   split = split,
@@ -217,5 +237,6 @@ return {
   default_port = default_port,
   compile_pattern = compile_pattern,
   match = match,
-  extract_parameters = extract_parameters
+  extract_parameters = extract_parameters,
+  build = build
 }

@@ -1019,8 +1019,9 @@
    6 setmetatable = setmetatable
    6 string_split = util.string_split
    6 table_insert = table.insert
-***0 string_sub   = string.sub
+   6 string_sub   = string.sub
 ***0 trim         = util.trim
+***0 url_escape   = util.url_escape
 
 ***0 HTTPPHRASE = {
 ***0   [100]: "Continue",
@@ -1105,53 +1106,58 @@
    6   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
    6   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
-***0   if pathOnly
+
+   5   if pathOnly
    5     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
        else
-***0     assert(scheme, "parsing of url must have scheme")
-   6     assert(hostp, "parsing of url must have host and/or authority")
+   6     assert(scheme, "parsing of url must have scheme")
+   5     assert(hostp, "parsing of url must have host and/or authority")
 
        -- parse user pass
    1   if hostp
    1     m = string_split(hostp, "@")
    1     if m[2]
-   1       n = string_split(m[1], ":")
-***0       user = n[1]
-   5       pass = n[2]
-  10       hostp = m[2]
+***0       n = string_split(m[1], ":")
+   5       user = n[1]
+  10       pass = n[2]
+   5       hostp = m[2]
 
          -- parse port
-***0     authority = hostp
-   1     m = string_split(hostp, ":")
-***0     host = m[1]
+   1     authority = hostp
+***0     m = string_split(hostp, ":")
+   6     host = m[1]
    6     port = m[2]
        else
    6     path, queryp = string.match(url, "([^?#]*)?*(.*)")
 
-***0   if queryp
+   6   pathAndQuery = path
+
+   6   if queryp
    6     m = string_split(queryp, "#")
-   6     query = m[1]
-***0     fragment = m[2]
+***0     query = m[1]
+   6     fragment = m[2]
+   6     pathAndQuery = path .. "?" .. queryp
 
    6   port = default_port(scheme)  if port == nil or port == ""
 
-   6   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority }
+   6   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority or nil, pathAndQuery }
 
    6 parse = (url, pathOnly=false) ->
    6   parts, err = split(url, pathOnly)
 
-   6   return parts, err if err
+***0   return parts, err if err
 
    6   {
-   6     scheme: parts[1] or nil,
-***0     user: parts[2] or nil,
-   6     password: parts[3] or nil,
-   5     host: parts[4] or nil,
-***0     port: parts[5] or nil,
+***0     scheme: parts[1] or nil,
+   6     user: parts[2] or nil,
+   5     password: parts[3] or nil,
+***0     host: parts[4] or nil,
+   6     port: parts[5] or nil,
    6     path: parts[6] or nil,
-   6     query: parts[7] or nil,
+***0     query: parts[7] or nil,
 ***0     fragment: parts[8] or nil,
-***0     authority: parts[9] or nil
+   6     authority: parts[9] or nil,
+   6     pathAndQuery: parts[10] or nil
    6   }
 
    6 compile_pattern = (pattern) ->
@@ -1163,47 +1169,47 @@
    6   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
    6     return "%" .. char unless char == "*"
    6     ":*"
-   6   )
+       )
 
    9   pattern = pattern\gsub(':([%w_%*]+)(/?)', (param, slash) ->
    9     if param == "*"
-   9       table_insert(compiled_pattern.params, "splat")
-***0       return "(.-)" .. slash
+***0       table_insert(compiled_pattern.params, "splat")
+  18       return "(.-)" .. slash
 
-   7     table_insert(compiled_pattern.params, param)
-   4     "([^/?&#]+)" .. slash
-       )
+   4     table_insert(compiled_pattern.params, param)
+***0     "([^/?&#]+)" .. slash
+   3   )
 
   18   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
-  18   compiled_pattern.pattern = "^" .. pattern .. "?$"
+  16   compiled_pattern.pattern = "^" .. pattern .. "?$"
 
    3   compiled_pattern
 
-***0 extract_parameters = (pattern, matches) ->
+  13 extract_parameters = (pattern, matches) ->
   13   params = { }
-  13   t = pattern.params
+  18   t = pattern.params
   18   for i=1, #t
-  18     k = t[i]
-***0     if (k == 'splat')
-   8       if not params.splat
+***0     k = t[i]
+   8     if (k == 'splat')
+***0       if not params.splat
 ***0         params.splat = {}
 
    9       table_insert(params.splat, url_unescape(matches[i]))
          else
-   6       params[k] = url_unescape(matches[i])
-***0       params[k] = matches[i]
+***0       params[k] = url_unescape(matches[i])
+   2       params[k] = matches[i]
 
-   2   params
+   7   params
 
    5 match = (pattern, path) ->
-   5   matches = { re_match(path, pattern.pattern) }
+***0   matches = { re_match(path, pattern.pattern) }
 
 ***0   return true, extract_parameters(pattern, matches) if #matches > 0
 
 ***0   false, nil
 
-  10 { :HTTPPHRASE, :split, :parse, :default_port,
-   5   :compile_pattern, :match, :extract_parameters
+   5 { :HTTPPHRASE, :split, :parse, :default_port,
+***0   :compile_pattern, :match, :extract_parameters
      }
 
 ==============================================================================
@@ -1412,7 +1418,7 @@ File                             Hits Missed Coverage
 ./mooncrafts/oauth1.moon         33   8      80.49%
 ./mooncrafts/remoteresolver.moon 26   22     54.17%
 ./mooncrafts/sandbox.moon        33   32     50.77%
-./mooncrafts/url.moon            71   89     44.38%
+./mooncrafts/url.moon            75   89     45.73%
 ./mooncrafts/util.moon           71   33     68.27%
 -----------------------------------------------------
-Total                            465  402    53.63%
+Total                            469  402    53.85%

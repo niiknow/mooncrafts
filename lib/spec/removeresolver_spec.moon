@@ -9,6 +9,7 @@ describe "mooncrafts.remoteresolver", ->
       "file": 'remoteresolver.moon'
       "host": 'github.com'
       "path": '/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon'
+      "pathAndQuery": '/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
       "port": '443'
       "scheme": 'https'
       "fragment": '!yep'
@@ -25,6 +26,7 @@ describe "mooncrafts.remoteresolver", ->
       "file": 'remoteresolver.moon'
       "host": 'raw.githubusercontent.com'
       "path": '/niiknow/moonship/master/lib/moonship/remoteresolver.moon'
+      "pathAndQuery": '/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
       "github": true
       "port": '443'
       "scheme": 'https'
@@ -43,10 +45,11 @@ describe "mooncrafts.remoteresolver", ->
       "file": 'remoteresolver.moon'
       "host": 'noogen.net'
       "path": '/remoteresolver.moon'
+      "pathAndQuery": '/remoteresolver.moon?hello=worl%20d#!yep'
       "port": '80'
       "isrelative": true
-      "scheme": 'http',
-      "fragment": '!yep',
+      "scheme": 'http'
+      "fragment": '!yep'
       "query": "hello=worl%20d"
     }
     actual = remoteresolver.resolve("remoteresolver.moon?hello=worl%20d#!yep", {plugins: {_remotebase: "http://noogen.net"}})
