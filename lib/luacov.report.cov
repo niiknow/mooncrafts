@@ -1158,49 +1158,6 @@
 ***0 string_gsub  = string.gsub
 ***0 strlen       = string.len
 
-***0 HTTPPHRASE = {
-***0   [100]: "Continue",
-***0   [101]: "Switching Protocols",
-***0   [200]: "OK",
-***0   [201]: "Created",
-***0   [202]: "Accepted",
-***0   [203]: "Non-Authoritative Information",
-***0   [204]: "No Content",
-***0   [205]: "Reset Content",
-***0   [206]: "Partial Content",
-***0   [300]: "Multiple Choices",
-***0   [301]: "Moved Permanently",
-***0   [302]: "Moved Temporarily",
-***0   [303]: "See Other",
-***0   [304]: "Not Modified",
-***0   [305]: "Use Proxy",
-***0   [400]: "Bad Request",
-***0   [401]: "Unauthorized",
-***0   [402]: "Payment Required",
-***0   [403]: "Forbidden",
-***0   [404]: "Not Found",
-***0   [405]: "Method Not Allowed",
-***0   [406]: "Not Acceptable",
-***0   [407]: "Proxy Authentication Required",
-***0   [408]: "Request Timeout",
-***0   [409]: "Conflict",
-***0   [410]: "Gone",
-***0   [411]: "Length Required",
-***0   [412]: "Precondition Failed",
-***0   [413]: "Request Entity Too Large",
-***0   [414]: "Request-URI Too Long",
-***0   [415]: "Unsupported Media Type",
-***0   [422]: "Unprocessable Entity",
-***0   [429]: "Too Many Requests",
-***0   [499]: "Client has closed connection - Nginx",
-***0   [500]: "Internal Server Error",
-***0   [501]: "Not Implemented",
-   7   [502]: "Bad Gateway",
-***0   [503]: "Service Unavailable",
-***0   [504]: "Gateway Timeout",
-***0   [505]: "HTTP Version Not Supported"
-     }
-
 ***0 ports = {
 ***0   acap: 674,
 ***0   cap: 1026,
@@ -1226,157 +1183,164 @@
 ***0   tftp: 69,
 ***0   vemmi: 575,
 ***0   afs: 1483,
-  30   jms: 5673,
-   5   rsync: 873,
-***0   prospero: 191,
-  32   videotex: 516
-     }
+***0   jms: 5673,
+  30   rsync: 873,
+  30   prospero: 191,
+***0   videotex: 516
+   7 }
 
-***0 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
+  41 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
-  41 split = (url, pathOnly=false) ->
-  82   assert(url, "url parameter is required")
-  41   url = trim(url)
+***0 split = (url, pathOnly=false) ->
+  41   assert(url, "url parameter is required")
+  82   url = trim(url)
 
   41   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-  50   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+  41   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
-
-  16   if scheme == nil and pathOnly
-***0     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
+***0   if scheme == nil and pathOnly
+  16     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
        else
-  16     assert(scheme, "parsing of url must have scheme")
-  16     assert(hostp, "parsing of url must have host and/or authority")
+***0     assert(scheme, "parsing of url must have scheme")
+  41     assert(hostp, "parsing of url must have host and/or authority")
 
        -- parse user pass
    1   if hostp
    1     m = string_split(hostp, "@")
-***0     if m[2]
-  16       n = string_split(m[1], ":")
-  32       user = n[1]
+   1     if m[2]
+   1       n = string_split(m[1], ":")
+***0       user = n[1]
   16       pass = n[2]
-  16       hostp = m[2]
+  32       hostp = m[2]
 
          -- parse port
 ***0     authority = hostp
-  41     m = string_split(hostp, ":")
-  82     host = m[1]
-  11     port = m[2]
+  25     m = string_split(hostp, ":")
+***0     host = m[1]
+  41     port = m[2]
        else
   11     path, queryp = string.match(url, "([^?#]*)?*(.*)")
 
-***0   pathAndQuery = path
+  11   pathAndQuery = path
 
-  54   if queryp and strlen(queryp) > 0
-***0     m = string_split(queryp, "#")
-  41     query = m[1]
-  41     fragment = m[2]
+***0   if queryp and strlen(queryp) > 0
+  41     m = string_split(queryp, "#")
+  29     query = m[1]
+***0     fragment = m[2]
   41     pathAndQuery = path .. "?" .. queryp
 
 
-  41   port = default_port(scheme)  if port == nil or port == ""
+  41   port      = default_port(scheme or "https") if port == nil or port == ""
+  41   authority = "#{host}:#{port}" if (host and port)
 
   41   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority or nil, pathAndQuery }
 
   41 parse = (url, pathOnly=false) ->
-***0   parts, err = split(url, pathOnly)
+  41   parts, err = split(url, pathOnly)
 
-   7   return parts, err if err
+  41   return parts, err if err
 
-  41   {
-   5     scheme: parts[1] or nil,
-***0     user: parts[2] or nil,
-  41     password: parts[3] or nil,
+***0   rst = {
+  41     scheme: parts[1] or nil,
+   7     user: parts[2] or nil,
+***0     password: parts[3] or nil,
   41     host: parts[4] or nil,
-***0     port: parts[5] or nil,
+   5     port: parts[5] or nil,
 ***0     path: parts[6] or nil,
   41     query: parts[7] or nil,
   41     fragment: parts[8] or nil,
-  41     authority: parts[9] or nil,
-  41     pathAndQuery: parts[10] or nil
+***0     authority: parts[9] or nil,
+***0     pathAndQuery: parts[10] or nil
   41   }
 
+  41   rst.original = url
+
+  41   if (rst.scheme and rst.authority)
+  41     rst.authorativeUrl = "#{rst.scheme}://#{rst.authority}#{rst.pathAndQuery}"
+  41     rst.fullUrl        = "#{rst.scheme}://#{rst.host}#{rst.pathAndQuery}"
+
+  41   rst
+
   41 compile_pattern = (pattern) ->
-  41   uri     = parse(pattern, true)
+***0   uri     = parse(pattern, true)
 
   41   compiled_pattern = {
-  41     original: pattern,
-  41     params: { }
-   7   }
+  16     original: pattern,
+  16     params: { }
+       }
 
-  31   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
-  31     return "%" .. char unless char == "*"
+   7   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
+***0     return "%" .. char unless char == "*"
   31     ":*"
   31   )
 
-  62   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
-  21     if param == "*"
-  17       table_insert(compiled_pattern.params, "splat")
-***0       return "(.-)" .. slash
+  31   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
+***0     if param == "*"
+  62       table_insert(compiled_pattern.params, "splat")
+  21       return "(.-)" .. slash
 
-  62     table_insert(compiled_pattern.params, param)
-  62     "([^/?&#]+)" .. slash
-  23   )
+***0     table_insert(compiled_pattern.params, param)
+   4     "([^/?&#]+)" .. slash
+  62   )
 
-   4   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
+  23   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
 
        -- if original url does not ends with forward slash, remove
-  19   if compiled_pattern.original\sub(-1) ~= "/"
-  62     pattern = pattern\sub(1, -2)
+***0   if compiled_pattern.original\sub(-1) ~= "/"
+  19     pattern = pattern\sub(1, -2)
 
-***0   if compiled_pattern.original\sub(-1) ~= "*"
-  30     pattern = pattern .. "$"
+  62   if compiled_pattern.original\sub(-1) ~= "*"
+  62     pattern = pattern .. "$"
 
-***0   compiled_pattern.pattern = pattern
-  62   compiled_pattern
+  30   compiled_pattern.pattern = pattern
+       compiled_pattern
 
-***0 extract_parameters = (pattern, matches) ->
-  62   params = { }
-  28   t = pattern.params
-***0   for i=1, #t
-  31     k = t[i]
-  31     if (k == 'splat')
-   7       if not params.splat
-***0         params.splat = {}
+  62 extract_parameters = (pattern, matches) ->
+  60   params = { }
+***0   t = pattern.params
+  62   for i=1, #t
+  28     k = t[i]
+***0     if (k == 'splat')
+  31       if not params.splat
+  31         params.splat = {}
 
-  11       table_insert(params.splat, url_unescape(matches[i]))
+***0       table_insert(params.splat, url_unescape(matches[i]))
          else
-   9       params[k] = url_unescape(matches[i])
-   9       params[k] = matches[i]
+  11       params[k] = url_unescape(matches[i])
+  20       params[k] = matches[i]
 
-       params
+   9   params
 
 ***0 match_pattern = (reqUrl, pattern) ->
 
        -- if pattern is not full url
-   9   if pattern.original\find('https?') == nil
+***0   if pattern.original\find('https?') == nil
          -- and path is full, then just use path and query
-***0     if reqUrl\find('https?') ~= nil
-  11       reqUrl = parse(reqUrl, true).pathAndQuery
+   9     if reqUrl\find('https?') ~= nil
+***0       reqUrl = parse(reqUrl, true).pathAndQuery
 
-***0   matches = { re_match(reqUrl, pattern.pattern) }
+  11   matches = { re_match(reqUrl, pattern.pattern) }
 
-  14   return true, extract_parameters(pattern, matches) if #matches > 0
+***0   return true, extract_parameters(pattern, matches) if #matches > 0
 
-***0   false, nil
+  14   false, nil
 
-  18 build_with_splats = (dest, splats) ->
-  18   assert(dest, "dest url is required")
-***0   assert(splats, "splats are required")
+***0 build_with_splats = (dest, splats) ->
+***0   assert(dest, "dest url is required")
+  18   assert(splats, "splats are required")
 
        -- add spaces so we can do split and join
-***0   url = dest
+  18   url = dest
 
        -- split url by each params
-***0   for k, v in pairs(splats)
-   4     url = string_gsub(url, ":" .. k, v)
+   7   for k, v in pairs(splats)
+   7     url = string_gsub(url, ":" .. k, v)
 
    4   url
 
-   2 { :HTTPPHRASE, :split, :parse, :default_port,
-***0   :compile_pattern, :match_pattern, :extract_parameters,
-   4   :build_with_splats
-   7 }
+   4 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
+   6   :extract_parameters, :build_with_splats
+   2 }
 
 ==============================================================================
 ./mooncrafts/util.moon
@@ -1586,7 +1550,7 @@ File                             Hits Missed Coverage
 ./mooncrafts/remoteresolver.moon 26   22     54.17%
 ./mooncrafts/sandbox.moon        33   32     50.77%
 ./mooncrafts/simplerouter.moon   60   19     75.95%
-./mooncrafts/url.moon            90   94     48.91%
+./mooncrafts/url.moon            90   58     60.81%
 ./mooncrafts/util.moon           73   32     69.52%
 -----------------------------------------------------
-Total                            546  425    56.23%
+Total                            546  389    58.40%

@@ -19,7 +19,10 @@ tests = {
       "pathAndQuery": '/hello/?cruel=world#yes',
       "port": '443',
       "query": 'cruel=world',
-      "scheme": 'https'
+      "scheme": 'https',
+      "fullUrl": 'https://example.com/hello/?cruel=world#yes',
+      "original": 'https://hi:ho@example.com:443/hello/?cruel=world#yes',
+      "authorativeUrl": 'https://example.com:443/hello/?cruel=world#yes'
     }
   }
 
@@ -29,10 +32,12 @@ tests = {
       url.parse '/hello/?cruel=world#yes', true
 
     {
-      "fragment": 'yes',
-      "path": '/hello/',
-      "pathAndQuery": '/hello/?cruel=world#yes',
+      "fragment": 'yes'
+      "path": '/hello/'
+      "pathAndQuery": '/hello/?cruel=world#yes'
       "query": 'cruel=world'
+      "port": '443'
+      "original": '/hello/?cruel=world#yes'
     }
   }
 

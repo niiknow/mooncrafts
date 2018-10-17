@@ -4,7 +4,7 @@ local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, strlen, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match_pattern, build_with_splats
+local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, strlen, ports, default_port, split, parse, compile_pattern, extract_parameters, match_pattern, build_with_splats
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
@@ -16,48 +16,6 @@ url_escape = util.url_escape
 string_join = table.concat
 string_gsub = string.gsub
 strlen = string.len
-HTTPPHRASE = {
-  [100] = "Continue",
-  [101] = "Switching Protocols",
-  [200] = "OK",
-  [201] = "Created",
-  [202] = "Accepted",
-  [203] = "Non-Authoritative Information",
-  [204] = "No Content",
-  [205] = "Reset Content",
-  [206] = "Partial Content",
-  [300] = "Multiple Choices",
-  [301] = "Moved Permanently",
-  [302] = "Moved Temporarily",
-  [303] = "See Other",
-  [304] = "Not Modified",
-  [305] = "Use Proxy",
-  [400] = "Bad Request",
-  [401] = "Unauthorized",
-  [402] = "Payment Required",
-  [403] = "Forbidden",
-  [404] = "Not Found",
-  [405] = "Method Not Allowed",
-  [406] = "Not Acceptable",
-  [407] = "Proxy Authentication Required",
-  [408] = "Request Timeout",
-  [409] = "Conflict",
-  [410] = "Gone",
-  [411] = "Length Required",
-  [412] = "Precondition Failed",
-  [413] = "Request Entity Too Large",
-  [414] = "Request-URI Too Long",
-  [415] = "Unsupported Media Type",
-  [422] = "Unprocessable Entity",
-  [429] = "Too Many Requests",
-  [499] = "Client has closed connection - Nginx",
-  [500] = "Internal Server Error",
-  [501] = "Not Implemented",
-  [502] = "Bad Gateway",
-  [503] = "Service Unavailable",
-  [504] = "Gateway Timeout",
-  [505] = "HTTP Version Not Supported"
-}
 ports = {
   acap = 674,
   cap = 1026,
@@ -130,7 +88,10 @@ split = function(url, pathOnly)
     pathAndQuery = path .. "?" .. queryp
   end
   if port == nil or port == "" then
-    port = default_port(scheme)
+    port = default_port(scheme or "https")
+  end
+  if (host and port) then
+    authority = tostring(host) .. ":" .. tostring(port)
   end
   return {
     scheme,
@@ -153,7 +114,7 @@ parse = function(url, pathOnly)
   if err then
     return parts, err
   end
-  return {
+  local rst = {
     scheme = parts[1] or nil,
     user = parts[2] or nil,
     password = parts[3] or nil,
@@ -165,6 +126,12 @@ parse = function(url, pathOnly)
     authority = parts[9] or nil,
     pathAndQuery = parts[10] or nil
   }
+  rst.original = url
+  if (rst.scheme and rst.authority) then
+    rst.authorativeUrl = tostring(rst.scheme) .. "://" .. tostring(rst.authority) .. tostring(rst.pathAndQuery)
+    rst.fullUrl = tostring(rst.scheme) .. "://" .. tostring(rst.host) .. tostring(rst.pathAndQuery)
+  end
+  return rst
 end
 compile_pattern = function(pattern)
   local uri = parse(pattern, true)
@@ -241,7 +208,6 @@ build_with_splats = function(dest, splats)
   return url
 end
 return {
-  HTTPPHRASE = HTTPPHRASE,
   split = split,
   parse = parse,
   default_port = default_port,

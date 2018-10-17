@@ -21,49 +21,6 @@ string_join  = table.concat
 string_gsub  = string.gsub
 strlen       = string.len
 
-HTTPPHRASE = {
-  [100]: "Continue",
-  [101]: "Switching Protocols",
-  [200]: "OK",
-  [201]: "Created",
-  [202]: "Accepted",
-  [203]: "Non-Authoritative Information",
-  [204]: "No Content",
-  [205]: "Reset Content",
-  [206]: "Partial Content",
-  [300]: "Multiple Choices",
-  [301]: "Moved Permanently",
-  [302]: "Moved Temporarily",
-  [303]: "See Other",
-  [304]: "Not Modified",
-  [305]: "Use Proxy",
-  [400]: "Bad Request",
-  [401]: "Unauthorized",
-  [402]: "Payment Required",
-  [403]: "Forbidden",
-  [404]: "Not Found",
-  [405]: "Method Not Allowed",
-  [406]: "Not Acceptable",
-  [407]: "Proxy Authentication Required",
-  [408]: "Request Timeout",
-  [409]: "Conflict",
-  [410]: "Gone",
-  [411]: "Length Required",
-  [412]: "Precondition Failed",
-  [413]: "Request Entity Too Large",
-  [414]: "Request-URI Too Long",
-  [415]: "Unsupported Media Type",
-  [422]: "Unprocessable Entity",
-  [429]: "Too Many Requests",
-  [499]: "Client has closed connection - Nginx",
-  [500]: "Internal Server Error",
-  [501]: "Not Implemented",
-  [502]: "Bad Gateway",
-  [503]: "Service Unavailable",
-  [504]: "Gateway Timeout",
-  [505]: "HTTP Version Not Supported"
-}
-
 ports = {
   acap: 674,
   cap: 1026,
@@ -104,7 +61,6 @@ split = (url, pathOnly=false) ->
   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
-
   if scheme == nil and pathOnly
     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
   else
@@ -137,7 +93,8 @@ split = (url, pathOnly=false) ->
     pathAndQuery = path .. "?" .. queryp
 
 
-  port = default_port(scheme)  if port == nil or port == ""
+  port      = default_port(scheme or "https") if port == nil or port == ""
+  authority = "#{host}:#{port}" if (host and port)
 
   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority or nil, pathAndQuery }
 
@@ -146,7 +103,7 @@ parse = (url, pathOnly=false) ->
 
   return parts, err if err
 
-  {
+  rst = {
     scheme: parts[1] or nil,
     user: parts[2] or nil,
     password: parts[3] or nil,
@@ -158,6 +115,14 @@ parse = (url, pathOnly=false) ->
     authority: parts[9] or nil,
     pathAndQuery: parts[10] or nil
   }
+
+  rst.original = url
+
+  if (rst.scheme and rst.authority)
+    rst.authorativeUrl = "#{rst.scheme}://#{rst.authority}#{rst.pathAndQuery}"
+    rst.fullUrl        = "#{rst.scheme}://#{rst.host}#{rst.pathAndQuery}"
+
+  rst
 
 compile_pattern = (pattern) ->
   uri     = parse(pattern, true)
@@ -236,7 +201,6 @@ build_with_splats = (dest, splats) ->
 
   url
 
-{ :HTTPPHRASE, :split, :parse, :default_port,
-  :compile_pattern, :match_pattern, :extract_parameters,
-  :build_with_splats
+{ :split, :parse, :default_port, :compile_pattern, :match_pattern,
+  :extract_parameters, :build_with_splats
 }
