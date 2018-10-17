@@ -4,7 +4,7 @@ local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match_pattern, build_with_splats
+local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, strlen, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match_pattern, build_with_splats
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
@@ -15,6 +15,7 @@ trim = util.trim
 url_escape = util.url_escape
 string_join = table.concat
 string_gsub = string.gsub
+strlen = string.len
 HTTPPHRASE = {
   [100] = "Continue",
   [101] = "Switching Protocols",
@@ -100,7 +101,7 @@ split = function(url, pathOnly)
   url = trim(url)
   local scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
   local user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
-  if pathOnly then
+  if scheme == nil and pathOnly then
     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
   else
     assert(scheme, "parsing of url must have scheme")
@@ -166,6 +167,7 @@ parse = function(url, pathOnly)
   }
 end
 compile_pattern = function(pattern)
+  local uri = parse(pattern, true)
   local compiled_pattern = {
     original = pattern,
     params = { }
@@ -176,7 +178,7 @@ compile_pattern = function(pattern)
     end
     return ":*"
   end)
-  pattern = pattern:gsub(':([%w_%*]+)(/?)', function(param, slash)
+  pattern = pattern:gsub(':([a-z_%*]+)(/?)', function(param, slash)
     if param == "*" then
       table_insert(compiled_pattern.params, "splat")
       return "(.-)" .. slash
@@ -184,7 +186,18 @@ compile_pattern = function(pattern)
     table_insert(compiled_pattern.params, param)
     return "([^/?&#]+)" .. slash
   end)
-  compiled_pattern.pattern = "^" .. pattern .. "?$"
+  if pattern:sub(-1) ~= "/" then
+    do
+      pattern = pattern .. "/"
+    end
+  end
+  if compiled_pattern.original:sub(-1) ~= "/" then
+    pattern = pattern:sub(1, -2)
+  end
+  if compiled_pattern.original:sub(-1) ~= "*" then
+    pattern = pattern .. "$"
+  end
+  compiled_pattern.pattern = pattern
   return compiled_pattern
 end
 extract_parameters = function(pattern, matches)
@@ -205,6 +218,11 @@ extract_parameters = function(pattern, matches)
   return params
 end
 match_pattern = function(path, pattern)
+  if pattern.original:find('https?') == nil then
+    if path:find('https?') then
+      path = parse(path, true).pathAndQuery
+    end
+  end
   local matches = {
     re_match(path, pattern.pattern)
   }

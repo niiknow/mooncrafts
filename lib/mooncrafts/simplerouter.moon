@@ -1,34 +1,34 @@
 -- this is a simple router similar to netlify logic to
 -- handle _redirects and _headers configuration table
 
+crypto = require "mooncrafts.crypto"
 util   = require "mooncrafts.util"
 log    = require "mooncrafts.log"
 url    = require "mooncrafts.url"
-crypto = require "mooncrafts.crypto"
 
-table_sort      = table.sort
 compile_pattern = url.compile_pattern
 base64_decode   = crypto.base64_decode
 trim            = util.trim
 strlen          = string.len
-table_extend    = util.table_extend
 table_insert    = table.insert
+table_extend    = util.table_extend
 
-compile_list = (myList) =>
-  return {} if myList == nil
-
-  -- expect list in order of highest priority first
-  for i=1, #myList
-    r         = myList[i]
-    r.pattern = compile_pattern(v.source)
+compile_list = (myList) ->
+  -- expect list to already been sorted
+  for k, r in pairs(myList)
+    r.pattern = compile_pattern(r.source)
     r.status  = 0 if r.status == nil
 
+  myList
+
 class SimpleRouter
-  new: (name, conf={}) =>
-    myConf = conf or {}
-    myConf.redirects  = compile_list(myConf.redirects)
-    myConf.headers    = compile_list(myConf.headers)
-    myConf.basic_auth = trim(myConf.basic_auth or "")
+  new: (conf) =>
+    assert(conf, "config object is required")
+    myConf = {}
+    myConf.redirects  = compile_list(conf.redirects or {})
+    myConf.headers    = compile_list(conf.headers or {})
+    myConf.basic_auth = trim(conf.basic_auth or "")
+    -- print util.to_json(myConf)
     @conf = myConf
 
   -- this is a before-request/access level event
@@ -72,7 +72,7 @@ class SimpleRouter
 
 
   -- parse request and return result
-  -- is is a before-request event
+  -- this is a before-request event
   parseRedirects: (req) =>
     assert(req, "request object is required")
     assert(req.url, "request url is required")
@@ -81,7 +81,6 @@ class SimpleRouter
 
     myRules = @conf.redirects
     reqUrl  = req.url
-    uparts  = url.parse(reqUrl)
 
     for i=1, #myRules
       r             = myRules[i]
@@ -93,6 +92,7 @@ class SimpleRouter
         rst.target  = url.build_with_splats(r.dest, params)
         -- a redirect if status is greater than 300
         rst.isRedir = r.status > 300
+        rst.params  = params
         -- otherwise, it could be a rewrite or proxy
         return rst
 
@@ -101,20 +101,25 @@ class SimpleRouter
   -- parse header and return result
   -- this is an after-request event
   parseHeaders: (req) =>
+    -- print util.to_json(req)
     assert(req, "request object is required")
     assert(req.url, "request url is required")
 
-    matches = { }
+    rst = { rules: {}, headers: {} }
     myRules = @conf.headers
     reqUrl  = req.url
 
     for i=1, #myRules
       r     = myRules[i]
       match = url.match_pattern(reqUrl, r.pattern)
+      -- print util.to_json(params)
 
       if match
-        table_insert(matches, r)
+        table_insert(rst.rules, r)
+        -- print util.to_json(rst.headers)
+        -- print util.to_json(r.headers)
+        table_extend(rst.headers, r.headers)
 
-    matches
+    rst
 
 SimpleRouter

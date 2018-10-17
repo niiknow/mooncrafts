@@ -3,118 +3,6 @@ url = require "mooncrafts.url"
 json = require "cjson"
 
 tests = {
-  {
-    "simple '/'"
-    ->
-      url.compile_pattern '/'
-
-    {
-      original: '/',
-      params: { },
-      pattern: "/"
-    }
-  }
-
-  {
-    "simple splat '/*'"
-    ->
-      url.compile_pattern '/*'
-
-    {
-      original: "/*",
-      params: { "splat" },
-      pattern: "/(.-)"
-    }
-  }
-
-  {
-    "complex splat '/:foo/:bar'"
-    ->
-      url.compile_pattern '/:foo/:bar'
-
-    {
-      original: '/:foo/:bar',
-      params: { "foo", "bar" },
-      pattern: "/([^/?&#]+)/([^/?&#]+)"
-    }
-  }
-
-  {
-    "complex full splat 'https://www.example.com:443/foo/bar/*'"
-    ->
-      url.compile_pattern 'https://www.example.com:443/foo/bar/*'
-
-    {
-      original: 'https://www.example.com:443/foo/bar/*',
-      params: { "splat" },
-      pattern: "https://www%.example%.com:443/foo/bar/(.-)"
-    }
-  }
-
-  {
-    "complex splat '/foo/bar/:baz'"
-    ->
-      url.compile_pattern '/foo/bar/:baz'
-
-    {
-      original: '/foo/bar/:baz',
-      params: { "baz" },
-      pattern: "/foo/bar/([^/?&#]+)"
-    }
-  }
-  {
-    "splat in query '/say/:msg/to/:to?who=:friend'"
-    ->
-      url.compile_pattern '/say/:msg/to/:to?who=:friend'
-
-    {
-      original: '/say/:msg/to/:to?who=:friend',
-      params: { "msg", "to", "friend" },
-      pattern: "/say/([^/?&#]+)/to/([^/?&#]+)%?who=([^/?&#]+)"
-    }
-
-    ->
-      rst = url.compile_pattern('/say/:msg/to/:to?who=:friend')
-      url.match_pattern("/say/hello/to/my?who=little-friend", rst)
-
-    {
-      friend: 'little-friend',
-      msg: 'hello',
-      to: 'my'
-    }
-  }
-  {
-    "multiple splat '/say/*/to/*'"
-    ->
-      url.compile_pattern '/say/*/to/*'
-
-    {
-      original: '/say/*/to/*',
-      params: { "splat", "splat" },
-      pattern: "/say/(.-)/to/(.-)"
-    }
-  }
-
-  {
-    "replacement '/:foo.:bar'"
-    ->
-      url.compile_pattern '/:foo.:bar'
-
-    {
-      original: '/:foo.:bar',
-      params: { "foo", "bar" },
-      pattern: "/([^/?&#]+)%.([^/?&#]+)"
-    }
-
-    ->
-      rst = url.compile_pattern('/:foo.:bar')
-      url.match_pattern("/tom@example.com", rst)
-
-    {
-      bar: 'com',
-      foo: 'tom@example'
-    }
-  }
 
   {
     "parsing url 'https://hi:ho@example.com:443/hello/?cruel=world#yes'"
@@ -149,6 +37,119 @@ tests = {
   }
 
   {
+    "simple '/'"
+    ->
+      url.compile_pattern '/'
+
+    {
+      original: '/',
+      params: { },
+      pattern: "/$"
+    }
+  }
+
+  {
+    "simple splat '/*'"
+    ->
+      url.compile_pattern '/*'
+
+    {
+      original: "/*",
+      params: { "splat" },
+      pattern: "/(.-)"
+    }
+  }
+
+  {
+    "complex splat '/:foo/:bar'"
+    ->
+      url.compile_pattern '/:foo/:bar'
+
+    {
+      original: '/:foo/:bar',
+      params: { "foo", "bar" },
+      pattern: "/([^/?&#]+)/([^/?&#]+)$"
+    }
+  }
+
+  {
+    "complex full splat 'https://www.example.com:443/foo/bar/*'"
+    ->
+      url.compile_pattern 'https://www.example.com:443/foo/bar/*'
+
+    {
+      original: 'https://www.example.com:443/foo/bar/*',
+      params: { "splat" },
+      pattern: "https://www%.example%.com:443/foo/bar/(.-)"
+    }
+  }
+
+  {
+    "complex splat '/foo/bar/:baz'"
+    ->
+      url.compile_pattern '/foo/bar/:baz'
+
+    {
+      original: '/foo/bar/:baz',
+      params: { "baz" },
+      pattern: "/foo/bar/([^/?&#]+)$"
+    }
+  }
+  {
+    "splat in query '/say/:msg/to/:to?who=:friend'"
+    ->
+      url.compile_pattern '/say/:msg/to/:to?who=:friend'
+
+    {
+      original: '/say/:msg/to/:to?who=:friend',
+      params: { "msg", "to", "friend" },
+      pattern: "/say/([^/?&#]+)/to/([^/?&#]+)%?who=([^/?&#]+)$"
+    }
+
+    ->
+      rst = url.compile_pattern('/say/:msg/to/:to?who=:friend')
+      url.match_pattern("/say/hello/to/my?who=little-friend", rst)
+
+    {
+      friend: 'little-friend',
+      msg: 'hello',
+      to: 'my'
+    }
+  }
+  {
+    "multiple splat '/say/*/to/*'"
+    ->
+      url.compile_pattern '/say/*/to/*'
+
+    {
+      original: '/say/*/to/*',
+      params: { "splat", "splat" },
+      pattern: "/say/(.-)/to/(.-)"
+    }
+  }
+
+  {
+    "replacement '/:foo.:bar'"
+    ->
+      url.compile_pattern '/:foo.:bar'
+
+    {
+      original: '/:foo.:bar',
+      params: { "foo", "bar" },
+      pattern: "/([^/?&#]+)%.([^/?&#]+)$"
+    }
+
+    ->
+      rst = url.compile_pattern('/:foo.:bar')
+      url.match_pattern("/tom@example.com", rst)
+
+    {
+      bar: 'com',
+      foo: 'tom@example'
+    }
+  }
+
+  {
     "build_with_splats '/:foo.:bar'"
     ->
       rst = url.compile_pattern('/:foo.:bar')
@@ -166,7 +167,7 @@ tests = {
     {
       original: '/:foo.:bar?hi=you',
       params: { "foo", "bar" },
-      pattern: "/([^/?&#]+)%.([^/?&#]+)%?hi=you"
+      pattern: "/([^/?&#]+)%.([^/?&#]+)%?hi=you$"
     }
     ->
       rst = url.compile_pattern('/:foo.:bar?hi=you')

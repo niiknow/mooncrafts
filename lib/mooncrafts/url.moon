@@ -186,6 +186,9 @@ compile_pattern = (pattern) ->
   if compiled_pattern.original\sub(-1) ~= "/"
     pattern = pattern\sub(1, -2)
 
+  if compiled_pattern.original\sub(-1) ~= "*"
+    pattern = pattern .. "$"
+
   compiled_pattern.pattern = pattern
   compiled_pattern
 

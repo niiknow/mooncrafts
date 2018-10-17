@@ -1,26 +1,22 @@
+local crypto = require("mooncrafts.crypto")
 local util = require("mooncrafts.util")
 local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
-local crypto = require("mooncrafts.crypto")
-local table_sort = table.sort
 local compile_pattern = url.compile_pattern
 local base64_decode = crypto.base64_decode
 local trim = util.trim
 local strlen = string.len
-local table_extend = util.table_extend
 local table_insert = table.insert
+local table_extend = util.table_extend
 local compile_list
-compile_list = function(self, myList)
-  if myList == nil then
-    return { }
-  end
-  for i = 1, #myList do
-    local r = myList[i]
-    r.pattern = compile_pattern(v.source)
+compile_list = function(myList)
+  for k, r in pairs(myList) do
+    r.pattern = compile_pattern(r.source)
     if r.status == nil then
       r.status = 0
     end
   end
+  return myList
 end
 local SimpleRouter
 do
@@ -80,13 +76,15 @@ do
       assert(req.url, "request url is required")
       local rst = { }
       local myRules = self.conf.redirects
+      local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
-        local match, params = url.match_pattern(req.url, r.pattern)
+        local match, params = url.match_pattern(reqUrl, r.pattern)
         if match then
           rst.rule = r
           rst.target = url.build_with_splats(r.dest, params)
           rst.isRedir = r.status > 300
+          rst.params = params
           return rst
         end
       end
@@ -95,28 +93,31 @@ do
     parseHeaders = function(self, req)
       assert(req, "request object is required")
       assert(req.url, "request url is required")
-      local matches = { }
+      local rst = {
+        rules = { },
+        headers = { }
+      }
       local myRules = self.conf.headers
+      local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
-        local match = url.match_pattern(req.url, r.pattern)
+        local match = url.match_pattern(reqUrl, r.pattern)
         if match then
-          table_insert(matches, r)
+          table_insert(rst.rules, r)
+          table_extend(rst.headers, r.headers)
         end
       end
-      return matches
+      return rst
     end
   }
   _base_0.__index = _base_0
   _class_0 = setmetatable({
-    __init = function(self, name, conf)
-      if conf == nil then
-        conf = { }
-      end
-      local myConf = conf or { }
-      myConf.redirects = compile_list(myConf.redirects)
-      myConf.headers = compile_list(myConf.headers)
-      myConf.basic_auth = trim(myConf.basic_auth or "")
+    __init = function(self, conf)
+      assert(conf, "config object is required")
+      local myConf = { }
+      myConf.redirects = compile_list(conf.redirects or { })
+      myConf.headers = compile_list(conf.headers or { })
+      myConf.basic_auth = trim(conf.basic_auth or "")
       self.conf = myConf
     end,
     __base = _base_0,
