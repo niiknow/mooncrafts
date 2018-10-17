@@ -1,5 +1,6 @@
 local seconds_in_a_day = 86400
 local seconds_in_a_month = 31 * seconds_in_a_day
+local math_abs = math.abs
 local _ = {
   add_year = function(ts, years)
     if ts == nil then
@@ -58,7 +59,8 @@ _ = {
     end
     local add = (months > 0)
     local new_ts = ts
-    for i = 1, math.abs(months) do
+    local monthval = math_abs(months)
+    for i = 1, monthval do
       new_ts = add_one_month(new_ts, (months > 0))
     end
     return new_ts

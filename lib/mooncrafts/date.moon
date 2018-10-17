@@ -1,7 +1,8 @@
 -- allow for month calculation
 
-seconds_in_a_day = 86400
+seconds_in_a_day   = 86400
 seconds_in_a_month = 31 * seconds_in_a_day
+math_abs           = math.abs
 
 -- easiest thing is to add year
 add_year: (ts=os.time(), years=1) ->
@@ -23,12 +24,10 @@ add_one_month: (ts=os.time(), add=false) ->
 
 -- loop and add one month at a time
 add_month: (ts=os.time(), months=1) ->
-  add = (months > 0)
-
-  new_ts = ts
-  for i = 1, math.abs(months)
-    new_ts = add_one_month(new_ts, (months > 0))
-
+  add      = (months > 0)
+  new_ts   = ts
+  monthval = math_abs(months)
+  for i = 1, monthval do new_ts = add_one_month(new_ts, (months > 0))
   new_ts
 
 { :add_day, :add_month, :add_year }

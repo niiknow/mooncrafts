@@ -29,17 +29,20 @@ do
         self.req = req_wrapper
       end
       self.req.logs = { }
-      return self.req
+      return self
     end,
     set = function(self, req)
       self.req = req
+      return self
     end,
     log = function(self, obj)
+      local logs = self.req.logs
       if (type(obj == "table")) then
-        self.req.logs[#self.req.logs + 1] = util.to_json(obj)
+        self.req.logs[#logs + 1] = util.to_json(obj)
       else
-        self.req.logs[#self.req.logs + 1] = tostring(t)
+        self.req.logs[#logs + 1] = tostring(t)
       end
+      return self
     end
   }
   _base_0.__index = _base_0

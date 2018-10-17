@@ -2,8 +2,6 @@ local log = require("mooncrafts.log")
 local util = require("mooncrafts.util")
 local crypto = require("mooncrafts.crypto")
 local url = require("mooncrafts.url")
-local url_parse = url.parse
-local url_default_port = url.default_port
 local string_split, url_escape, query_string_encode, table_sort_keys, url_build
 string_split, url_escape, query_string_encode, table_sort_keys, url_build = util.string_split, util.url_escape, util.query_string_encode, util.table_sort_keys, util.url_build
 local sort, concat
@@ -11,6 +9,8 @@ do
   local _obj_0 = table
   sort, concat = _obj_0.sort, _obj_0.concat
 end
+local url_parse = url.parse
+local url_default_port = url.default_port
 local escape_uri = url_escape
 local unescape_uri = ngx and ngx.unescape_uri or util.url_unescape
 local encode_base64 = ngx and ngx.encode_base64 or crypto.base64_encode
@@ -20,7 +20,7 @@ end
 local digest_md5 = ngx and ngx.md5 or function(str)
   return crypto.md5(str).hex()
 end
-local normalizeParameters, calculateBaseString, secret, sign, create_signature
+local normalizeParameters
 normalizeParameters = function(parameters, body, query)
   local items = {
     query_string_encode(parameters, "&")
@@ -34,16 +34,20 @@ normalizeParameters = function(parameters, body, query)
   sort(items)
   return concat(items, "&")
 end
+local calculateBaseString
 calculateBaseString = function(body, method, query, base_uri, parameters)
   return escape_uri(method) .. "&" .. escape_uri(base_uri) .. "&" .. escape_uri(normalizeParameters(parameters, body, query))
 end
+local secret
 secret = function(oauth)
   return unescape_uri(oauth["consumersecret"]) .. "&" .. unescape_uri(oauth["tokensecret"] or "")
 end
+local sign
 sign = function(body, method, query, base_uri, oauth, parameters)
   oauth.stringToSign = calculateBaseString(body, method, query, base_uri, parameters)
   return encode_base64(digest_hmac_sha1(secret(oauth), oauth.stringToSign))
 end
+local create_signature
 create_signature = function(opts, oauth)
   local parts = url_parse(opts.url)
   if (url_default_port(parts.scheme) == parts.port) then

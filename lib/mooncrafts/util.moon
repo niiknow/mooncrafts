@@ -19,6 +19,7 @@ for i = 97, 122 do insert(charset, char(i))
 -- our utils lib, nothing here should depend on ngx
 -- for ngx stuff, put it inside ngin.lua file
 local *
+string_sub = string.sub
 
 string_random = (length) ->
   randomseed(os.time())
@@ -26,19 +27,6 @@ string_random = (length) ->
   return string_random(length - 1) .. charset[random(1, #charset)] if length > 0
 
   ""
-
-table_pairsByKeys = (t, f) ->
-  a = {}
-  for n in pairs(t) do insert(a, n)
-  sort(a, f)
-
-  i = 0
-  iter = () ->
-    i = i + 1
-    return nil if a[i] == nil
-    a[i], t[a[i]]
-
-  iter
 
 --- trim a string.
 -- @param str the string
@@ -105,7 +93,7 @@ json_encodable = (obj, seen={}) ->
     when "table"
       unless seen[obj]
         seen[obj] = true
-        { k, json_encodable(v, seen) for k,v in pairs(obj) when type(k) == "string" or type(k) == "number" }
+        { k, json_encodable(v, seen) for k, v in pairs(obj) when type(k) == "string" or type(k) == "number" }
     when "function", "userdata", "thread"
       nil
     else
@@ -118,10 +106,12 @@ to_json = (obj) -> cjson_safe.encode json_encodable obj
 query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
   query = {}
   keys = {}
-  for k in pairs(t) do keys[#keys+1] = tostring(k)
-  sort(keys)
 
-  for _, k in ipairs(keys) do
+  for k in pairs(t) do keys[#keys+1] = tostring(k)
+
+  sort(keys)
+  for i=1, #keys
+    k = keys[i]
     v = t[k]
 
     switch type v
@@ -137,23 +127,20 @@ query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
 
     k = escape(tostring(k))
 
-    if v ~= "" then
-      query[#query+1] = string.format('%s=%s', k, quote .. v .. quote)
-    else
-      query[#query+1] = name
+    query[#query+1] = if v == "" then name else string.format('%s=%s', k, quote .. v .. quote)
 
   concat(query, sep)
 
 applyDefaults = (opts, defOpts) ->
-  for k, v in pairs(defOpts) do
-    if "__" ~= string.sub(k,1,2) then   -- don't clone meta
+  for k, v in pairs(defOpts)
+    if "__" ~= string_sub(k, 1, 2)   -- don't clone meta
       opts[k] = v unless opts[k]
 
   opts
 
 table_extend = (table1, table2) ->
-  for k, v in pairs(table2) do
-    if (type(table1[k]) == 'table' and type(v) == 'table') then
+  for k, v in pairs(table2)
+    if (type(table1[k]) == 'table' and type(v) == 'table')
       table_extend(table1[k], v)
     else
       table1[k] = v
@@ -164,9 +151,9 @@ table_clone = (t, deep=false) ->
   return nil unless ("table"==type(t) or "userdata"==type(t))
 
   ret = {}
-  for k,v in pairs(t) do
-    if "__" ~= string.sub(k,1,2) then   -- don't clone meta
-      if "table,userdata"\find(type(v)) then
+  for k, v in pairs(t)
+    if "__" ~= string_sub(k,1,2)   -- don't clone meta
+      if (type(v) == "userdata" or type(v) == "table")
         ret[k] = if deep then v else table_clone(v, deep)
       else
         ret[k] = v
@@ -175,9 +162,11 @@ table_clone = (t, deep=false) ->
 
 -- parse connection string into table
 string_connection_parse = (str, fieldSep=";", valSep="=") ->
-  fields = string_split(str or "", ";")
   rst = {}
-  for _, d in ipairs(fields) do
+
+  fields = string_split(str or "", ";")
+  for i=1, #fields
+    d = fields[i]
     firstEq = d\find(valSep)
     if (firstEq)
       k = d\sub(1, firstEq - 1)
@@ -188,7 +177,7 @@ string_connection_parse = (str, fieldSep=";", valSep="=") ->
 
 { :url_escape, :url_unescape, :url_build,
   :trim, :path_sanitize, :slugify, :table_sort_keys,
-  :json_encodable, :from_json, :to_json, :table_clone, :table_extend,
-  :table_pairsByKeys, :query_string_encode, :applyDefaults,
+  :json_encodable, :from_json, :to_json, :table_clone,
+  :table_extend, :query_string_encode, :applyDefaults,
   :string_split, :string_connection_parse, :string_random,
 }

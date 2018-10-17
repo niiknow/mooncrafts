@@ -3,8 +3,8 @@ azureauth     = require "mooncrafts.azauth"
 mydate        = require "mooncrafts.date"
 http          = require "mooncrafts.http"
 log           = require "mooncrafts.log"
-string_gsub   = string.gsub
 
+string_gsub   = string.gsub
 my_max_number = 9007199254740991  -- from javascript max safe int
 
 import sharedkeylite from azureauth
@@ -184,7 +184,6 @@ request = (opts, createTableIfNotExists=false, retry=2) ->
   oldOpts = table_clone(opts)
   res = http.request(opts)
   --log.error(res)
-
 
   -- exponential retry
   if (retry < 10 and res and res.code >= 500 and res.body and (res.body\find("retry") ~= nil))

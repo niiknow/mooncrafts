@@ -5,7 +5,7 @@ log               = require "mooncrafts.log"
 
 local *
 request_ngx = (request_uri, opts={}) ->
-  capture_url = opts.capture_url or "@capture"
+  capture_url = opts.capture_url or "/__capture"
   capture_variable = opts.capture_variable  or "target"
 
   method = opts.method
@@ -18,13 +18,10 @@ request_ngx = (request_uri, opts={}) ->
 
   -- clear all browser headers
   bh = ngx.req.get_headers()
-  for k, v in pairs(bh) do
-    ngx.req.clear_header(k)
-
+  for k, v in pairs(bh) do ngx.req.clear_header(k)
   h = opts.headers or {["Accept"]: "*/*"}
-  for k,v in pairs(h) do
-    ngx.req.set_header(k, v)
 
+  for k,v in pairs(h) do ngx.req.set_header(k, v)
   req_t.body = opts.body if opts.body
 
   -- ngx.log(ngx.INFO, util.to_json(opts))

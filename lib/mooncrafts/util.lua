@@ -21,30 +21,14 @@ end
 for i = 97, 122 do
   insert(charset, char(i))
 end
-local string_random, table_pairsByKeys, trim, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
+local string_sub, string_random, trim, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
+string_sub = string.sub
 string_random = function(length)
   randomseed(os.time())
   if length > 0 then
     return string_random(length - 1) .. charset[random(1, #charset)]
   end
   return ""
-end
-table_pairsByKeys = function(t, f)
-  local a = { }
-  for n in pairs(t) do
-    insert(a, n)
-  end
-  sort(a, f)
-  local i = 0
-  local iter
-  iter = function()
-    i = i + 1
-    if a[i] == nil then
-      return nil
-    end
-    return a[i], t[a[i]]
-  end
-  return iter
 end
 trim = function(str, pattern)
   if pattern == nil then
@@ -159,7 +143,8 @@ query_string_encode = function(t, sep, quote, escape)
     keys[#keys + 1] = tostring(k)
   end
   sort(keys)
-  for _, k in ipairs(keys) do
+  for i = 1, #keys do
+    local k = keys[i]
     local v = t[k]
     local _exp_0 = type(v)
     if "table" == _exp_0 then
@@ -169,22 +154,22 @@ query_string_encode = function(t, sep, quote, escape)
         v = tv
       end
     elseif "function" == _exp_0 or "userdata" == _exp_0 or "thread" == _exp_0 then
-      _ = nil
+      local _ = nil
     else
       v = escape(tostring(v))
     end
     k = escape(tostring(k))
-    if v ~= "" then
-      query[#query + 1] = string.format('%s=%s', k, quote .. v .. quote)
-    else
+    if v == "" then
       query[#query + 1] = name
+    else
+      query[#query + 1] = string.format('%s=%s', k, quote .. v .. quote)
     end
   end
   return concat(query, sep)
 end
 applyDefaults = function(opts, defOpts)
   for k, v in pairs(defOpts) do
-    if "__" ~= string.sub(k, 1, 2) then
+    if "__" ~= string_sub(k, 1, 2) then
       if not (opts[k]) then
         opts[k] = v
       end
@@ -211,8 +196,8 @@ table_clone = function(t, deep)
   end
   local ret = { }
   for k, v in pairs(t) do
-    if "__" ~= string.sub(k, 1, 2) then
-      if ("table,userdata"):find(type(v)) then
+    if "__" ~= string_sub(k, 1, 2) then
+      if (type(v) == "userdata" or type(v) == "table") then
         if deep then
           ret[k] = v
         else
@@ -232,9 +217,10 @@ string_connection_parse = function(str, fieldSep, valSep)
   if valSep == nil then
     valSep = "="
   end
-  local fields = string_split(str or "", ";")
   local rst = { }
-  for _, d in ipairs(fields) do
+  local fields = string_split(str or "", ";")
+  for i = 1, #fields do
+    local d = fields[i]
     local firstEq = d:find(valSep)
     if (firstEq) then
       local k = d:sub(1, firstEq - 1)
@@ -257,7 +243,6 @@ return {
   to_json = to_json,
   table_clone = table_clone,
   table_extend = table_extend,
-  table_pairsByKeys = table_pairsByKeys,
   query_string_encode = query_string_encode,
   applyDefaults = applyDefaults,
   string_split = string_split,

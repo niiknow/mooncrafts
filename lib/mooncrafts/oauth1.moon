@@ -3,19 +3,16 @@ util      = require "mooncrafts.util"
 crypto    = require "mooncrafts.crypto"
 url       = require "mooncrafts.url"
 
-url_parse        = url.parse
-url_default_port = url.default_port
-
 import string_split, url_escape, query_string_encode, table_sort_keys, url_build from util
 import sort, concat from table
 
+url_parse         = url.parse
+url_default_port  = url.default_port
 escape_uri        = url_escape
 unescape_uri      = ngx and ngx.unescape_uri or util.url_unescape
 encode_base64     = ngx and ngx.encode_base64 or crypto.base64_encode
 digest_hmac_sha1  = ngx and ngx.hmac_sha1 or (key, str) -> crypto.hmac(key, str, crypto.sha1).digest()
 digest_md5        = ngx and ngx.md5 or (str) -> crypto.md5(str).hex()
-
-local *
 
 normalizeParameters = (parameters, body, query) ->
   items = { query_string_encode(parameters, "&") }

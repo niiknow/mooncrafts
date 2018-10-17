@@ -31,15 +31,15 @@ class RequestBuilder
       @req = req_wrapper
 
     @req.logs = {}
-    @req
+    @
 
   set: (req) =>
     @req = req
+    @
 
   log: (obj) =>
-    if (type obj == "table")
-      @req.logs[#@req.logs + 1] = util.to_json(obj)
-    else
-      @req.logs[#@req.logs + 1] = tostring(t)
+    logs = @req.logs
+    @req.logs[#logs + 1] = if (type obj == "table") then util.to_json(obj) else tostring(t)
+    @
 
 RequestBuilder

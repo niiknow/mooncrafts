@@ -58,7 +58,8 @@ canonicalizedHeaders = function(headers)
     keys[#keys + 1] = tostring(k)
   end
   sort(keys)
-  for _, k in ipairs(keys) do
+  for i = 1, #keys do
+    local k = keys[i]
     local v = headers[k]
     if (k:find("x-ms-") == 1) then
       rst[#rst + 1] = tostring(k) .. ":" .. tostring(v)

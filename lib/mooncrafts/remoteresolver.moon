@@ -2,11 +2,13 @@ util      = require "mooncrafts.util"
 httpc     = require "mooncrafts.http"
 log       = require "mooncrafts.log"
 url       = require "mooncrafts.url"
-url_parse = url.parse
 
 import trim, path_sanitize, url_build from util
 
-loadcode = (url) ->
+local *
+
+url_parse = url.parse
+loadcode  = (url) ->
   req = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
   res, err = httpc.request(req)
 
@@ -63,10 +65,10 @@ resolve = (modname, opts={plugins: {}}) ->
   rst.path = rst.path\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
 
   -- save old path
-  oldpath = rst.path
-  rst.path = path_sanitize(rst.basepath)
-  rst.basepath = url_build(rst, false)
-  rst.path = oldpath
+  oldpath        = rst.path
+  rst.path       = path_sanitize(rst.basepath)
+  rst.basepath   = url_build(rst, false)
+  rst.path       = oldpath
   rst.codeloader = loadcode
 
   -- it should set new _remotebase, unless it's a relative load

@@ -3,11 +3,14 @@ ltn12        = require "ltn12"
 http         = require "socket.http"
 https        = require "ssl.https"
 
+local *
+
 stringsource = ltn12.source.string
 tablesink    = ltn12.sink.table
 
 make_request = (opts) ->
   return https.request(opts) if opts.url\find "https:"
+
   http.request(opts)
 
 --request {

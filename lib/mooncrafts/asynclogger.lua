@@ -11,7 +11,7 @@ myopts = { }
 dolog = function(self, rsp)
   local v = { }
   local req = rsp.req
-  local logs = req.logs
+  local logs = req.logs or { }
   req.logs = nil
   local rk = (tostring(req.host) .. " " .. tostring(req.path)):gsub("/", "$")
   local time = os.time()
@@ -59,6 +59,7 @@ do
         local delay = math.random(10, 100)
         local ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
       end
+      return self
     end
   }
   _base_0.__index = _base_0

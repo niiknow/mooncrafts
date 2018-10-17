@@ -2,10 +2,10 @@ local util = require("mooncrafts.util")
 local httpc = require("mooncrafts.http")
 local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
-local url_parse = url.parse
 local trim, path_sanitize, url_build
 trim, path_sanitize, url_build = util.trim, util.path_sanitize, util.url_build
-local loadcode
+local url_parse, loadcode, resolve_remote, resolve_github, resolve
+url_parse = url.parse
 loadcode = function(url)
   local req = {
     url = url,
@@ -22,7 +22,6 @@ loadcode = function(url)
     body = err
   }
 end
-local resolve_remote
 resolve_remote = function(modname)
   local parsed = url_parse(modname)
   local file
@@ -33,7 +32,6 @@ resolve_remote = function(modname)
   end
   return parsed
 end
-local resolve_github
 resolve_github = function(modname)
   modname = modname:gsub("github%.com/", "https://raw.githubusercontent.com/")
   local parsed = resolve_remote(modname)
@@ -43,7 +41,6 @@ resolve_github = function(modname)
   parsed.github = true
   return parsed
 end
-local resolve
 resolve = function(modname, opts)
   if opts == nil then
     opts = {

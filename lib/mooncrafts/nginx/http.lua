@@ -6,7 +6,7 @@ request_ngx = function(request_uri, opts)
   if opts == nil then
     opts = { }
   end
-  local capture_url = opts.capture_url or "@capture"
+  local capture_url = opts.capture_url or "/__capture"
   local capture_variable = opts.capture_variable or "target"
   local method = opts.method
   local new_method = ngx["HTTP_" .. method]

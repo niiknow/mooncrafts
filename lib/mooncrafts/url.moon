@@ -13,37 +13,6 @@ setmetatable = setmetatable
 string_split = util.string_split
 table_insert = table.insert
 
-ports = {
-  acap: 674,
-  cap: 1026,
-  dict: 2628,
-  ftp: 21,
-  gopher: 70,
-  http: 80,
-  https: 443,
-  iax: 4569,
-  icap: 1344,
-  imap: 143,
-  ipp: 631,
-  ldap: 389,
-  mtqp: 1038,
-  mupdate: 3905,
-  news: 2009,
-  nfs: 2049,
-  nntp: 119,
-  rtsp: 554,
-  sip: 5060,
-  snmp: 161,
-  telnet: 23,
-  tftp: 69,
-  vemmi: 575,
-  afs: 1483,
-  jms: 5673,
-  rsync: 873,
-  prospero: 191,
-  videotex: 516
-}
-
 HTTPPHRASE = {
   [100]: "Continue",
   [101]: "Switching Protocols",
@@ -86,6 +55,38 @@ HTTPPHRASE = {
   [504]: "Gateway Timeout",
   [505]: "HTTP Version Not Supported"
 }
+
+ports = {
+  acap: 674,
+  cap: 1026,
+  dict: 2628,
+  ftp: 21,
+  gopher: 70,
+  http: 80,
+  https: 443,
+  iax: 4569,
+  icap: 1344,
+  imap: 143,
+  ipp: 631,
+  ldap: 389,
+  mtqp: 1038,
+  mupdate: 3905,
+  news: 2009,
+  nfs: 2049,
+  nntp: 119,
+  rtsp: 554,
+  sip: 5060,
+  snmp: 161,
+  telnet: 23,
+  tftp: 69,
+  vemmi: 575,
+  afs: 1483,
+  jms: 5673,
+  rsync: 873,
+  prospero: 191,
+  videotex: 516
+}
+
 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
 split = (url, protocol="https?") ->
@@ -159,17 +160,16 @@ compile_pattern = (pattern) ->
     "([^/?&#]+)" .. slash
   )
 
-
-  if pattern\sub(-1) ~= "/"
-    pattern = pattern .. "/"
-
+  if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
   compiled_pattern.pattern = "^" .. pattern .. "?$"
 
   compiled_pattern
 
 extract_parameters = (pattern, matches) ->
   params = { }
-  for i,k in ipairs(pattern.params)
+  t = pattern.params
+  for i=1, #t
+    k = t[i]
     if (k == 'splat')
       if not params.splat
         params.splat = {}
@@ -183,12 +183,11 @@ extract_parameters = (pattern, matches) ->
 
 match = (pattern, path) ->
   matches = { re_match(path, pattern.pattern) }
-  if #matches > 0
-    return true, extract_parameters(pattern, matches)
+
+  return true, extract_parameters(pattern, matches) if #matches > 0
 
   false, nil
 
-{
-  :split, :parse, :default_port, :compile_pattern, :match,
-  :extract_parameters, :HTTPPHRASE
+{ :HTTPPHRASE, :split, :parse, :default_port,
+  :compile_pattern, :match, :extract_parameters
 }

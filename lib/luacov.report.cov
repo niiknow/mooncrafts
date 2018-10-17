@@ -23,23 +23,23 @@
    1 myopts = {}
 
    1 dolog = (rsp) =>
-   1   v = {}
-   1   req = rsp.req
-   2   logs = req.logs
-***0   req.logs= nil
+   1   v        = {}
+   1   req      = rsp.req
+   2   logs     = req.logs or {}
+***0   req.logs = nil
 
        -- replace illegal forward slash char
-   1   rk = "#{req.host} #{req.path}"\gsub("/", "$")
-   1   time = os.time()
+   1   rk    = "#{req.host} #{req.path}"\gsub("/", "$")
+   1   time  = os.time()
    1   btime = os.date("%Y%m%d%H%m%S",time)
 ***0   rtime = 99999999999999 - btime
    1   btime = os.date("%Y-%m-%d %H:%m:%S", time)
-   1   rand = math.random(10, 1000)
-   1   pk = "#{rtime}_#{btime} #{rand}"
+   1   rand  = math.random(10, 1000)
+   1   pk    = "#{rtime}_#{btime} #{rand}"
    1   btime = os.date("%Y%m", time)
-   1   table_name = "log#{btime}"
 
-   1   opts = azt.item_create({
+   2   table_name = "log#{btime}"
+   1   opts       = azt.item_create({
    1     tenant: "a",
    1     table_name: table_name,
    2     rk: rk,
@@ -59,33 +59,32 @@
 ***0   v.status = rsp.status
 ***0   v.headers = to_json(rsp.headers)
 ***0   v.body = rsp.body
-
-***0   if (#logs > 0)
-***0     v.logs = to_json(logs)
-
+***0   v.logs = to_json(logs) if (#logs > 0)
 ***0   opts.body = to_json(v)
-   1   opts.useSocket = true
-   2   res = azt.request(opts, true)
-       res
+***0   opts.useSocket = true
+***0   res = azt.request(opts, true)
+   1   res
 
-     class AsyncLogger
-***0   new: (opts={:account_name, :account_key}) =>
+   1 class AsyncLogger
+   2   new: (opts={:account_name, :account_key}) =>
 ***0     if (opts.account_name == nil)
-***0         error("opts.account_name parameter is required")
+   1         error("opts.account_name parameter is required")
 
-   1     if (opts.account_key == nil)
+***0     if (opts.account_key == nil)
 ***0         error("opts.account_key parameter is required")
 
-   1     myopts = opts
+***0     myopts = opts
 
 ***0   dolog: dolog
-   1   log: (rsp) =>
-   2     if (ngx)
-   1       myrsp = table_clone(rsp)
-***0       delay = math.random(10, 100)
-   1       ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
 
-     AsyncLogger
+   1   log: (rsp) =>
+***0     if (ngx)
+***0       myrsp = table_clone(rsp)
+   1       delay = math.random(10, 100)
+   2       ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
+   1     @
+
+   1 AsyncLogger
 
 ==============================================================================
 ./mooncrafts/awsauth.moon
@@ -223,31 +222,34 @@
    2   for k in pairs(headers) do keys[#keys+1] = tostring(k)
 ***0   sort(keys)
 
-***0   for _, k in ipairs(keys) do
+
+***0   for i=1, #keys
+***0     k = keys[i]
 ***0     v = headers[k]
-***0     if (k\find("x-ms-") == 1) then
-***0       rst[#rst + 1] = "#{k}:#{v}"
+***0     if (k\find("x-ms-") == 1) then rst[#rst + 1] = "#{k}:#{v}"
 
 ***0   concat(rst, "\n")
 
 
-***0 stringForTable = (opts, additionalHeaders) ->
-   2   additionalHeaders["DataServiceVersion"] = "3.0;NetFx"
+   2 stringForTable = (opts, additionalHeaders) ->
+***0   additionalHeaders["DataServiceVersion"] = "3.0;NetFx"
 ***0   additionalHeaders["MaxDataServiceVersion"] = "3.0;NetFx"
 
-       params = { opts.method,
+***0   params = {
+***0     opts.method,
 ***0     getHeader(opts.headers, "content-md5"),
 ***0     getHeader(opts.headers, "content-type"),
 ***0     getHeader(opts.headers, "x-ms-date", additionalHeaders),
 ***0     getHeader(opts.headers, "content-md5"),
 ***0     getHeader(opts.headers, "content-type"),
 ***0     getHeader(opts.headers, "x-ms-date", additionalHeaders),
-***0     canonicalizedResource(parsedUrl) }
+***0     canonicalizedResource(parsedUrl)
+       }
 
 ***0   concat(params, "\n")
 
 
-   2 stringForBlobOrQueue = (req, additionalHeaders) ->
+***0 stringForBlobOrQueue = (req, additionalHeaders) ->
 ***0   headers = {}
 ***0   table_extend(headers, opts.headers)
 ***0   table_extend(headers, additionalHeaders)
@@ -260,9 +262,9 @@
 ***0     getHeader(headers, "content-md5"),
 ***0     getHeader(headers, "content-type"),
 ***0     getHeader(headers, "date"),
-***0     getHeader(headers, "if-modified-since"),
+   2     getHeader(headers, "if-modified-since"),
 ***0     getHeader(headers, "if-match"),
-   2     getHeader(headers, "if-none-match"),
+***0     getHeader(headers, "if-none-match"),
 ***0     getHeader(headers, "if-unmodified-since"),
 ***0     getHeader(headers, "range"),
 ***0     canonicalizedHeaders(headers),
@@ -272,17 +274,17 @@
 ***0   concat(params, "\n")
 
 ***0 sign = (opts, stringGenerator=stringForTable) ->
-***0   opts.time = opts.time or os.time()
-***0   opts.date = opts.date or date_utc(opts.time)
+***0   opts.time      = opts.time or os.time()
+***0   opts.date      = opts.date or date_utc(opts.time)
 ***0   opts.parsedUrl = url_parse(opts.url)
 
-***0   additionalHeaders = {}
+***0   additionalHeaders                 = {}
 ***0   additionalHeaders["x-ms-version"] = "2016-05-31"
-***0   additionalHeaders["x-ms-date"] = date_utc(opts.time)
+***0   additionalHeaders["x-ms-date"]    = date_utc(opts.time)
 
 ***0   stringToSign = stringGenerator(opts, additionalHeaders)
-***0   sig = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
-***0   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
+***0   sig          = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
+   2   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
        additionalHeaders
 
 ***0 { :date_utc, :sharedkeylite}
@@ -295,8 +297,8 @@
    2 mydate        = require "mooncrafts.date"
    2 http          = require "mooncrafts.http"
    2 log           = require "mooncrafts.log"
-   2 string_gsub   = string.gsub
 
+   2 string_gsub   = string.gsub
    2 my_max_number = 9007199254740991  -- from javascript max safe int
 
    2 import sharedkeylite from azureauth
@@ -477,7 +479,6 @@
 ***0   res = http.request(opts)
        --log.error(res)
 
-
        -- exponential retry
 ***0   if (retry < 10 and res and res.code >= 500 and res.body and (res.body\find("retry") ~= nil))
 ***0     ngx.sleep(retry)
@@ -494,8 +495,8 @@
 
        res
 
-   2 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
-***0   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
+***0 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
+   2   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
      }
 
 ==============================================================================
@@ -510,41 +511,38 @@
    7 local *
 
 ***0 base64_encode = ngx and ngx.encode_base64 or to_base64
+  10 base64_decode = ngx and ngx.decode_base64 or from_base64
+***0 crypto_wrapper = (dtype, str) ->
+   3   {
+  10     digest: () -> crypto.digest(dtype, str, true)
+***0     hex: () -> crypto.digest(dtype, str, false)
+   7   }
 
-***0 base64_decode = ngx and ngx.decode_base64 or from_base64
-
-  10 crypto_wrapper = (dtype, str) ->
-       {
-   7     digest: () -> crypto.digest(dtype, str, true)
-  10     hex: () -> crypto.digest(dtype, str, false)
-  10   }
-
-***0 hmac_wrapper = (key, str, algo) ->
-  16   {
+  10 hmac_wrapper = (key, str, algo) ->
+   7   {
 ***0     digest: () -> crypto_hmac.digest(algo, str, key, true)
-  12     hex: () -> crypto_hmac.digest(algo, str, key, false)
-  16   }
+  16     hex: () -> crypto_hmac.digest(algo, str, key, false)
+       }
 
-   4 md5 = (str) -> crypto_wrapper("md5", str)
-  16 sha1 = (str) -> crypto_wrapper("sha1", str)
-  16 sha256 = (str) -> crypto_wrapper("sha256", str)
-   7 hmac = (key, str, algo) ->
-
-   3   return hmac_wrapper(key, str, "md5") if algo == md5
+  16 md5 = (str) -> crypto_wrapper("md5", str)
+***0 sha1 = (str) -> crypto_wrapper("sha1", str)
+   4 sha256 = (str) -> crypto_wrapper("sha256", str)
+  16 hmac = (key, str, algo) ->
+  16   return hmac_wrapper(key, str, "md5") if algo == md5
    7   return hmac_wrapper(key, str, "sha1") if algo == sha1
 ***0   return hmac_wrapper(key, str, "sha256") if algo == sha256
+   3   return hmac_wrapper(key, str, algo) if type(algo) == "string"
 
-   7   return hmac_wrapper(key, str, algo) if type(algo) == "string"
-
-   5 { :base64_encode, :base64_decode, :md5, :sha1, :sha256, :hmac }
+***0 { :base64_encode, :base64_decode, :md5, :sha1, :sha256, :hmac }
 
 ==============================================================================
 ./mooncrafts/date.moon
 ==============================================================================
      -- allow for month calculation
 
-   2 seconds_in_a_day = 86400
-***0 seconds_in_a_month = 31 * seconds_in_a_day
+   2 seconds_in_a_day   = 86400
+   2 seconds_in_a_month = 31 * seconds_in_a_day
+***0 math_abs           = math.abs
 
      -- easiest thing is to add year
 ***0 add_year: (ts=os.time(), years=1) ->
@@ -566,15 +564,13 @@
 
      -- loop and add one month at a time
 ***0 add_month: (ts=os.time(), months=1) ->
-***0   add = (months > 0)
+***0   add      = (months > 0)
+***0   new_ts   = ts
+***0   monthval = math_abs(months)
+***0   for i = 1, monthval do new_ts = add_one_month(new_ts, (months > 0))
+       new_ts
 
-***0   new_ts = ts
-***0   for i = 1, math.abs(months)
-***0     new_ts = add_one_month(new_ts, (months > 0))
-
-   2   new_ts
-
-***0 { :add_day, :add_month, :add_year }
+   2 { :add_day, :add_month, :add_year }
 
 ==============================================================================
 ./mooncrafts/hmacauth.moon
@@ -612,19 +608,15 @@
    4 util         = require "mooncrafts.util"
    4 oauth1       = require "mooncrafts.oauth1"
    4 log          = require "mooncrafts.log"
+   4 http_socket  = require "mooncrafts.httpsocket"
+   4 http_ngx     = require "mooncrafts.nginx.http" if ngx
 
-   4 string_upper = string.upper
-
-***0 http_socket  = require "mooncrafts.httpsocket"
-***0 http_ngx     = require "mooncrafts.nginx.http" if ngx
-
-   4 import concat from table
+***0 import concat from table
    4 import query_string_encode from util
 
    4 string_upper = string.upper
-
-***0 dorequest = (opts) ->
-   6   return http_ngx.request(opts) if ngx and not opts.useSocket
+   4 dorequest    = (opts) ->
+   4   return http_ngx.request(opts) if ngx and not opts.useSocket
 
 ***0   http_socket.request(opts)
 
@@ -636,6 +628,7 @@
      --  err = <nil or error message>
      -- }
 ***0 local *
+
 ***0 request = (opts) ->
 
 ***0   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
@@ -643,20 +636,20 @@
 ***0   return { code: 0, err: "url is required" } unless opts.url
 
 ***0   opts["method"] = string_upper(opts["method"] or 'GET')
-  12   opts["headers"] = opts["headers"] or {["Accept"]: "*/*"}
-   6   opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
+***0   opts["headers"] = opts["headers"] or {["Accept"]: "*/*"}
+***0   opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
 
        -- auto add content length
-   6   body = opts["body"]
+***0   body = opts["body"]
    6   if body
    6     body = (type(body) == "table") and query_string_encode(body) or body
-   2     opts.body = body
-   2     opts.headers["content-length"] = #body
+   6     opts.body = body
+   6     opts.headers["content-length"] = #body
 
-***0   opts.headers["Authorization"] = "Basic #{encode_base64(concat(opts.auth, ':'))}" if opts["auth"]
-   6   opts.headers["Authorization"] = oauth1.create_signature opts, opts["oauth"] if opts["oauth"]
+   2   opts.headers["Authorization"] = "Basic #{encode_base64(concat(opts.auth, ':'))}" if opts["auth"]
+   2   opts.headers["Authorization"] = oauth1.create_signature opts, opts["oauth"] if opts["oauth"]
 
-***0   dorequest(opts)
+   6   dorequest(opts)
 
 ***0 { :request }
 
@@ -668,12 +661,15 @@
    4 http         = require "socket.http"
    4 https        = require "ssl.https"
 
-   4 stringsource = ltn12.source.string
-***0 tablesink    = ltn12.sink.table
+   4 local *
 
-   6 make_request = (opts) ->
-***0   return https.request(opts) if opts.url\find "https:"
-***0   http.request(opts)
+   6 stringsource = ltn12.source.string
+   6 tablesink    = ltn12.sink.table
+
+***0 make_request = (opts) ->
+   4   return https.request(opts) if opts.url\find "https:"
+
+   6   http.request(opts)
 
      --request {
      --  method = string,
@@ -688,21 +684,21 @@
      --  status = <the http status message>,
      --  err = <nil or error message>
      --}
-   6 request = (opts) ->
-   6   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
+***0 request = (opts) ->
+***0   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
 
 ***0   opts.source = stringsource(opts.body)
 
-***0   result = {}
-***0   opts.sink = tablesink(result)
-***0   one, code, headers, status = make_request opts
-***0   body = table.concat(result)
+   6   result = {}
+   6   opts.sink = tablesink(result)
+   6   one, code, headers, status = make_request opts
+   6   body = table.concat(result)
    6   message = #body > 0 and body or "unknown error"
    6   return {:code, :headers, :status, err: message} unless one
 
-   6   { :code, :headers, :status, :body }
+   4   { :code, :headers, :status, :body }
 
-   6 { :request }
+   4 { :request }
 
 ==============================================================================
 ./mooncrafts/log.moon
@@ -713,7 +709,11 @@
    7 list_writer      = require "log.writer.list"
    7 console_color    = require "log.writer.console.color"
    7 util             = require "mooncrafts.util"
-***0 to_json          = util.to_json
+
+***0 local *
+
+***0 to_json       = util.to_json
+***0 table_contact = table.concat
 
 ***0 doformat = (p) ->
 ***0   if type(p) == "table"
@@ -722,16 +722,12 @@
 ***0   if p == nil
 ***0     return "nil"
 
-   7   tostring(p)
-
-***0 sep = ' '
+***0   tostring(p)
 
 ***0 formatter = (...) ->
 ***0   params = [doformat(v) for v in *{...}]
 
-***0   table.concat(params, sep)
-
-***0 local *
+***0   table_concat(params, ' ')
 
 ***0 log = logger.new( "info", list_writer.new( console_color.new() ), formatter )
 
@@ -745,61 +741,58 @@
    5 crypto    = require "mooncrafts.crypto"
    5 url       = require "mooncrafts.url"
 
-   5 url_parse        = url.parse
-   5 url_default_port = url.default_port
-
    5 import string_split, url_escape, query_string_encode, table_sort_keys, url_build from util
-***0 import sort, concat from table
+   5 import sort, concat from table
 
-   5 escape_uri        = url_escape
-***0 unescape_uri      = ngx and ngx.unescape_uri or util.url_unescape
+   5 url_parse         = url.parse
+   5 url_default_port  = url.default_port
+***0 escape_uri        = url_escape
+   5 unescape_uri      = ngx and ngx.unescape_uri or util.url_unescape
    5 encode_base64     = ngx and ngx.encode_base64 or crypto.base64_encode
    5 digest_hmac_sha1  = ngx and ngx.hmac_sha1 or (key, str) -> crypto.hmac(key, str, crypto.sha1).digest()
    5 digest_md5        = ngx and ngx.md5 or (str) -> crypto.md5(str).hex()
-
-   2 local *
 
    5 normalizeParameters = (parameters, body, query) ->
    2   items = { query_string_encode(parameters, "&") }
 
    5   string_split(body, "&", items) if body
-***0   string_split(query, "&", items) if query
+   2   string_split(query, "&", items) if query
 
-   2   sort(items)
+   5   sort(items)
 ***0   concat(items, "&")
 
-***0 calculateBaseString = (body, method, query, base_uri, parameters) ->
+   2 calculateBaseString = (body, method, query, base_uri, parameters) ->
 ***0   escape_uri(method) .. "&" .. escape_uri(base_uri) .. "&" .. escape_uri(normalizeParameters(parameters, body, query))
 
-   1 secret = (oauth) -> unescape_uri(oauth["consumersecret"]) .. "&" .. unescape_uri(oauth["tokensecret"] or "")
+***0 secret = (oauth) -> unescape_uri(oauth["consumersecret"]) .. "&" .. unescape_uri(oauth["tokensecret"] or "")
 
    1 sign = (body, method, query, base_uri, oauth, parameters) ->
    1   oauth.stringToSign = calculateBaseString(body, method, query, base_uri, parameters)
-   5   encode_base64(digest_hmac_sha1(secret(oauth), oauth.stringToSign))
+***0   encode_base64(digest_hmac_sha1(secret(oauth), oauth.stringToSign))
 
-   5 create_signature = (opts, oauth) ->
+   1 create_signature = (opts, oauth) ->
 
        -- parse url for query string
-   3   parts = url_parse(opts.url)
+***0   parts = url_parse(opts.url)
    5   parts.port = nil if (url_default_port(parts.scheme) == parts.port)
-***0   base_uri = url_build(parts, false)
+   5   base_uri = url_build(parts, false)
 
 
        -- allow for unit testing by passing in timestamp
-***0   timestamp = oauth['timestamp'] or os.time()
-   1   parameters = {
-   1     oauth_consumer_key: oauth["consumerkey"],
-   1     oauth_signature_method: "HMAC-SHA1",
-***0     oauth_timestamp: timestamp,
-   1     oauth_nonce: digest_md5(timestamp .. ""),
-   1     oauth_version: oauth["version"] or "1.0"
-   1   }
+   5   timestamp = oauth['timestamp'] or os.time()
+   5   parameters = {
+***0     oauth_consumer_key: oauth["consumerkey"],
+   2     oauth_signature_method: "HMAC-SHA1",
+   3     oauth_timestamp: timestamp,
+   5     oauth_nonce: digest_md5(timestamp .. ""),
+   5     oauth_version: oauth["version"] or "1.0"
+       }
 
-***0   parameters["oauth_token"] = oauth["accesstoken"] if oauth["accesstoken"]
+   1   parameters["oauth_token"] = oauth["accesstoken"] if oauth["accesstoken"]
    1   parameters["oauth_callback"] = unescape_uri(oauth["callback"]) if oauth["callback"]
-   2   parameters["oauth_signature"] = sign(opts["body"], opts["method"] or 'GET', parts.query, base_uri, oauth, parameters)
+***0   parameters["oauth_signature"] = sign(opts["body"], opts["method"] or 'GET', parts.query, base_uri, oauth, parameters)
 
-***0   "OAuth " .. query_string_encode(parameters, ",", "\"")
+   1   "OAuth " .. query_string_encode(parameters, ",", "\"")
 
    1 { :create_signature }
 
@@ -810,11 +803,13 @@
    1 httpc     = require "mooncrafts.http"
    1 log       = require "mooncrafts.log"
    1 url       = require "mooncrafts.url"
-   1 url_parse = url.parse
 
    1 import trim, path_sanitize, url_build from util
 
-***0 loadcode = (url) ->
+   1 local *
+
+***0 url_parse = url.parse
+***0 loadcode  = (url) ->
 ***0   req = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
 ***0   res, err = httpc.request(req)
 
@@ -827,19 +822,19 @@
 ***0   parsed.basepath, file = string.match(parsed.path, "^(.*)/([^/]*)$")
 ***0   parsed.file = trim(file, "/*") or ""
 ***0   parsed.basepath = "/" unless parsed.basepath
-       parsed
+   1   parsed
 
      -- attempt to parse and store new basepath
-   1 resolve_github = (modname) ->
-***0   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
-   3   parsed = resolve_remote(modname)
+   3 resolve_github = (modname) ->
+   3   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
+   6   parsed = resolve_remote(modname)
    3   user, repo, blobortree, branch, rest = string.match(parsed.basepath, "(/[^/]+)(/[^/]+)(/[^/]+)(/[^/]+)(.*)")
-   3   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
-   6   parsed.path = "#{parsed.basepath}/#{parsed.file}"
+***0   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
+***0   parsed.path = "#{parsed.basepath}/#{parsed.file}"
    3   parsed.github = true
-       parsed
+   1   parsed
 
-   3 resolve = (modname, opts={plugins: {}}) ->
+   1 resolve = (modname, opts={plugins: {}}) ->
    1   originalName = tostring(modname)\gsub("%.moon$", "")
    1   rst = {}
 
@@ -847,10 +842,10 @@
    1   rst = resolve_remote(modname) if modname\find("http") == 1
 
        -- if github, then parse and store new basepath
-   1   rst = resolve_github(modname) if modname\find("github%.com/") == 1
+***0   rst = resolve_github(modname) if modname\find("github%.com/") == 1
 
        -- if _remotebase, try to parse relative to it
-   1   remotebase = opts.plugins._remotebase
+***0   remotebase = opts.plugins._remotebase
 
 ***0   if remotebase and rst.path == nil
          -- example: {url}/remote/simpson/homer.moon
@@ -859,9 +854,9 @@
 ***0     remotemodname = "#{remotebase}/#{modname}"
 ***0     rst = resolve_remote(remotemodname) if remotemodname\find("http") == 1
    1     rst._remotebase = remotebase
-   1     rst.isrelative = true
+***0     rst.isrelative = true
 
-***0   return { path: modname } unless rst.path
+   1   return { path: modname } unless rst.path
 
        -- remove .moon extension to convert period to forward slash
        -- then add back moon extension
@@ -871,15 +866,15 @@
    1   rst.path = rst.path\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
 
        -- save old path
-***0   oldpath = rst.path
-   1   rst.path = path_sanitize(rst.basepath)
-   1   rst.basepath = url_build(rst, false)
-***0   rst.path = oldpath
+***0   oldpath        = rst.path
+***0   rst.path       = path_sanitize(rst.basepath)
+***0   rst.basepath   = url_build(rst, false)
+***0   rst.path       = oldpath
    1   rst.codeloader = loadcode
 
        -- it should set new _remotebase, unless it's a relative load
-***0   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
-       rst
+   2   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
+   2   rst
 
    1 { :resolve, :resolve_github, :resolve_remote, :loadcode }
 
@@ -942,39 +937,36 @@
      -- Builds the environment table for a sandbox.
    1 build_env = (src_env, dest_env={}, wl=whitelist) ->
    1   env = {}
-   1   for name in wl\gmatch "%S+" do
-
-   1     t_name, field = name\match "^([^%.]+)%.([^%.]+)$"
-***0     if t_name
-   3       tbl = env[t_name]
-***0       env_t = src_env[t_name]
+   1   for name in wl\gmatch "%S+"
+***0     t_name, field = name\match "^([^%.]+)%.([^%.]+)$"
+   1     if t_name
+***0       tbl = env[t_name]
+   3       env_t = src_env[t_name]
 ***0       if tbl == nil and env_t
-   3         tbl = {}
-   2         env[t_name] = tbl
+***0         tbl = {}
+   3         env[t_name] = tbl
 
-   3       if env_t
- 300         t_tbl = type(tbl)
- 297         if t_tbl ~= "table"
+***0       if env_t
+   3         t_tbl = type(tbl)
+ 300         if t_tbl ~= "table"
  297           error("field '".. t_name .. "' already added as " .. t_tbl)
 
  258         tbl[field] = env_t[field]
 
          else
   15       val = src_env[name]
-***0       assert(type(val) ~= "table", "can't copy table reference")
- 258       env[name] = val
+  15       assert(type(val) ~= "table", "can't copy table reference")
+***0       env[name] = val
 
  204   env._G = dest_env
 
 ***0   setmetatable(dest_env, { __index: env })
 
+ 204 loadstring = (code, name, env=_G) ->
+ 204   assert(type(code) == "string", "code must be a string")
+***0   assert(type(env) == "table", "env is required")
 
-***0 loadstring = (code, name, env=_G) ->
-  39   assert(type(code) == "string", "code must be a string")
-  39   assert(type(env) == "table", "env is required")
-
-***0   loads(code, name or "sandbox", "t", env)
-
+  39   loads(code, name or "sandbox", "t", env)
 
      --- Executes Lua code in a sandbox.
      --
@@ -985,43 +977,38 @@
      -- @return          The `env` where the code was ran, or `nil` in case of error.
      -- @return          The chunk return values, or an error message.
    5 loadstring_safe = (code, name, env={}, wl) ->
-   5   env = build_env(_G, env, wl)
-   5   loadstring(code, name, env)
+   2   env = build_env(_G, env, wl)
+***0   loadstring(code, name, env)
 
-
-   2 loadfile = (file, env=_G) ->
-   1   assert(type(file) == "string", "file name is required")
-***0   assert(type(env) == "table", "env is required")
+   5 loadfile = (file, env=_G) ->
+   5   assert(type(file) == "string", "file name is required")
+   1   assert(type(env) == "table", "env is required")
 
    2   code = readfile(file)
    1   loadstring(code, file, env)
 
-
-***0 loadfile_safe = (file, env={}, wl) ->
-***0   env = build_env(_G, env, wl)
-***0   loadfile(file, env)
-
+   4 loadfile_safe = (file, env={}, wl) ->
+   2   env = build_env(_G, env, wl)
+   1   loadfile(file, env)
 
 ***0 exec = (fn) ->
-   1   ok, ret = pcall(fn)
-***0   return nil, ret unless ok
-
-       ret
+***0   ok, ret = pcall(fn)
+***0   return if ok then ret else nil, ret
 
 ***0 exec_code = (code, name, env={}, wl) ->
 ***0   fn = loadstring_safe(code, name, env, wl)
-   1   exec(fn)
+***0   exec(fn)
 
-   1 compile_moon = (moon_code) ->
-   1   tree, err = parse.string moon_code
-   1   return nil, "Parse error: " .. err unless tree
+***0 compile_moon = (moon_code) ->
+***0   tree, err = parse.string moon_code
+***0   return nil, "Parse error: " .. err unless tree
 
 ***0   lua_code, err, pos = compile.tree tree
-   1   return nil, compile.format_error err, pos, moon_code unless lua_code
+***0   return nil, compile.format_error err, pos, moon_code unless lua_code
 
-   1   lua_code
+       lua_code
 
-***0 { :build_env, :whitelist, :loadstring, :loadstring_safe, :loadfile, :loadfile_safe, :exec, :exec_code, :compile_moon }
+   1 { :build_env, :whitelist, :loadstring, :loadstring_safe, :loadfile, :loadfile_safe, :exec, :exec_code, :compile_moon }
 
 ==============================================================================
 ./mooncrafts/url.moon
@@ -1040,37 +1027,6 @@
    6 setmetatable = setmetatable
 ***0 string_split = util.string_split
 ***0 table_insert = table.insert
-
-***0 ports = {
-***0   acap: 674,
-***0   cap: 1026,
-***0   dict: 2628,
-***0   ftp: 21,
-***0   gopher: 70,
-***0   http: 80,
-***0   https: 443,
-***0   iax: 4569,
-***0   icap: 1344,
-***0   imap: 143,
-***0   ipp: 631,
-***0   ldap: 389,
-***0   mtqp: 1038,
-***0   mupdate: 3905,
-***0   news: 2009,
-***0   nfs: 2049,
-***0   nntp: 119,
-***0   rtsp: 554,
-***0   sip: 5060,
-***0   snmp: 161,
-***0   telnet: 23,
-***0   tftp: 69,
-***0   vemmi: 575,
-***0   afs: 1483,
-***0   jms: 5673,
-   6   rsync: 873,
-***0   prospero: 191,
-***0   videotex: 516
-     }
 
 ***0 HTTPPHRASE = {
 ***0   [100]: "Continue",
@@ -1110,45 +1066,77 @@
 ***0   [500]: "Internal Server Error",
 ***0   [501]: "Not Implemented",
 ***0   [502]: "Bad Gateway",
-   5   [503]: "Service Unavailable",
-   5   [504]: "Gateway Timeout",
+   6   [503]: "Service Unavailable",
+***0   [504]: "Gateway Timeout",
 ***0   [505]: "HTTP Version Not Supported"
+     }
+
+***0 ports = {
+***0   acap: 674,
+***0   cap: 1026,
+***0   dict: 2628,
+***0   ftp: 21,
+***0   gopher: 70,
+***0   http: 80,
+***0   https: 443,
+***0   iax: 4569,
+***0   icap: 1344,
+***0   imap: 143,
+***0   ipp: 631,
+***0   ldap: 389,
+***0   mtqp: 1038,
+***0   mupdate: 3905,
+***0   news: 2009,
+***0   nfs: 2049,
+***0   nntp: 119,
+***0   rtsp: 554,
+***0   sip: 5060,
+***0   snmp: 161,
+***0   telnet: 23,
+***0   tftp: 69,
+***0   vemmi: 575,
+***0   afs: 1483,
+***0   jms: 5673,
+   5   rsync: 873,
+   5   prospero: 191,
+***0   videotex: 516
    6 }
-***0 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
+
+   5 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
 ***0 split = (url, protocol="https?") ->
-***0   return nil, 'missing url parameter' unless url
+   5   return nil, 'missing url parameter' unless url
 
 ***0   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-***0   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+   5   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
    5   return nil, 'missing scheme info' unless scheme
-   5   return nil, 'missing host info' unless hostp
+***0   return nil, 'missing host info' unless hostp
 
        -- parse user pass
-   5   if hostp
+***0   if hostp
 ***0     m = string_split(hostp, "@")
-***0     if m[2]
+   5     if m[2]
    5       n = string_split(m[1], ":")
    5       user = n[1]
-   5       pass = n[2]
+   1       pass = n[2]
    1       hostp = m[2]
 
          -- parse port
-   1     authority = hostp
-***0     m = string_split(hostp, ":")
-   5     host = m[1]
-  10     port = m[2]
+***0     authority = hostp
+   5     m = string_split(hostp, ":")
+  10     host = m[1]
+   5     port = m[2]
 
-   5   if queryp
-***0     m = string_split(queryp, "#")
+***0   if queryp
+   5     m = string_split(queryp, "#")
    5     query = m[1]
    5     fragment = m[2]
 
-   5   if port == nil or port == ""
-***0     port = default_port(scheme)
+***0   if port == nil or port == ""
+   5     port = default_port(scheme)
 
-   4   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority }
+***0   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority }
 
    5 parse = (url, protocol="https?") ->
    5   parts, err = split(url, protocol)
@@ -1158,18 +1146,18 @@
    5   {
    5     scheme: parts[1] or nil,
    5     user: parts[2] or nil,
-   5     password: parts[3] or nil,
-***0     host: parts[4] or nil,
-   5     port: parts[5] or nil,
-   6     path: parts[6] or nil,
-***0     query: parts[7] or nil,
+***0     password: parts[3] or nil,
+   5     host: parts[4] or nil,
+   6     port: parts[5] or nil,
+***0     path: parts[6] or nil,
+   5     query: parts[7] or nil,
    5     fragment: parts[8] or nil,
-   5     authority: parts[9] or nil
-       }
+***0     authority: parts[9] or nil
+   5   }
 
-   5 compile_pattern = (pattern) ->
+***0 compile_pattern = (pattern) ->
 ***0   compiled_pattern = {
-***0     original: pattern,
+   5     original: pattern,
    5     params: { }
    5   }
 
@@ -1180,45 +1168,43 @@
 
    5   pattern = pattern\gsub(':([%w_%*]+)(/?)', (param, slash) ->
    5     if param == "*"
-   5       table_insert(compiled_pattern.params, "splat")
-   6       return "(.-)" .. slash
+   6       table_insert(compiled_pattern.params, "splat")
+***0       return "(.-)" .. slash
 
    9     table_insert(compiled_pattern.params, param)
    9     "([^/?&#]+)" .. slash
-   9   )
+       )
 
+   7   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
+   4   compiled_pattern.pattern = "^" .. pattern .. "?$"
 
-   7   if pattern\sub(-1) ~= "/"
-   4     pattern = pattern .. "/"
+   3   compiled_pattern
 
-   3   compiled_pattern.pattern = "^" .. pattern .. "?$"
-
-  18   compiled_pattern
-
-   3 extract_parameters = (pattern, matches) ->
-   3   params = { }
-***0   for i,k in ipairs(pattern.params)
+  18 extract_parameters = (pattern, matches) ->
+  16   params = { }
+   3   t = pattern.params
+   3   for i=1, #t
+***0     k = t[i]
   13     if (k == 'splat')
   13       if not params.splat
   18         params.splat = {}
 
-   8       table_insert(params.splat, url_unescape(matches[i]))
+***0       table_insert(params.splat, url_unescape(matches[i]))
          else
-   9       params[k] = url_unescape(matches[i])
-   9       params[k] = matches[i]
+***0       params[k] = url_unescape(matches[i])
+***0       params[k] = matches[i]
 
-       params
+   9   params
 
-   7 match = (pattern, path) ->
-   5   matches = { re_match(path, pattern.pattern) }
-***0   if #matches > 0
-***0     return true, extract_parameters(pattern, matches)
+***0 match = (pattern, path) ->
+   2   matches = { re_match(path, pattern.pattern) }
 
-***0   false, nil
+   7   return true, extract_parameters(pattern, matches) if #matches > 0
 
-  10 {
-   5   :split, :parse, :default_port, :compile_pattern, :match,
-***0   :extract_parameters, :HTTPPHRASE
+   5   false, nil
+
+***0 { :HTTPPHRASE, :split, :parse, :default_port,
+***0   :compile_pattern, :match, :extract_parameters
      }
 
 ==============================================================================
@@ -1245,38 +1231,26 @@
      -- our utils lib, nothing here should depend on ngx
      -- for ngx stuff, put it inside ngin.lua file
  243 local *
+ 468 string_sub = string.sub
 
-***0 string_random = (length) ->
+   9 string_random = (length) ->
    9   randomseed(os.time())
 
   12   return string_random(length - 1) .. charset[random(1, #charset)] if length > 0
 
   20   ""
 
-   2 table_pairsByKeys = (t, f) ->
-   9   a = {}
-***0   for n in pairs(t) do insert(a, n)
-***0   sort(a, f)
-
-***0   i = 0
-***0   iter = () ->
-***0     i = i + 1
-***0     return nil if a[i] == nil
-***0     a[i], t[a[i]]
-
-       iter
-
      --- trim a string.
      -- @param str the string
      -- @param pattern trim pattern
      -- @return trimed string
-***0 trim = (str, pattern="%s*") ->
-   9   str = tostring str
+   6 trim = (str, pattern="%s*") ->
+***0   str = tostring str
 
   10   if #str > 200
-   6     str\gsub("^#{pattern}", "")\reverse()\gsub("^#{pattern}", "")\reverse()
+   2     str\gsub("^#{pattern}", "")\reverse()\gsub("^#{pattern}", "")\reverse()
        else
-  10     str\match "^#{pattern}(.-)#{pattern}$"
+   9     str\match "^#{pattern}(.-)#{pattern}$"
 
      --- sanitize a path.
      -- path should not have double quote, single quote, period <br />
@@ -1284,12 +1258,12 @@
      -- finally, remove double period and make single forward slash <br />
      -- @param str the path
      -- @return a sanitized path
-   6 path_sanitize = (str) -> (tostring str)\gsub("[^a-zA-Z0-9.-_/\\]", "")\gsub("%.%.+", "")\gsub("//+", "/")\gsub("\\\\+", "/")
+   2 path_sanitize = (str) -> (tostring str)\gsub("[^a-zA-Z0-9.-_/\\]", "")\gsub("%.%.+", "")\gsub("//+", "/")\gsub("\\\\+", "/")
 
-***0 url_unescape = (str) -> str\gsub('+', ' ')\gsub("%%(%x%x)", (c) -> return string.char(tonumber(c, 16)))
+   9 url_unescape = (str) -> str\gsub('+', ' ')\gsub("%%(%x%x)", (c) -> return string.char(tonumber(c, 16)))
 
      -- https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string
-   8 url_escape = (str) -> string.gsub(str, "([ /?:@~!$&'()*+,;=%[%]%c])", (c) -> string.format("%%%02X", string.byte(c)))
+  23 url_escape = (str) -> string.gsub(str, "([ /?:@~!$&'()*+,;=%[%]%c])", (c) -> string.format("%%%02X", string.byte(c)))
 
      -- {
      --     [path] = "/test"
@@ -1299,125 +1273,126 @@
      --     [fragment] = "!hash_bang"
      --     [query] = "hello=world"
      -- }
-***0 url_build = (parts, includeQuery=true) ->
+   3 url_build = (parts, includeQuery=true) ->
    3   out = parts.path or ""
 
-***0   out = path_sanitize(out)
+   3   out = path_sanitize(out)
 
-   3   if host = parts.host
-   3     host = "//#{host}"
+***0   if host = parts.host
+   6     host = "//#{host}"
    3     host = "#{host}:#{parts.port}" if parts.port
-   2     host = "#{parts.scheme}:#{host}"  if parts.scheme and trim(parts.scheme) ~= ""
-***0     out = "/#{out}" if parts.path and out\sub(1,1) ~= "/"
-   6     out = "#{host}#{out}"
+***0     host = "#{parts.scheme}:#{host}"  if parts.scheme and trim(parts.scheme) ~= ""
+   6     out = "/#{out}" if parts.path and out\sub(1,1) ~= "/"
+   1     out = "#{host}#{out}"
 
-***0   if includeQuery
-   6     out = "#{out}?#{parts.query}" if parts.query
-   1     out = "#{out}##{parts.fragment}" if parts.fragment
+   3   if includeQuery
+***0     out = "#{out}?#{parts.query}" if parts.query
+***0     out = "#{out}##{parts.fragment}" if parts.fragment
 
-   3   out
+   1   out
 
 ***0 slugify = (str) -> ((tostring str)\gsub("[%s_]+", "-")\gsub("[^%w%-]+", "")\gsub("-+", "-"))\lower!
 
    1 string_split = (str, sep, dest={}) ->
-   1   str = tostring str
+***0   str = tostring str
 ***0   for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
-   1     insert(dest, str)
+   3     insert(dest, str)
 
        dest
 
-   3 json_encodable = (obj, seen={}) ->
-   9   switch type obj
-         when "table"
-   5       unless seen[obj]
-   9         seen[obj] = true
-***0         { k, json_encodable(v, seen) for k,v in pairs(obj) when type(k) == "string" or type(k) == "number" }
-  19     when "function", "userdata", "thread"
-  18       nil
+   9 json_encodable = (obj, seen={}) ->
+***0   switch type obj
+  19     when "table"
+  18       unless seen[obj]
+***0         seen[obj] = true
+  19         { k, json_encodable(v, seen) for k, v in pairs(obj) when type(k) == "string" or type(k) == "number" }
+  47     when "function", "userdata", "thread"
+  28       nil
          else
   19       obj
 
-  28 from_json = (obj) -> cjson_safe.decode obj
+***0 from_json = (obj) -> cjson_safe.decode obj
 
-  19 to_json = (obj) -> cjson_safe.encode json_encodable obj
+   6 to_json = (obj) -> cjson_safe.encode json_encodable obj
 
-***0 query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
+  28 query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
   28   query = {}
    6   keys = {}
-***0   for k in pairs(t) do keys[#keys+1] = tostring(k)
-  28   sort(keys)
 
-   6   for _, k in ipairs(keys) do
-   6     v = t[k]
+   6   for k in pairs(t) do keys[#keys+1] = tostring(k)
 
-  28     switch type v
+  22   sort(keys)
+  44   for i=1, #keys
+***0     k = keys[i]
+***0     v = t[k]
+
+***0     switch type v
   22       when "table"
-  44         unless seen[v]
+   1         unless seen[v]
 ***0           seen[v] = true
-***0           tv = query_string_encode(v, sep, quote, seen)
-   6           v = tv
-***0       when "function", "userdata", "thread"
-  22         nil
+  21           tv = query_string_encode(v, sep, quote, seen)
+***0           v = tv
+   9       when "function", "userdata", "thread"
+             nil
            else
-***0         v = escape(tostring(v))
+   9         v = escape(tostring(v))
 
-***0     k = escape(tostring(k))
+  12     k = escape(tostring(k))
 
-***0     if v ~= "" then
-   1       query[#query+1] = string.format('%s=%s', k, quote .. v .. quote)
-         else
-***0       query[#query+1] = name
+***0     query[#query+1] = if v == "" then name else string.format('%s=%s', k, quote .. v .. quote)
 
-   9   concat(query, sep)
+   4   concat(query, sep)
 
    6 applyDefaults = (opts, defOpts) ->
-   4   for k, v in pairs(defOpts) do
-***0     if "__" ~= string.sub(k,1,2) then   -- don't clone meta
+   5   for k, v in pairs(defOpts)
+***0     if "__" ~= string_sub(k, 1, 2)   -- don't clone meta
    6       opts[k] = v unless opts[k]
 
        opts
 
    6 table_extend = (table1, table2) ->
-***0   for k, v in pairs(table2) do
-   6     if (type(table1[k]) == 'table' and type(v) == 'table') then
-   6       table_extend(table1[k], v)
+  26   for k, v in pairs(table2)
+  20     if (type(table1[k]) == 'table' and type(v) == 'table')
+***0       table_extend(table1[k], v)
          else
-  20       table1[k] = v
+  26       table1[k] = v
 
-   6   table1
+  20   table1
 
   20 table_clone = (t, deep=false) ->
-  20   return nil unless ("table"==type(t) or "userdata"==type(t))
+***0   return nil unless ("table"==type(t) or "userdata"==type(t))
 
 ***0   ret = {}
-***0   for k,v in pairs(t) do
-***0     if "__" ~= string.sub(k,1,2) then   -- don't clone meta
-***0       if "table,userdata"\find(type(v)) then
+***0   for k, v in pairs(t)
+***0     if "__" ~= string_sub(k,1,2)   -- don't clone meta
+  20       if (type(v) == "userdata" or type(v) == "table")
 ***0         ret[k] = if deep then v else table_clone(v, deep)
            else
-***0         ret[k] = v
+  40         ret[k] = v
 
   40   ret
 
      -- parse connection string into table
-  20 string_connection_parse = (str, fieldSep=";", valSep="=") ->
-  20   fields = string_split(str or "", ";")
-***0   rst = {}
-***0   for _, d in ipairs(fields) do
+***0 string_connection_parse = (str, fieldSep=";", valSep="=") ->
+  20   rst = {}
+
+***0   fields = string_split(str or "", ";")
+   6   for i=1, #fields
+   9     d = fields[i]
 ***0     firstEq = d\find(valSep)
-***0     if (firstEq)
-   6       k = d\sub(1, firstEq - 1)
-   9       v = d\sub(firstEq + 1)
-***0       rst[k] = v
+  11     if (firstEq)
+  20       k = d\sub(1, firstEq - 1)
+  10       v = d\sub(firstEq + 1)
+   6       rst[k] = v
 
-  20   rst
+       rst
 
-   6 { :url_escape, :url_unescape, :url_build,
-***0   :trim, :path_sanitize, :slugify, :table_sort_keys,
-***0   :json_encodable, :from_json, :to_json, :table_clone, :table_extend,
-***0   :table_pairsByKeys, :query_string_encode, :applyDefaults,
-   1   :string_split, :string_connection_parse, :string_random,
-   9 }
+   1 { :url_escape, :url_unescape, :url_build,
+   9   :trim, :path_sanitize, :slugify, :table_sort_keys,
+***0   :json_encodable, :from_json, :to_json, :table_clone,
+***0   :table_extend, :query_string_encode, :applyDefaults,
+***0   :string_split, :string_connection_parse, :string_random,
+     }
 
 ==============================================================================
 Summary
@@ -1425,20 +1400,20 @@ Summary
 
 File                             Hits Missed Coverage
 -----------------------------------------------------
-./mooncrafts/asynclogger.moon    43   15     74.14%
+./mooncrafts/asynclogger.moon    44   17     72.13%
 ./mooncrafts/awsauth.moon        37   18     67.27%
-./mooncrafts/azauth.moon         21   55     27.63%
+./mooncrafts/azauth.moon         21   57     26.92%
 ./mooncrafts/aztable.moon        67   74     47.52%
-./mooncrafts/crypto.moon         20   5      80.00%
-./mooncrafts/date.moon           4    15     21.05%
+./mooncrafts/crypto.moon         18   7      72.00%
+./mooncrafts/date.moon           5    14     26.32%
 ./mooncrafts/hmacauth.moon       7    7      50.00%
-./mooncrafts/http.moon           16   12     57.14%
-./mooncrafts/httpsocket.moon     11   8      57.89%
-./mooncrafts/log.moon            5    12     29.41%
-./mooncrafts/oauth1.moon         32   11     74.42%
-./mooncrafts/remoteresolver.moon 26   18     59.09%
-./mooncrafts/sandbox.moon        37   30     55.22%
-./mooncrafts/url.moon            66   89     42.58%
-./mooncrafts/util.moon           69   45     60.53%
+./mooncrafts/http.moon           16   11     59.26%
+./mooncrafts/httpsocket.moon     16   4      80.00%
+./mooncrafts/log.moon            4    13     23.53%
+./mooncrafts/oauth1.moon         33   8      80.49%
+./mooncrafts/remoteresolver.moon 25   23     52.08%
+./mooncrafts/sandbox.moon        33   33     50.00%
+./mooncrafts/url.moon            63   92     40.65%
+./mooncrafts/util.moon           71   33     68.27%
 -----------------------------------------------------
-Total                            461  414    52.69%
+Total                            460  411    52.81%

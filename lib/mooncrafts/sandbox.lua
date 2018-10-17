@@ -125,10 +125,11 @@ loadfile_safe = function(file, env, wl)
 end
 exec = function(fn)
   local ok, ret = pcall(fn)
-  if not (ok) then
+  if ok then
+    return ret
+  else
     return nil, ret
   end
-  return ret
 end
 exec_code = function(code, name, env, wl)
   if env == nil then

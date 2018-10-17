@@ -54,8 +54,7 @@ local *
 -- Builds the environment table for a sandbox.
 build_env = (src_env, dest_env={}, wl=whitelist) ->
   env = {}
-  for name in wl\gmatch "%S+" do
-
+  for name in wl\gmatch "%S+"
     t_name, field = name\match "^([^%.]+)%.([^%.]+)$"
     if t_name
       tbl = env[t_name]
@@ -80,13 +79,11 @@ build_env = (src_env, dest_env={}, wl=whitelist) ->
 
   setmetatable(dest_env, { __index: env })
 
-
 loadstring = (code, name, env=_G) ->
   assert(type(code) == "string", "code must be a string")
   assert(type(env) == "table", "env is required")
 
   loads(code, name or "sandbox", "t", env)
-
 
 --- Executes Lua code in a sandbox.
 --
@@ -100,7 +97,6 @@ loadstring_safe = (code, name, env={}, wl) ->
   env = build_env(_G, env, wl)
   loadstring(code, name, env)
 
-
 loadfile = (file, env=_G) ->
   assert(type(file) == "string", "file name is required")
   assert(type(env) == "table", "env is required")
@@ -108,17 +104,13 @@ loadfile = (file, env=_G) ->
   code = readfile(file)
   loadstring(code, file, env)
 
-
 loadfile_safe = (file, env={}, wl) ->
   env = build_env(_G, env, wl)
   loadfile(file, env)
 
-
 exec = (fn) ->
   ok, ret = pcall(fn)
-  return nil, ret unless ok
-
-  ret
+  return if ok then ret else nil, ret
 
 exec_code = (code, name, env={}, wl) ->
   fn = loadstring_safe(code, name, env, wl)

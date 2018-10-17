@@ -4,7 +4,11 @@ logger           = require "log"
 list_writer      = require "log.writer.list"
 console_color    = require "log.writer.console.color"
 util             = require "mooncrafts.util"
-to_json          = util.to_json
+
+local *
+
+to_json       = util.to_json
+table_contact = table.concat
 
 doformat = (p) ->
   if type(p) == "table"
@@ -15,14 +19,10 @@ doformat = (p) ->
 
   tostring(p)
 
-sep = ' '
-
 formatter = (...) ->
   params = [doformat(v) for v in *{...}]
 
-  table.concat(params, sep)
-
-local *
+  table_concat(params, ' ')
 
 log = logger.new( "info", list_writer.new( console_color.new() ), formatter )
 

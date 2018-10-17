@@ -41,10 +41,11 @@ canonicalizedHeaders = (headers) ->
   for k in pairs(headers) do keys[#keys+1] = tostring(k)
   sort(keys)
 
-  for _, k in ipairs(keys) do
+
+  for i=1, #keys
+    k = keys[i]
     v = headers[k]
-    if (k\find("x-ms-") == 1) then
-      rst[#rst + 1] = "#{k}:#{v}"
+    if (k\find("x-ms-") == 1) then rst[#rst + 1] = "#{k}:#{v}"
 
   concat(rst, "\n")
 
@@ -53,14 +54,16 @@ stringForTable = (opts, additionalHeaders) ->
   additionalHeaders["DataServiceVersion"] = "3.0;NetFx"
   additionalHeaders["MaxDataServiceVersion"] = "3.0;NetFx"
 
-  params = { opts.method,
+  params = {
+    opts.method,
     getHeader(opts.headers, "content-md5"),
     getHeader(opts.headers, "content-type"),
     getHeader(opts.headers, "x-ms-date", additionalHeaders),
     getHeader(opts.headers, "content-md5"),
     getHeader(opts.headers, "content-type"),
     getHeader(opts.headers, "x-ms-date", additionalHeaders),
-    canonicalizedResource(parsedUrl) }
+    canonicalizedResource(parsedUrl)
+  }
 
   concat(params, "\n")
 
@@ -90,16 +93,16 @@ stringForBlobOrQueue = (req, additionalHeaders) ->
   concat(params, "\n")
 
 sign = (opts, stringGenerator=stringForTable) ->
-  opts.time = opts.time or os.time()
-  opts.date = opts.date or date_utc(opts.time)
+  opts.time      = opts.time or os.time()
+  opts.date      = opts.date or date_utc(opts.time)
   opts.parsedUrl = url_parse(opts.url)
 
-  additionalHeaders = {}
+  additionalHeaders                 = {}
   additionalHeaders["x-ms-version"] = "2016-05-31"
-  additionalHeaders["x-ms-date"] = date_utc(opts.time)
+  additionalHeaders["x-ms-date"]    = date_utc(opts.time)
 
   stringToSign = stringGenerator(opts, additionalHeaders)
-  sig = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
+  sig          = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
   additionalHeaders
 

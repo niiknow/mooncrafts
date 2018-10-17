@@ -2,9 +2,6 @@
 util         = require "mooncrafts.util"
 oauth1       = require "mooncrafts.oauth1"
 log          = require "mooncrafts.log"
-
-string_upper = string.upper
-
 http_socket  = require "mooncrafts.httpsocket"
 http_ngx     = require "mooncrafts.nginx.http" if ngx
 
@@ -12,8 +9,7 @@ import concat from table
 import query_string_encode from util
 
 string_upper = string.upper
-
-dorequest = (opts) ->
+dorequest    = (opts) ->
   return http_ngx.request(opts) if ngx and not opts.useSocket
 
   http_socket.request(opts)
@@ -26,6 +22,7 @@ dorequest = (opts) ->
 --  err = <nil or error message>
 -- }
 local *
+
 request = (opts) ->
 
   opts = { url: opts, method: 'GET' } if type(opts) == 'string'

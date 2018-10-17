@@ -3,42 +3,12 @@ local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, ports, HTTPPHRASE, default_port, split, parse, compile_pattern, extract_parameters, match
+local re_match, tonumber, setmetatable, string_split, table_insert, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
 string_split = util.string_split
 table_insert = table.insert
-ports = {
-  acap = 674,
-  cap = 1026,
-  dict = 2628,
-  ftp = 21,
-  gopher = 70,
-  http = 80,
-  https = 443,
-  iax = 4569,
-  icap = 1344,
-  imap = 143,
-  ipp = 631,
-  ldap = 389,
-  mtqp = 1038,
-  mupdate = 3905,
-  news = 2009,
-  nfs = 2049,
-  nntp = 119,
-  rtsp = 554,
-  sip = 5060,
-  snmp = 161,
-  telnet = 23,
-  tftp = 69,
-  vemmi = 575,
-  afs = 1483,
-  jms = 5673,
-  rsync = 873,
-  prospero = 191,
-  videotex = 516
-}
 HTTPPHRASE = {
   [100] = "Continue",
   [101] = "Switching Protocols",
@@ -80,6 +50,36 @@ HTTPPHRASE = {
   [503] = "Service Unavailable",
   [504] = "Gateway Timeout",
   [505] = "HTTP Version Not Supported"
+}
+ports = {
+  acap = 674,
+  cap = 1026,
+  dict = 2628,
+  ftp = 21,
+  gopher = 70,
+  http = 80,
+  https = 443,
+  iax = 4569,
+  icap = 1344,
+  imap = 143,
+  ipp = 631,
+  ldap = 389,
+  mtqp = 1038,
+  mupdate = 3905,
+  news = 2009,
+  nfs = 2049,
+  nntp = 119,
+  rtsp = 554,
+  sip = 5060,
+  snmp = 161,
+  telnet = 23,
+  tftp = 69,
+  vemmi = 575,
+  afs = 1483,
+  jms = 5673,
+  rsync = 873,
+  prospero = 191,
+  videotex = 516
 }
 default_port = function(scheme)
   if ports[scheme] then
@@ -174,14 +174,18 @@ compile_pattern = function(pattern)
     return "([^/?&#]+)" .. slash
   end)
   if pattern:sub(-1) ~= "/" then
-    pattern = pattern .. "/"
+    do
+      pattern = pattern .. "/"
+    end
   end
   compiled_pattern.pattern = "^" .. pattern .. "?$"
   return compiled_pattern
 end
 extract_parameters = function(pattern, matches)
   local params = { }
-  for i, k in ipairs(pattern.params) do
+  local t = pattern.params
+  for i = 1, #t do
+    local k = t[i]
     if (k == 'splat') then
       if not params.splat then
         params.splat = { }
@@ -204,11 +208,11 @@ match = function(pattern, path)
   return false, nil
 end
 return {
+  HTTPPHRASE = HTTPPHRASE,
   split = split,
   parse = parse,
   default_port = default_port,
   compile_pattern = compile_pattern,
   match = match,
-  extract_parameters = extract_parameters,
-  HTTPPHRASE = HTTPPHRASE
+  extract_parameters = extract_parameters
 }

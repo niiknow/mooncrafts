@@ -1,16 +1,15 @@
 local ltn12 = require("ltn12")
 local http = require("socket.http")
 local https = require("ssl.https")
-local stringsource = ltn12.source.string
-local tablesink = ltn12.sink.table
-local make_request
+local stringsource, tablesink, make_request, request
+stringsource = ltn12.source.string
+tablesink = ltn12.sink.table
 make_request = function(opts)
   if opts.url:find("https:") then
     return https.request(opts)
   end
   return http.request(opts)
 end
-local request
 request = function(opts)
   if type(opts) == 'string' then
     opts = {

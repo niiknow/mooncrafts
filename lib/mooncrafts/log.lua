@@ -2,8 +2,9 @@ local logger = require("log")
 local list_writer = require("log.writer.list")
 local console_color = require("log.writer.console.color")
 local util = require("mooncrafts.util")
-local to_json = util.to_json
-local doformat
+local to_json, table_contact, doformat, formatter, log
+to_json = util.to_json
+table_contact = table.concat
 doformat = function(p)
   if type(p) == "table" then
     return to_json(p)
@@ -13,8 +14,6 @@ doformat = function(p)
   end
   return tostring(p)
 end
-local sep = ' '
-local formatter
 formatter = function(...)
   local params
   do
@@ -30,8 +29,7 @@ formatter = function(...)
     end
     params = _accum_0
   end
-  return table.concat(params, sep)
+  return table_concat(params, ' ')
 end
-local log
 log = logger.new("info", list_writer.new(console_color.new()), formatter)
 return log
