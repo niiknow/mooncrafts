@@ -12,6 +12,7 @@ trim            = util.trim
 strlen          = string.len
 table_insert    = table.insert
 table_extend    = util.table_extend
+string_match    = string.match
 
 compile_list = (myList) ->
   -- expect list to already been sorted

@@ -8,6 +8,7 @@ local trim = util.trim
 local strlen = string.len
 local table_insert = table.insert
 local table_extend = util.table_extend
+local string_match = string.match
 local compile_list
 compile_list = function(myList)
   for k, r in pairs(myList) do

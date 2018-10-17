@@ -123,7 +123,7 @@ split = function(url, pathOnly)
     path, queryp = string.match(url, "([^?#]*)?*(.*)")
   end
   local pathAndQuery = path
-  if queryp then
+  if queryp and strlen(queryp) > 0 then
     local m = string_split(queryp, "#")
     query = m[1]
     fragment = m[2]
@@ -217,14 +217,14 @@ extract_parameters = function(pattern, matches)
   end
   return params
 end
-match_pattern = function(path, pattern)
+match_pattern = function(reqUrl, pattern)
   if pattern.original:find('https?') == nil then
-    if path:find('https?') then
-      path = parse(path, true).pathAndQuery
+    if reqUrl:find('https?') ~= nil then
+      reqUrl = parse(reqUrl, true).pathAndQuery
     end
   end
   local matches = {
-    re_match(path, pattern.pattern)
+    re_match(reqUrl, pattern.pattern)
   }
   if #matches > 0 then
     return true, extract_parameters(pattern, matches)
