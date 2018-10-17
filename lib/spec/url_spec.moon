@@ -133,13 +133,13 @@ tests = {
   }
 
   {
-    "compile, match, replace '/:foo.:bar'"
+    "test build_with_splats '/:foo.:bar'"
     ->
       rst = url.compile_pattern('/:foo.:bar')
       match, params = url.match(rst, "/tom@example.com")
-      url.build('/hi/:bar.:foo', params)
+      url.build_with_splats('https://example.com:443/hi/:bar.:foo', params)
 
-    "/hi/com.tom@example"
+    "https://example.com:443/hi/com.tom@example"
   }
 }
 

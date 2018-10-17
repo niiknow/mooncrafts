@@ -8,14 +8,18 @@ local base64_decode = crypto.base64_decode
 local trim = util.trim
 local strlen = string.len
 local table_extend = util.table_extend
+local table_insert = table.insert
 local compile_list
 compile_list = function(self, myList)
   if myList == nil then
     return { }
   end
   for i = 1, #myList do
-    local v = myList[i]
-    v.pattern = compile_pattern(v['source'])
+    local r = myList[i]
+    r.pattern = compile_pattern(v.source)
+    if r.status == nil then
+      r.status = 0
+    end
   end
 end
 local SimpleRouter
@@ -74,35 +78,33 @@ do
     parseRedirects = function(self, req)
       assert(req, "request object is required")
       assert(req.url, "request url is required")
-      local rst = {
-        code = 0,
-        headers = { },
-        params = { },
-        isProxy = false
-      }
+      local rst = { }
       local myRules = self.conf.redirects
       for i = 1, #myRules do
         local r = myRules[i]
         local match, params = url.match(r.pattern, req.url)
+        if match then
+          rst.rule = r
+          rst.target = url.build_with_splats(r.dest, params)
+          rst.isRedir = r.status > 300
+          return rst
+        end
       end
       return rst
     end,
     parseHeaders = function(self, req)
       assert(req, "request object is required")
       assert(req.url, "request url is required")
-      local rst = {
-        code = 0,
-        headers = { }
-      }
+      local matches = { }
       local myRules = self.conf.redirects
       for i = 1, #myRules do
         local r = myRules[i]
         local match = url.match(r.pattern, req.url)
         if match then
-          table_extend(rst.headers, r.headers)
+          table_insert(matches, r)
         end
       end
-      return rst
+      return matches
     end
   }
   _base_0.__index = _base_0

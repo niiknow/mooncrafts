@@ -696,10 +696,10 @@
 ==============================================================================
      -- implement singleton log
 
-   7 logger           = require "log"
-   7 list_writer      = require "log.writer.list"
-   7 console_color    = require "log.writer.console.color"
-   7 util             = require "mooncrafts.util"
+   8 logger           = require "log"
+   8 list_writer      = require "log.writer.list"
+   8 console_color    = require "log.writer.console.color"
+   8 util             = require "mooncrafts.util"
 
 ***0 local *
 
@@ -1008,9 +1008,11 @@
      -- custom url parsing implementation
      -- since there are so many that does not meet requirements - wtf?
    6 util = require "mooncrafts.util"
+   6 log  = require "mooncrafts.log"
 
    6 import insert from table
    6 import url_unescape from util
+
 
 ***0 local *
 
@@ -1020,8 +1022,10 @@
    6 string_split = util.string_split
    6 table_insert = table.insert
    6 string_sub   = string.sub
-***0 trim         = util.trim
+   6 trim         = util.trim
 ***0 url_escape   = util.url_escape
+***0 string_join  = table.concat
+***0 string_gsub  = string.gsub
 
 ***0 HTTPPHRASE = {
 ***0   [100]: "Continue",
@@ -1060,8 +1064,8 @@
 ***0   [499]: "Client has closed connection - Nginx",
 ***0   [500]: "Internal Server Error",
 ***0   [501]: "Not Implemented",
-***0   [502]: "Bad Gateway",
-   6   [503]: "Service Unavailable",
+   6   [502]: "Bad Gateway",
+***0   [503]: "Service Unavailable",
 ***0   [504]: "Gateway Timeout",
 ***0   [505]: "HTTP Version Not Supported"
      }
@@ -1091,50 +1095,50 @@
 ***0   tftp: 69,
 ***0   vemmi: 575,
 ***0   afs: 1483,
-***0   jms: 5673,
-   6   rsync: 873,
-   5   prospero: 191,
-***0   videotex: 516
-   7 }
+   6   jms: 5673,
+   5   rsync: 873,
+***0   prospero: 191,
+   7   videotex: 516
+     }
 
-   6 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
+***0 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
-***0 split = (url, pathOnly=false) ->
-   6   assert(url, "url parameter is required")
-  12   url = trim(url)
+   6 split = (url, pathOnly=false) ->
+  12   assert(url, "url parameter is required")
+   6   url = trim(url)
 
    6   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-   6   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+   2   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
 
    5   if pathOnly
-   5     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
+***0     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
        else
-   6     assert(scheme, "parsing of url must have scheme")
+   5     assert(scheme, "parsing of url must have scheme")
    5     assert(hostp, "parsing of url must have host and/or authority")
 
        -- parse user pass
    1   if hostp
    1     m = string_split(hostp, "@")
-   1     if m[2]
-***0       n = string_split(m[1], ":")
-   5       user = n[1]
-  10       pass = n[2]
+***0     if m[2]
+   5       n = string_split(m[1], ":")
+  10       user = n[1]
+   5       pass = n[2]
    5       hostp = m[2]
 
          -- parse port
-   1     authority = hostp
-***0     m = string_split(hostp, ":")
+***0     authority = hostp
+   6     m = string_split(hostp, ":")
    6     host = m[1]
    6     port = m[2]
        else
    6     path, queryp = string.match(url, "([^?#]*)?*(.*)")
 
-   6   pathAndQuery = path
+***0   pathAndQuery = path
 
    6   if queryp
-   6     m = string_split(queryp, "#")
-***0     query = m[1]
+***0     m = string_split(queryp, "#")
+   6     query = m[1]
    6     fragment = m[2]
    6     pathAndQuery = path .. "?" .. queryp
 
@@ -1145,17 +1149,17 @@
    6 parse = (url, pathOnly=false) ->
    6   parts, err = split(url, pathOnly)
 
-***0   return parts, err if err
+   6   return parts, err if err
 
-   6   {
-***0     scheme: parts[1] or nil,
-   6     user: parts[2] or nil,
-   5     password: parts[3] or nil,
-***0     host: parts[4] or nil,
+       {
+   6     scheme: parts[1] or nil,
+   5     user: parts[2] or nil,
+***0     password: parts[3] or nil,
+   6     host: parts[4] or nil,
    6     port: parts[5] or nil,
-   6     path: parts[6] or nil,
+***0     path: parts[6] or nil,
 ***0     query: parts[7] or nil,
-***0     fragment: parts[8] or nil,
+   6     fragment: parts[8] or nil,
    6     authority: parts[9] or nil,
    6     pathAndQuery: parts[10] or nil
    6   }
@@ -1168,49 +1172,63 @@
 
    6   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
    6     return "%" .. char unless char == "*"
-   6     ":*"
-       )
+         ":*"
+  10   )
 
-   9   pattern = pattern\gsub(':([%w_%*]+)(/?)', (param, slash) ->
-   9     if param == "*"
-***0       table_insert(compiled_pattern.params, "splat")
-  18       return "(.-)" .. slash
+  10   pattern = pattern\gsub(':([%w_%*]+)(/?)', (param, slash) ->
+***0     if param == "*"
+  20       table_insert(compiled_pattern.params, "splat")
+   8       return "(.-)" .. slash
 
-   4     table_insert(compiled_pattern.params, param)
-***0     "([^/?&#]+)" .. slash
-   3   )
+***0     table_insert(compiled_pattern.params, param)
+   3     "([^/?&#]+)" .. slash
+  20   )
 
   18   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
-  16   compiled_pattern.pattern = "^" .. pattern .. "?$"
+   3   compiled_pattern.pattern = "^" .. pattern .. "?$"
 
-   3   compiled_pattern
+       compiled_pattern
 
-  13 extract_parameters = (pattern, matches) ->
-  13   params = { }
-  18   t = pattern.params
-  18   for i=1, #t
-***0     k = t[i]
-   8     if (k == 'splat')
+  15 extract_parameters = (pattern, matches) ->
+  20   params = { }
+  20   t = pattern.params
+***0   for i=1, #t
+   9     k = t[i]
+***0     if (k == 'splat')
 ***0       if not params.splat
-***0         params.splat = {}
+  10         params.splat = {}
 
-   9       table_insert(params.splat, url_unescape(matches[i]))
+   6       table_insert(params.splat, url_unescape(matches[i]))
          else
-***0       params[k] = url_unescape(matches[i])
-   2       params[k] = matches[i]
+   3       params[k] = url_unescape(matches[i])
+   3       params[k] = matches[i]
 
    7   params
 
-   5 match = (pattern, path) ->
+***0 match = (pattern, path) ->
 ***0   matches = { re_match(path, pattern.pattern) }
 
 ***0   return true, extract_parameters(pattern, matches) if #matches > 0
 
-***0   false, nil
+  14   false, nil
 
-   5 { :HTTPPHRASE, :split, :parse, :default_port,
-***0   :compile_pattern, :match, :extract_parameters
-     }
+***0 build_with_splats = (dest, splats) ->
+***0   assert(dest, "dest url is required")
+   3   assert(splats, "splats are required")
+
+       -- add spaces so we can do split and join
+   3   url = dest
+
+       -- split url by each params
+   3   for k, v in pairs(splats)
+   6     url = string_gsub(url, ":" .. k, v)
+
+       url
+
+***0 { :HTTPPHRASE, :split, :parse, :default_port,
+   1   :compile_pattern, :match, :extract_parameters,
+   1   :build_with_splats
+   1 }
 
 ==============================================================================
 ./mooncrafts/util.moon
@@ -1236,7 +1254,8 @@
      -- our utils lib, nothing here should depend on ngx
      -- for ngx stuff, put it inside ngin.lua file
  243 local *
- 468 string_sub = string.sub
+ 468 string_sub    = string.sub
+***0 string_gmatch = string.gmatch
 
    9 string_random = (length) ->
    9   randomseed(os.time())
@@ -1300,7 +1319,7 @@
 
    1 string_split = (str, sep, dest={}) ->
 ***0   str = tostring str
-***0   for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
+***0   for str in string_gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
    3     insert(dest, str)
 
        dest
@@ -1418,7 +1437,7 @@ File                             Hits Missed Coverage
 ./mooncrafts/oauth1.moon         33   8      80.49%
 ./mooncrafts/remoteresolver.moon 26   22     54.17%
 ./mooncrafts/sandbox.moon        33   32     50.77%
-./mooncrafts/url.moon            75   89     45.73%
-./mooncrafts/util.moon           71   33     68.27%
+./mooncrafts/url.moon            82   90     47.67%
+./mooncrafts/util.moon           71   34     67.62%
 -----------------------------------------------------
-Total                            469  402    53.85%
+Total                            476  404    54.09%

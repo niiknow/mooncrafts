@@ -4,7 +4,7 @@ local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match, build
+local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match, build_with_splats
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
@@ -218,17 +218,14 @@ match = function(pattern, path)
   end
   return false, nil
 end
-build = function(dest, matches)
-  local url = ' ' .. dest .. ' '
-  log.error((url))
-  for k, v in pairs(matches) do
-    log.error((k))
-    local parts = string_split(url, ":" .. k)
-    log.error((parts))
-    url = string_join(parts, v)
+build_with_splats = function(dest, splats)
+  assert(dest, "dest url is required")
+  assert(splats, "splats are required")
+  local url = dest
+  for k, v in pairs(splats) do
+    url = string_gsub(url, ":" .. k, v)
   end
-  url = string_gsub(url, "%:^w+", "")
-  return trim(url)
+  return url
 end
 return {
   HTTPPHRASE = HTTPPHRASE,
@@ -238,5 +235,5 @@ return {
   compile_pattern = compile_pattern,
   match = match,
   extract_parameters = extract_parameters,
-  build = build
+  build_with_splats = build_with_splats
 }

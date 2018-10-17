@@ -205,16 +205,20 @@ match = (pattern, path) ->
 
   false, nil
 
-build = (dest, matches) ->
+build_with_splats = (dest, splats) ->
+  assert(dest, "dest url is required")
+  assert(splats, "splats are required")
+
   -- add spaces so we can do split and join
   url = dest
+
   -- split url by each params
-  for k, v in pairs(matches)
+  for k, v in pairs(splats)
     url = string_gsub(url, ":" .. k, v)
 
-  trim(url)
+  url
 
 { :HTTPPHRASE, :split, :parse, :default_port,
   :compile_pattern, :match, :extract_parameters,
-  :build
+  :build_with_splats
 }

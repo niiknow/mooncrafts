@@ -12,14 +12,16 @@ base64_decode   = crypto.base64_decode
 trim            = util.trim
 strlen          = string.len
 table_extend    = util.table_extend
+table_insert    = table.insert
 
 compile_list = (myList) =>
   return {} if myList == nil
 
   -- expect list in order of highest priority first
   for i=1, #myList
-    v         = myList[i]
-    v.pattern = compile_pattern(v['source'])
+    r         = myList[i]
+    r.pattern = compile_pattern(v.source)
+    r.status  = 0 if r.status == nil
 
 class SimpleRouter
   new: (name, conf={}) =>
@@ -74,14 +76,22 @@ class SimpleRouter
   parseRedirects: (req) =>
     assert(req, "request object is required")
     assert(req.url, "request url is required")
-    rst     = {code: 0, headers: {}, params: {}, isProxy: false}
+
+    rst = { }
 
     myRules = @conf.redirects
     for i=1, #myRules
       r             = myRules[i]
       match, params = url.match(r.pattern, req.url)
-      -- parse dest
 
+      -- parse dest
+      if match
+        rst.rule    = r
+        rst.target  = url.build_with_splats(r.dest, params)
+        -- a redirect if status is greater than 300
+        rst.isRedir = r.status > 300
+        -- otherwise, it could be a rewrite or proxy
+        return rst
 
     rst
 
@@ -90,16 +100,16 @@ class SimpleRouter
   parseHeaders: (req) =>
     assert(req, "request object is required")
     assert(req.url, "request url is required")
-    rst     = {code: 0, headers: {}}
 
+    matches = { }
     myRules = @conf.redirects
     for i=1, #myRules
       r     = myRules[i]
       match = url.match(r.pattern, req.url)
 
-      -- append headers if match
-      table_extend(rst.headers, r.headers) if match
+      if match
+        table_insert(matches, r)
 
-    rst
+    matches
 
 SimpleRouter
