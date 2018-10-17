@@ -130,11 +130,12 @@ split = (url, pathOnly=false) ->
 
   pathAndQuery = path
 
-  if queryp
+  if queryp and strlen(queryp) > 0
     m = string_split(queryp, "#")
     query = m[1]
     fragment = m[2]
     pathAndQuery = path .. "?" .. queryp
+
 
   port = default_port(scheme)  if port == nil or port == ""
 
@@ -208,15 +209,15 @@ extract_parameters = (pattern, matches) ->
 
   params
 
-match_pattern = (path, pattern) ->
+match_pattern = (reqUrl, pattern) ->
 
   -- if pattern is not full url
   if pattern.original\find('https?') == nil
     -- and path is full, then just use path and query
-    if path\find('https?')
-      path = parse(path, true).pathAndQuery
+    if reqUrl\find('https?') ~= nil
+      reqUrl = parse(reqUrl, true).pathAndQuery
 
-  matches = { re_match(path, pattern.pattern) }
+  matches = { re_match(reqUrl, pattern.pattern) }
 
   return true, extract_parameters(pattern, matches) if #matches > 0
 
