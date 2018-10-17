@@ -3,12 +3,14 @@ local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match
+local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
 string_split = util.string_split
 table_insert = table.insert
+string_sub = string.sub
+trim = util.trim
 HTTPPHRASE = {
   [100] = "Continue",
   [101] = "Switching Protocols",
@@ -86,20 +88,19 @@ default_port = function(scheme)
     return tostring(ports[scheme])
   end
 end
-split = function(url, protocol)
-  if protocol == nil then
-    protocol = "https?"
+split = function(url, pathOnly)
+  if pathOnly == nil then
+    pathOnly = false
   end
-  if not (url) then
-    return nil, 'missing url parameter'
-  end
+  assert(url, "url parameter is required")
+  url = trim(url)
   local scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
   local user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
-  if not (scheme) then
-    return nil, 'missing scheme info'
-  end
-  if not (hostp) then
-    return nil, 'missing host info'
+  if pathOnly then
+    assert(string_sub(url, 1, 1) == "/", "path must starts with /")
+  else
+    assert(scheme, "parsing of url must have scheme")
+    assert(hostp, "parsing of url must have host and/or authority")
   end
   if hostp then
     local m = string_split(hostp, "@")
@@ -113,6 +114,8 @@ split = function(url, protocol)
     m = string_split(hostp, ":")
     host = m[1]
     port = m[2]
+  else
+    path, queryp = string.match(url, "([^?#]*)?*(.*)")
   end
   if queryp then
     local m = string_split(queryp, "#")
@@ -134,11 +137,11 @@ split = function(url, protocol)
     authority
   }
 end
-parse = function(url, protocol)
-  if protocol == nil then
-    protocol = "https?"
+parse = function(url, pathOnly)
+  if pathOnly == nil then
+    pathOnly = false
   end
-  local parts, err = split(url, protocol)
+  local parts, err = split(url, pathOnly)
   if err then
     return parts, err
   end

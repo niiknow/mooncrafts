@@ -12,6 +12,8 @@ tonumber     = tonumber
 setmetatable = setmetatable
 string_split = util.string_split
 table_insert = table.insert
+string_sub   = string.sub
+trim         = util.trim
 
 HTTPPHRASE = {
   [100]: "Continue",
@@ -89,14 +91,18 @@ ports = {
 
 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
-split = (url, protocol="https?") ->
-  return nil, 'missing url parameter' unless url
+split = (url, pathOnly=false) ->
+  assert(url, "url parameter is required")
+  url = trim(url)
 
   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
-  return nil, 'missing scheme info' unless scheme
-  return nil, 'missing host info' unless hostp
+  if pathOnly
+    assert(string_sub(url, 1, 1) == "/", "path must starts with /")
+  else
+    assert(scheme, "parsing of url must have scheme")
+    assert(hostp, "parsing of url must have host and/or authority")
 
   -- parse user pass
   if hostp
@@ -112,19 +118,20 @@ split = (url, protocol="https?") ->
     m = string_split(hostp, ":")
     host = m[1]
     port = m[2]
+  else
+    path, queryp = string.match(url, "([^?#]*)?*(.*)")
 
   if queryp
     m = string_split(queryp, "#")
     query = m[1]
     fragment = m[2]
 
-  if port == nil or port == ""
-    port = default_port(scheme)
+  port = default_port(scheme)  if port == nil or port == ""
 
   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority }
 
-parse = (url, protocol="https?") ->
-  parts, err = split(url, protocol)
+parse = (url, pathOnly=false) ->
+  parts, err = split(url, pathOnly)
 
   return parts, err if err
 

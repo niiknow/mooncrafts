@@ -108,7 +108,7 @@ tests = {
     {
       "authority": 'example.com:443',
       "fragment": 'yes',
-      "user": "hi"
+      "user": "hi",
       "password": "ho",
       "host": 'example.com',
       "path": '/hello/',
@@ -117,15 +117,27 @@ tests = {
       "scheme": 'https'
     }
   }
+
+  {
+    "parsing url '/hello/?cruel=world#yes'"
+    ->
+      url.parse '/hello/?cruel=world#yes', true
+
+    {
+      "fragment": 'yes',
+      "path": '/hello/'
+      "query": 'cruel=world'
+    }
+  }
 }
 
 describe "mooncrafts.url #only", ->
   for group in *tests
     it "should match " .. group[1], ->
       input = group[2]!
-      assert.same input, group[3]
+      assert.same group[3], input
       if #group > 4
         -- test
         match, data = group[4]!
-        assert.same data, group[5]
-        assert.same match, true
+        assert.same group[5], data
+        assert.same true, match
