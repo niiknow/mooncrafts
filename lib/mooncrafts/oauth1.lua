@@ -1,8 +1,11 @@
 local log = require("mooncrafts.log")
 local util = require("mooncrafts.util")
 local crypto = require("mooncrafts.crypto")
-local string_split, url_escape, query_string_encode, table_sort_keys, url_parse, url_build, url_default_port
-string_split, url_escape, query_string_encode, table_sort_keys, url_parse, url_build, url_default_port = util.string_split, util.url_escape, util.query_string_encode, util.table_sort_keys, util.url_parse, util.url_build, util.url_default_port
+local url = require("mooncrafts.url")
+local url_parse = url.parse
+local url_default_port = url.default_port
+local string_split, url_escape, query_string_encode, table_sort_keys, url_build
+string_split, url_escape, query_string_encode, table_sort_keys, url_build = util.string_split, util.url_escape, util.query_string_encode, util.table_sort_keys, util.url_build
 local sort, concat
 do
   local _obj_0 = table

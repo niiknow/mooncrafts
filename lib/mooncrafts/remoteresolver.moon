@@ -1,8 +1,10 @@
-util        = require "mooncrafts.util"
-httpc       = require "mooncrafts.http"
-log         = require "mooncrafts.log"
+util      = require "mooncrafts.util"
+httpc     = require "mooncrafts.http"
+log       = require "mooncrafts.log"
+url       = require "mooncrafts.url"
+url_parse = url.parse
 
-import url_parse, trim, path_sanitize, url_build from util
+import trim, path_sanitize, url_build from util
 
 loadcode = (url) ->
   req = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }

@@ -1,8 +1,10 @@
 local util = require("mooncrafts.util")
 local httpc = require("mooncrafts.http")
 local log = require("mooncrafts.log")
-local url_parse, trim, path_sanitize, url_build
-url_parse, trim, path_sanitize, url_build = util.url_parse, util.trim, util.path_sanitize, util.url_build
+local url = require("mooncrafts.url")
+local url_parse = url.parse
+local trim, path_sanitize, url_build
+trim, path_sanitize, url_build = util.trim, util.path_sanitize, util.url_build
 local loadcode
 loadcode = function(url)
   local req = {

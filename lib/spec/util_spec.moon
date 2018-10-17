@@ -19,23 +19,6 @@ tests = {
 
   {
     ->
-      util.url_parse "https://hi:ho@example.com:443/hello/?cruel=world#yes"
-
-    {
-      "authority": 'example.com:443',
-      "fragment": 'yes',
-      "user": "hi"
-      "password": "ho",
-      "host": 'example.com',
-      "path": '/hello/',
-      "port": '443',
-      "query": 'cruel=world',
-      "scheme": 'https'
-    }
-  }
-
-  {
-    ->
       util.url_build {
         "authority": 'example.com:443',
         "fragment": 'yes',

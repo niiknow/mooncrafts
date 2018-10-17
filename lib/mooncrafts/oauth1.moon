@@ -1,8 +1,12 @@
-log               = require "mooncrafts.log"
-util              = require "mooncrafts.util"
-crypto            = require "mooncrafts.crypto"
+log       = require "mooncrafts.log"
+util      = require "mooncrafts.util"
+crypto    = require "mooncrafts.crypto"
+url       = require "mooncrafts.url"
 
-import string_split, url_escape, query_string_encode, table_sort_keys, url_parse, url_build, url_default_port from util
+url_parse        = url.parse
+url_default_port = url.default_port
+
+import string_split, url_escape, query_string_encode, table_sort_keys, url_build from util
 import sort, concat from table
 
 escape_uri        = url_escape

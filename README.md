@@ -12,7 +12,7 @@ A set of classes from [moonship](https://github.com/niiknow/moonship) for re-usa
 3. [azauth](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/azauth.moon) create azure sharedkeylite signature
 4. [aztable](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/aztable.moon) utilities for azure tablestorage
 5. [crypto](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/crypto.moon) common crypto utilities
-6. [date](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/date.moon) some datetime match
+6. [date](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/date.moon) some datetime math
 7. [hmacauth](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/hmacauth.moon) allow for hmac auth
 8. [http](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/http.moon) making http request with added capability such as: auto basic auth and oauth1
 9. [httpsocket](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/httpsocket.moon) making http request with socket

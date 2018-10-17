@@ -1,19 +1,14 @@
+local util = require("mooncrafts.util")
 local insert
 insert = table.insert
-local re_match, tonumber, setmetatable, string_split, ports, default_port, split, parse
+local url_unescape
+url_unescape = util.url_unescape
+local re_match, tonumber, setmetatable, string_split, table_insert, ports, HTTPPHRASE, default_port, split, parse, compile_pattern, extract_parameters, match
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
-string_split = function(str, sep, dest)
-  if dest == nil then
-    dest = { }
-  end
-  str = tostring(str)
-  for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
-    insert(dest, str)
-  end
-  return dest
-end
+string_split = util.string_split
+table_insert = table.insert
 ports = {
   acap = 674,
   cap = 1026,
@@ -43,6 +38,48 @@ ports = {
   rsync = 873,
   prospero = 191,
   videotex = 516
+}
+HTTPPHRASE = {
+  [100] = "Continue",
+  [101] = "Switching Protocols",
+  [200] = "OK",
+  [201] = "Created",
+  [202] = "Accepted",
+  [203] = "Non-Authoritative Information",
+  [204] = "No Content",
+  [205] = "Reset Content",
+  [206] = "Partial Content",
+  [300] = "Multiple Choices",
+  [301] = "Moved Permanently",
+  [302] = "Moved Temporarily",
+  [303] = "See Other",
+  [304] = "Not Modified",
+  [305] = "Use Proxy",
+  [400] = "Bad Request",
+  [401] = "Unauthorized",
+  [402] = "Payment Required",
+  [403] = "Forbidden",
+  [404] = "Not Found",
+  [405] = "Method Not Allowed",
+  [406] = "Not Acceptable",
+  [407] = "Proxy Authentication Required",
+  [408] = "Request Timeout",
+  [409] = "Conflict",
+  [410] = "Gone",
+  [411] = "Length Required",
+  [412] = "Precondition Failed",
+  [413] = "Request Entity Too Large",
+  [414] = "Request-URI Too Long",
+  [415] = "Unsupported Media Type",
+  [422] = "Unprocessable Entity",
+  [429] = "Too Many Requests",
+  [499] = "Client has closed connection - Nginx",
+  [500] = "Internal Server Error",
+  [501] = "Not Implemented",
+  [502] = "Bad Gateway",
+  [503] = "Service Unavailable",
+  [504] = "Gateway Timeout",
+  [505] = "HTTP Version Not Supported"
 }
 default_port = function(scheme)
   if ports[scheme] then
@@ -117,9 +154,61 @@ parse = function(url, protocol)
     authority = parts[9] or nil
   }
 end
+compile_pattern = function(pattern)
+  local compiled_pattern = {
+    original = pattern,
+    params = { }
+  }
+  pattern = pattern:gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", function(char)
+    if not (char == "*") then
+      return "%" .. char
+    end
+    return ":*"
+  end)
+  pattern = pattern:gsub(':([%w_%*]+)(/?)', function(param, slash)
+    if param == "*" then
+      table_insert(compiled_pattern.params, "splat")
+      return "(.-)" .. slash
+    end
+    table_insert(compiled_pattern.params, param)
+    return "([^/?&#]+)" .. slash
+  end)
+  if pattern:sub(-1) ~= "/" then
+    pattern = pattern .. "/"
+  end
+  compiled_pattern.pattern = "^" .. pattern .. "?$"
+  return compiled_pattern
+end
+extract_parameters = function(pattern, matches)
+  local params = { }
+  for i, k in ipairs(pattern.params) do
+    if (k == 'splat') then
+      if not params.splat then
+        params.splat = { }
+      end
+      table_insert(params.splat, url_unescape(matches[i]))
+    else
+      params[k] = url_unescape(matches[i])
+      params[k] = matches[i]
+    end
+  end
+  return params
+end
+match = function(pattern, path)
+  local matches = {
+    re_match(path, pattern.pattern)
+  }
+  if #matches > 0 then
+    return true, extract_parameters(pattern, matches)
+  end
+  return false, nil
+end
 return {
   split = split,
   parse = parse,
   default_port = default_port,
-  string_split = string_split
+  compile_pattern = compile_pattern,
+  match = match,
+  extract_parameters = extract_parameters,
+  HTTPPHRASE = HTTPPHRASE
 }

@@ -3,7 +3,6 @@
 -- @module util
 
 -- this module cannot and should not reference log
-url              = require "mooncrafts.url"
 cjson_safe       = require "cjson.safe"
 
 import concat, insert, sort from table
@@ -66,10 +65,6 @@ url_unescape = (str) -> str\gsub('+', ' ')\gsub("%%(%x%x)", (c) -> return string
 -- https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string
 url_escape = (str) -> string.gsub(str, "([ /?:@~!$&'()*+,;=%[%]%c])", (c) -> string.format("%%%02X", string.byte(c)))
 
-url_parse = (myurl) -> url.parse(myurl)
-
-url_default_port = (scheme) -> url.default_port(scheme)
-
 -- {
 --     [path] = "/test"
 --     [scheme] = "http"
@@ -96,10 +91,14 @@ url_build = (parts, includeQuery=true) ->
 
   out
 
-
 slugify = (str) -> ((tostring str)\gsub("[%s_]+", "-")\gsub("[^%w%-]+", "")\gsub("-+", "-"))\lower!
 
-string_split = url.string_split
+string_split = (str, sep, dest={}) ->
+  str = tostring str
+  for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
+    insert(dest, str)
+
+  dest
 
 json_encodable = (obj, seen={}) ->
   switch type obj
@@ -187,7 +186,7 @@ string_connection_parse = (str, fieldSep=";", valSep="=") ->
 
   rst
 
-{ :url_escape, :url_unescape, :url_parse, :url_build, :url_default_port,
+{ :url_escape, :url_unescape, :url_build,
   :trim, :path_sanitize, :slugify, :table_sort_keys,
   :json_encodable, :from_json, :to_json, :table_clone, :table_extend,
   :table_pairsByKeys, :query_string_encode, :applyDefaults,

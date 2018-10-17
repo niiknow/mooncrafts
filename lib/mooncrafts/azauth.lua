@@ -2,8 +2,10 @@ local hmacauth = require("mooncrafts.hmacauth")
 local crypto = require("mooncrafts.crypto")
 local util = require("mooncrafts.util")
 local log = require("mooncrafts.log")
-local url_parse, string_split, query_string_encode
-url_parse, string_split, query_string_encode = util.url_parse, util.string_split, util.query_string_encode
+local url = require("mooncrafts.url")
+local url_parse = url.parse
+local string_split, query_string_encode
+string_split, query_string_encode = util.string_split, util.query_string_encode
 local concat, sort
 do
   local _obj_0 = table

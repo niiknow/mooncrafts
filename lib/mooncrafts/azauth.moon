@@ -1,9 +1,11 @@
-hmacauth         = require "mooncrafts.hmacauth"
-crypto           = require "mooncrafts.crypto"
-util             = require "mooncrafts.util"
-log              = require "mooncrafts.log"
+hmacauth  = require "mooncrafts.hmacauth"
+crypto    = require "mooncrafts.crypto"
+util      = require "mooncrafts.util"
+log       = require "mooncrafts.log"
+url       = require "mooncrafts.url"
+url_parse = url.parse
 
-import url_parse, string_split, query_string_encode from util
+import string_split, query_string_encode from util
 import concat, sort from table
 import base64_decode, base64_encode from crypto
 

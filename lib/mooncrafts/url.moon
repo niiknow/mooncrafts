@@ -1,20 +1,17 @@
 -- custom url parsing implementation
 -- since there are so many that does not meet requirements - wtf?
+util = require "mooncrafts.util"
 
 import insert from table
+import url_unescape from util
 
 local *
 
-re_match = string.match
-tonumber = tonumber
+re_match     = string.match
+tonumber     = tonumber
 setmetatable = setmetatable
-
-string_split = (str, sep, dest={}) ->
-  str = tostring str
-  for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
-    insert(dest, str)
-
-  dest
+string_split = util.string_split
+table_insert = table.insert
 
 ports = {
   acap: 674,
@@ -47,6 +44,48 @@ ports = {
   videotex: 516
 }
 
+HTTPPHRASE = {
+  [100]: "Continue",
+  [101]: "Switching Protocols",
+  [200]: "OK",
+  [201]: "Created",
+  [202]: "Accepted",
+  [203]: "Non-Authoritative Information",
+  [204]: "No Content",
+  [205]: "Reset Content",
+  [206]: "Partial Content",
+  [300]: "Multiple Choices",
+  [301]: "Moved Permanently",
+  [302]: "Moved Temporarily",
+  [303]: "See Other",
+  [304]: "Not Modified",
+  [305]: "Use Proxy",
+  [400]: "Bad Request",
+  [401]: "Unauthorized",
+  [402]: "Payment Required",
+  [403]: "Forbidden",
+  [404]: "Not Found",
+  [405]: "Method Not Allowed",
+  [406]: "Not Acceptable",
+  [407]: "Proxy Authentication Required",
+  [408]: "Request Timeout",
+  [409]: "Conflict",
+  [410]: "Gone",
+  [411]: "Length Required",
+  [412]: "Precondition Failed",
+  [413]: "Request Entity Too Large",
+  [414]: "Request-URI Too Long",
+  [415]: "Unsupported Media Type",
+  [422]: "Unprocessable Entity",
+  [429]: "Too Many Requests",
+  [499]: "Client has closed connection - Nginx",
+  [500]: "Internal Server Error",
+  [501]: "Not Implemented",
+  [502]: "Bad Gateway",
+  [503]: "Service Unavailable",
+  [504]: "Gateway Timeout",
+  [505]: "HTTP Version Not Supported"
+}
 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
 split = (url, protocol="https?") ->
@@ -100,4 +139,56 @@ parse = (url, protocol="https?") ->
     authority: parts[9] or nil
   }
 
-{ :split, :parse, :default_port, :string_split }
+compile_pattern = (pattern) ->
+  compiled_pattern = {
+    original: pattern,
+    params: { }
+  }
+
+  pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
+    return "%" .. char unless char == "*"
+    ":*"
+  )
+
+  pattern = pattern\gsub(':([%w_%*]+)(/?)', (param, slash) ->
+    if param == "*"
+      table_insert(compiled_pattern.params, "splat")
+      return "(.-)" .. slash
+
+    table_insert(compiled_pattern.params, param)
+    "([^/?&#]+)" .. slash
+  )
+
+
+  if pattern\sub(-1) ~= "/"
+    pattern = pattern .. "/"
+
+  compiled_pattern.pattern = "^" .. pattern .. "?$"
+
+  compiled_pattern
+
+extract_parameters = (pattern, matches) ->
+  params = { }
+  for i,k in ipairs(pattern.params)
+    if (k == 'splat')
+      if not params.splat
+        params.splat = {}
+
+      table_insert(params.splat, url_unescape(matches[i]))
+    else
+      params[k] = url_unescape(matches[i])
+      params[k] = matches[i]
+
+  params
+
+match = (pattern, path) ->
+  matches = { re_match(path, pattern.pattern) }
+  if #matches > 0
+    return true, extract_parameters(pattern, matches)
+
+  false, nil
+
+{
+  :split, :parse, :default_port, :compile_pattern, :match,
+  :extract_parameters, :HTTPPHRASE
+}

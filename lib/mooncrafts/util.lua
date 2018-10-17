@@ -1,4 +1,3 @@
-local url = require("mooncrafts.url")
 local cjson_safe = require("cjson.safe")
 local concat, insert, sort
 do
@@ -22,7 +21,7 @@ end
 for i = 97, 122 do
   insert(charset, char(i))
 end
-local string_random, table_pairsByKeys, trim, path_sanitize, url_unescape, url_escape, url_parse, url_default_port, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
+local string_random, table_pairsByKeys, trim, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
 string_random = function(length)
   randomseed(os.time())
   if length > 0 then
@@ -71,12 +70,6 @@ url_escape = function(str)
     return string.format("%%%02X", string.byte(c))
   end)
 end
-url_parse = function(myurl)
-  return url.parse(myurl)
-end
-url_default_port = function(scheme)
-  return url.default_port(scheme)
-end
 url_build = function(parts, includeQuery)
   if includeQuery == nil then
     includeQuery = true
@@ -112,7 +105,16 @@ end
 slugify = function(str)
   return ((tostring(str)):gsub("[%s_]+", "-"):gsub("[^%w%-]+", ""):gsub("-+", "-")):lower()
 end
-string_split = url.string_split
+string_split = function(str, sep, dest)
+  if dest == nil then
+    dest = { }
+  end
+  str = tostring(str)
+  for str in string.gmatch(str, "([^" .. (sep or "%s") .. "]+)") do
+    insert(dest, str)
+  end
+  return dest
+end
 json_encodable = function(obj, seen)
   if seen == nil then
     seen = { }
@@ -245,9 +247,7 @@ end
 return {
   url_escape = url_escape,
   url_unescape = url_unescape,
-  url_parse = url_parse,
   url_build = url_build,
-  url_default_port = url_default_port,
   trim = trim,
   path_sanitize = path_sanitize,
   slugify = slugify,
