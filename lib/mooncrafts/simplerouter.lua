@@ -35,8 +35,8 @@ do
       }
       local bauth = self.conf.basic_auth
       if strlen(bauth) > 0 then
-        local authorization = trim(req.headers.authorization or "")
-        if strlen(authorization) < 0 then
+        local authorization = req.headers.authorization
+        if not authorization then
           rst.code = 401
           rst.headers = {
             ["Content-Type"] = "text/plain",
@@ -45,7 +45,7 @@ do
           rst.body = "Please auth!"
           return rst
         end
-        local userpass_b64 = authorization.match("Basic%s+(.*)")
+        local userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
         if not (userpass_b64) then
           rst.code = 401
           rst.headers = {
@@ -82,7 +82,7 @@ do
       local myRules = self.conf.redirects
       for i = 1, #myRules do
         local r = myRules[i]
-        local match, params = url.match(r.pattern, req.url)
+        local match, params = url.match_pattern(req.url, r.pattern)
         if match then
           rst.rule = r
           rst.target = url.build_with_splats(r.dest, params)
@@ -96,10 +96,10 @@ do
       assert(req, "request object is required")
       assert(req.url, "request url is required")
       local matches = { }
-      local myRules = self.conf.redirects
+      local myRules = self.conf.headers
       for i = 1, #myRules do
         local r = myRules[i]
-        local match = url.match(r.pattern, req.url)
+        local match = url.match_pattern(req.url, r.pattern)
         if match then
           table_insert(matches, r)
         end

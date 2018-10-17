@@ -19,6 +19,7 @@ trim         = util.trim
 url_escape   = util.url_escape
 string_join  = table.concat
 string_gsub  = string.gsub
+strlen       = string.len
 
 HTTPPHRASE = {
   [100]: "Continue",
@@ -104,7 +105,7 @@ split = (url, pathOnly=false) ->
   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
 
 
-  if pathOnly
+  if scheme == nil and pathOnly
     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
   else
     assert(scheme, "parsing of url must have scheme")
@@ -158,6 +159,8 @@ parse = (url, pathOnly=false) ->
   }
 
 compile_pattern = (pattern) ->
+  uri     = parse(pattern, true)
+
   compiled_pattern = {
     original: pattern,
     params: { }
@@ -168,7 +171,7 @@ compile_pattern = (pattern) ->
     ":*"
   )
 
-  pattern = pattern\gsub(':([%w_%*]+)(/?)', (param, slash) ->
+  pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
     if param == "*"
       table_insert(compiled_pattern.params, "splat")
       return "(.-)" .. slash
@@ -178,8 +181,12 @@ compile_pattern = (pattern) ->
   )
 
   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
-  compiled_pattern.pattern = "^" .. pattern .. "?$"
 
+  -- if original url does not ends with forward slash, remove
+  if compiled_pattern.original\sub(-1) ~= "/"
+    pattern = pattern\sub(1, -2)
+
+  compiled_pattern.pattern = pattern
   compiled_pattern
 
 extract_parameters = (pattern, matches) ->
@@ -198,7 +205,14 @@ extract_parameters = (pattern, matches) ->
 
   params
 
-match = (pattern, path) ->
+match_pattern = (path, pattern) ->
+
+  -- if pattern is not full url
+  if pattern.original\find('https?') == nil
+    -- and path is full, then just use path and query
+    if path\find('https?')
+      path = parse(path, true).pathAndQuery
+
   matches = { re_match(path, pattern.pattern) }
 
   return true, extract_parameters(pattern, matches) if #matches > 0
@@ -219,6 +233,6 @@ build_with_splats = (dest, splats) ->
   url
 
 { :HTTPPHRASE, :split, :parse, :default_port,
-  :compile_pattern, :match, :extract_parameters,
+  :compile_pattern, :match_pattern, :extract_parameters,
   :build_with_splats
 }

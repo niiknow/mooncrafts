@@ -40,15 +40,15 @@ class SimpleRouter
     bauth = @conf.basic_auth
 
     if strlen(bauth) > 0
-      authorization = trim(req.headers.authorization or "")
+      authorization = req.headers.authorization
 
-      if strlen(authorization) < 0
+      if not authorization
         rst.code    = 401
         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
         rst.body    = "Please auth!"
         return rst
 
-      userpass_b64 = authorization.match("Basic%s+(.*)")
+      userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
       unless userpass_b64
         rst.code    = 401
         rst.headers =  {["Content-Type"]: "text/plain"}
@@ -80,9 +80,12 @@ class SimpleRouter
     rst = { }
 
     myRules = @conf.redirects
+    reqUrl  = req.url
+    uparts  = url.parse(reqUrl)
+
     for i=1, #myRules
       r             = myRules[i]
-      match, params = url.match(r.pattern, req.url)
+      match, params = url.match_pattern(reqUrl, r.pattern)
 
       -- parse dest
       if match
@@ -102,10 +105,12 @@ class SimpleRouter
     assert(req.url, "request url is required")
 
     matches = { }
-    myRules = @conf.redirects
+    myRules = @conf.headers
+    reqUrl  = req.url
+
     for i=1, #myRules
       r     = myRules[i]
-      match = url.match(r.pattern, req.url)
+      match = url.match_pattern(reqUrl, r.pattern)
 
       if match
         table_insert(matches, r)

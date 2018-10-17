@@ -11,9 +11,10 @@ tests = {
     {
       original: '/',
       params: { },
-      pattern: "^/?$"
+      pattern: "/"
     }
   }
+
   {
     "simple splat '/*'"
     ->
@@ -22,9 +23,10 @@ tests = {
     {
       original: "/*",
       params: { "splat" },
-      pattern: "^/(.-)/?$"
+      pattern: "/(.-)"
     }
   }
+
   {
     "complex splat '/:foo/:bar'"
     ->
@@ -33,9 +35,22 @@ tests = {
     {
       original: '/:foo/:bar',
       params: { "foo", "bar" },
-      pattern: "^/([^/?&#]+)/([^/?&#]+)/?$"
+      pattern: "/([^/?&#]+)/([^/?&#]+)"
     }
   }
+
+  {
+    "complex full splat 'https://www.example.com:443/foo/bar/*'"
+    ->
+      url.compile_pattern 'https://www.example.com:443/foo/bar/*'
+
+    {
+      original: 'https://www.example.com:443/foo/bar/*',
+      params: { "splat" },
+      pattern: "https://www%.example%.com:443/foo/bar/(.-)"
+    }
+  }
+
   {
     "complex splat '/foo/bar/:baz'"
     ->
@@ -44,23 +59,23 @@ tests = {
     {
       original: '/foo/bar/:baz',
       params: { "baz" },
-      pattern: "^/foo/bar/([^/?&#]+)/?$"
+      pattern: "/foo/bar/([^/?&#]+)"
     }
   }
   {
-    "match '/say/:msg/to/:to?who=:friend'"
+    "splat in query '/say/:msg/to/:to?who=:friend'"
     ->
       url.compile_pattern '/say/:msg/to/:to?who=:friend'
 
     {
       original: '/say/:msg/to/:to?who=:friend',
       params: { "msg", "to", "friend" },
-      pattern: "^/say/([^/?&#]+)/to/([^/?&#]+)%?who=([^/?&#]+)/?$"
+      pattern: "/say/([^/?&#]+)/to/([^/?&#]+)%?who=([^/?&#]+)"
     }
 
     ->
       rst = url.compile_pattern('/say/:msg/to/:to?who=:friend')
-      url.match(rst, "/say/hello/to/my?who=little-friend")
+      url.match_pattern("/say/hello/to/my?who=little-friend", rst)
 
     {
       friend: 'little-friend',
@@ -69,30 +84,31 @@ tests = {
     }
   }
   {
-    "match '/say/*/to/*'"
+    "multiple splat '/say/*/to/*'"
     ->
       url.compile_pattern '/say/*/to/*'
 
     {
       original: '/say/*/to/*',
       params: { "splat", "splat" },
-      pattern: "^/say/(.-)/to/(.-)/?$"
+      pattern: "/say/(.-)/to/(.-)"
     }
   }
+
   {
-    "match '/:foo.:bar'"
+    "replacement '/:foo.:bar'"
     ->
       url.compile_pattern '/:foo.:bar'
 
     {
       original: '/:foo.:bar',
       params: { "foo", "bar" },
-      pattern: "^/([^/?&#]+)%.([^/?&#]+)/?$"
+      pattern: "/([^/?&#]+)%.([^/?&#]+)"
     }
 
     ->
       rst = url.compile_pattern('/:foo.:bar')
-      url.match(rst, "/tom@example.com")
+      url.match_pattern("/tom@example.com", rst)
 
     {
       bar: 'com',
@@ -133,13 +149,33 @@ tests = {
   }
 
   {
-    "test build_with_splats '/:foo.:bar'"
+    "build_with_splats '/:foo.:bar'"
     ->
       rst = url.compile_pattern('/:foo.:bar')
-      match, params = url.match(rst, "/tom@example.com")
+      match, params = url.match_pattern("/tom@example.com", rst)
       url.build_with_splats('https://example.com:443/hi/:bar.:foo', params)
 
     "https://example.com:443/hi/com.tom@example"
+  },
+
+  {
+    "path only matching '/:foo.:bar?hi=you'"
+    ->
+      url.compile_pattern '/:foo.:bar?hi=you'
+
+    {
+      original: '/:foo.:bar?hi=you',
+      params: { "foo", "bar" },
+      pattern: "/([^/?&#]+)%.([^/?&#]+)%?hi=you"
+    }
+    ->
+      rst = url.compile_pattern('/:foo.:bar?hi=you')
+      url.match_pattern("https://www.google.com:443/tom@example.com?hi=you", rst)
+
+    {
+      bar: 'com',
+      foo: 'tom@example'
+    }
   }
 }
 

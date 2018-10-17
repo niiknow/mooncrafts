@@ -4,7 +4,7 @@ local insert
 insert = table.insert
 local url_unescape
 url_unescape = util.url_unescape
-local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match, build_with_splats
+local re_match, tonumber, setmetatable, string_split, table_insert, string_sub, trim, url_escape, string_join, string_gsub, HTTPPHRASE, ports, default_port, split, parse, compile_pattern, extract_parameters, match_pattern, build_with_splats
 re_match = string.match
 tonumber = tonumber
 setmetatable = setmetatable
@@ -184,11 +184,6 @@ compile_pattern = function(pattern)
     table_insert(compiled_pattern.params, param)
     return "([^/?&#]+)" .. slash
   end)
-  if pattern:sub(-1) ~= "/" then
-    do
-      pattern = pattern .. "/"
-    end
-  end
   compiled_pattern.pattern = "^" .. pattern .. "?$"
   return compiled_pattern
 end
@@ -209,7 +204,7 @@ extract_parameters = function(pattern, matches)
   end
   return params
 end
-match = function(pattern, path)
+match_pattern = function(path, pattern)
   local matches = {
     re_match(path, pattern.pattern)
   }
@@ -233,7 +228,7 @@ return {
   parse = parse,
   default_port = default_port,
   compile_pattern = compile_pattern,
-  match = match,
+  match_pattern = match_pattern,
   extract_parameters = extract_parameters,
   build_with_splats = build_with_splats
 }
