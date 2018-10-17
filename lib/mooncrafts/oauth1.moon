@@ -35,9 +35,9 @@ sign = (body, method, query, base_uri, oauth, parameters) ->
 create_signature = (opts, oauth) ->
 
   -- parse url for query string
-  parts = url_parse(opts.url)
+  parts      = url_parse(opts.url)
   parts.port = nil if (url_default_port(parts.scheme) == parts.port)
-  base_uri = url_build(parts, false)
+  base_uri   = url_build(parts, false)
 
 
   -- allow for unit testing by passing in timestamp
@@ -50,8 +50,8 @@ create_signature = (opts, oauth) ->
     oauth_version: oauth["version"] or "1.0"
   }
 
-  parameters["oauth_token"] = oauth["accesstoken"] if oauth["accesstoken"]
-  parameters["oauth_callback"] = unescape_uri(oauth["callback"]) if oauth["callback"]
+  parameters["oauth_token"]     = oauth["accesstoken"] if oauth["accesstoken"]
+  parameters["oauth_callback"]  = unescape_uri(oauth["callback"]) if oauth["callback"]
   parameters["oauth_signature"] = sign(opts["body"], opts["method"] or 'GET', parts.query, base_uri, oauth, parameters)
 
   "OAuth " .. query_string_encode(parameters, ",", "\"")

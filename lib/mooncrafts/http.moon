@@ -29,8 +29,8 @@ request = (opts) ->
 
   return { code: 0, err: "url is required" } unless opts.url
 
-  opts["method"] = string_upper(opts["method"] or 'GET')
-  opts["headers"] = opts["headers"] or {["Accept"]: "*/*"}
+  opts["method"]                = string_upper(opts["method"] or 'GET')
+  opts["headers"]               = opts["headers"] or {["Accept"]: "*/*"}
   opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
 
   -- auto add content length

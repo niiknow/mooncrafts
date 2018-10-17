@@ -76,9 +76,7 @@ build_env = function(src_env, dest_env, wl)
       end
       if env_t then
         local t_tbl = type(tbl)
-        if t_tbl ~= "table" then
-          error("field '" .. t_name .. "' already added as " .. t_tbl)
-        end
+        assert(t_tbl == "table", "field '" .. t_name .. "' already added as " .. t_tbl)
         tbl[field] = env_t[field]
       end
     else

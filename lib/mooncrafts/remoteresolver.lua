@@ -2,6 +2,7 @@ local util = require("mooncrafts.util")
 local httpc = require("mooncrafts.http")
 local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
+local extension = os.getenv("MOONCRAFTS_EXT") or ".moon"
 local trim, path_sanitize, url_build
 trim, path_sanitize, url_build = util.trim, util.path_sanitize, util.url_build
 local url_parse, loadcode, resolve_remote, resolve_github, resolve
@@ -47,7 +48,8 @@ resolve = function(modname, opts)
       plugins = { }
     }
   end
-  local originalName = tostring(modname):gsub("%.moon$", "")
+  local extReg = "%" .. extension .. "$"
+  local originalName = tostring(modname):gsub(extReg, "")
   local rst = { }
   if modname:find("http") == 1 then
     rst = resolve_remote(modname)
@@ -69,8 +71,8 @@ resolve = function(modname, opts)
       path = modname
     }
   end
-  rst.file = rst.file:gsub("%.moon$", ""):gsub('%.', "/") .. ".moon"
-  rst.path = rst.path:gsub("%.moon$", ""):gsub('%.', "/") .. ".moon"
+  rst.file = rst.file:gsub(extReg, ""):gsub('%.', "/") .. extension
+  rst.path = rst.path:gsub(extReg, ""):gsub('%.', "/") .. extension
   local oldpath = rst.path
   rst.path = path_sanitize(rst.basepath)
   rst.basepath = url_build(rst, false)

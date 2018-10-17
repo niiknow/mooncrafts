@@ -71,12 +71,8 @@ do
           account_key = account_key
         }
       end
-      if (opts.account_name == nil) then
-        error("opts.account_name parameter is required")
-      end
-      if (opts.account_key == nil) then
-        error("opts.account_key parameter is required")
-      end
+      assert(opts.account_name, "opts.account_name parameter is required")
+      assert(opts.account_key, "opts.account_key parameter is required")
       myopts = opts
     end,
     __base = _base_0,

@@ -14,7 +14,7 @@
 
      -- number of items when flush
        -- currently set to 1 until we get azure bulk to work
-   1 BUFFER_COUNT = 1
+   1 BUFFER_COUNT   = 1
 
      -- time between flush
        -- currently set to very low until we get azure bulk to work
@@ -22,7 +22,7 @@
 
    1 myopts = {}
 
-   1 dolog = (rsp) =>
+   1 dolog  = (rsp) =>
    1   v        = {}
    1   req      = rsp.req
    2   logs     = req.logs or {}
@@ -48,41 +48,38 @@
    2     account_key: myopts.account_key
        })
 
-   1   v.RowKey = rk
+   1   v.RowKey       = rk
    1   v.PartitionKey = pk
-   1   v.host = req.host
-   1   v.path = req.path
-***0   v.time = req.end - req.start
-   1   v.req = to_json(req)
-   1   v.err = tostring(rsp.err)
-   1   v.code = rsp.code
-***0   v.status = rsp.status
-***0   v.headers = to_json(rsp.headers)
-***0   v.body = rsp.body
-***0   v.logs = to_json(logs) if (#logs > 0)
-***0   opts.body = to_json(v)
+   1   v.host         = req.host
+   1   v.path         = req.path
+***0   v.time         = req.end - req.start
+   1   v.req          = to_json(req)
+   1   v.err          = tostring(rsp.err)
+   1   v.code         = rsp.code
+***0   v.status       = rsp.status
+***0   v.headers      = to_json(rsp.headers)
+***0   v.body         = rsp.body
+***0   v.logs         = to_json(logs) if (#logs > 0)
+***0   opts.body      = to_json(v)
 ***0   opts.useSocket = true
-***0   res = azt.request(opts, true)
+***0   res            = azt.request(opts, true)
    1   res
 
    1 class AsyncLogger
    2   new: (opts={:account_name, :account_key}) =>
-***0     if (opts.account_name == nil)
-   1         error("opts.account_name parameter is required")
-
-***0     if (opts.account_key == nil)
-***0         error("opts.account_key parameter is required")
+***0     assert(opts.account_name, "opts.account_name parameter is required")
+   1     assert(opts.account_key, "opts.account_key parameter is required")
 
 ***0     myopts = opts
 
 ***0   dolog: dolog
 
    1   log: (rsp) =>
-***0     if (ngx)
-***0       myrsp = table_clone(rsp)
-   1       delay = math.random(10, 100)
-   2       ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
-   1     @
+   1     if (ngx)
+   1       myrsp = table_clone(rsp)
+   2       delay = math.random(10, 100)
+   1       ok, err = ngx.timer.at(delay / 1000, dolog, self, myrsp)
+***0     @
 
    1 AsyncLogger
 
@@ -199,29 +196,27 @@
    4 sharedkeylite = (opts = { :account_name, :account_key, :table_name }) ->
 ***0   opts.time = opts.time or os.time()
 ***0   opts.date = opts.date or date_utc(opts.time)
-   4   opts.sig = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
+   4   opts.sig  = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
    2   opts
 
 ***0 canonicalizedResource = (opts) ->
 ***0   parsedUrl = opts.parsedUrl
-***0   query = string_split(opts.query, "&")
-***0   qs = query_string_encode(query, "\n", "", (v) -> v)
-
-***0   params = {
-   4     "/#{opts.account_name}#{parsedUrl.path}",
-         qs
+***0   query     = string_split(opts.query, "&")
+***0   qs        = query_string_encode(query, "\n", "", (v) -> v)
+   2   params    = {
+         "/#{opts.account_name}#{parsedUrl.path}",
+   4     qs
        }
 
 ***0   concat(params, "\n")
 
 ***0 canonicalizedHeaders = (headers) ->
-   4   rst = {}
-   8   keys = {}
+***0   rst  = {}
+   4   keys = {}
 
        -- sort
-   2   for k in pairs(headers) do keys[#keys+1] = tostring(k)
-***0   sort(keys)
-
+   4   for k in pairs(headers) do keys[#keys+1] = tostring(k)
+   2   sort(keys)
 
 ***0   for i=1, #keys
 ***0     k = keys[i]
@@ -231,9 +226,9 @@
 ***0   concat(rst, "\n")
 
 
-   2 stringForTable = (opts, additionalHeaders) ->
+***0 stringForTable = (opts, additionalHeaders) ->
 ***0   additionalHeaders["DataServiceVersion"] = "3.0;NetFx"
-***0   additionalHeaders["MaxDataServiceVersion"] = "3.0;NetFx"
+   2   additionalHeaders["MaxDataServiceVersion"] = "3.0;NetFx"
 
 ***0   params = {
 ***0     opts.method,
@@ -249,7 +244,7 @@
 ***0   concat(params, "\n")
 
 
-***0 stringForBlobOrQueue = (req, additionalHeaders) ->
+   2 stringForBlobOrQueue = (req, additionalHeaders) ->
 ***0   headers = {}
 ***0   table_extend(headers, opts.headers)
 ***0   table_extend(headers, additionalHeaders)
@@ -262,9 +257,9 @@
 ***0     getHeader(headers, "content-md5"),
 ***0     getHeader(headers, "content-type"),
 ***0     getHeader(headers, "date"),
-   2     getHeader(headers, "if-modified-since"),
+***0     getHeader(headers, "if-modified-since"),
 ***0     getHeader(headers, "if-match"),
-***0     getHeader(headers, "if-none-match"),
+   2     getHeader(headers, "if-none-match"),
 ***0     getHeader(headers, "if-unmodified-since"),
 ***0     getHeader(headers, "range"),
 ***0     canonicalizedHeaders(headers),
@@ -284,7 +279,7 @@
 
 ***0   stringToSign = stringGenerator(opts, additionalHeaders)
 ***0   sig          = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
-   2   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
+***0   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
        additionalHeaders
 
 ***0 { :date_utc, :sharedkeylite}
@@ -309,64 +304,59 @@
      -- generate opts
 ***0 opts_name = (opts={ :table_name, :pk, :prefix, :account_key, :account_name }) ->
          -- validate account_name and account_key
-***0     if (opts == nil)
-***0         error("opts parameter is required")
-
-***0     if (opts.account_name == nil)
-***0         error("opts.account_name parameter is required")
-
-***0     if (opts.account_key == nil)
-***0         error("opts.account_key parameter is required")
+***0     assert(opts, "opts parameter is required")
+***0     assert(opts.account_name, "opts.account_name parameter is required")
+***0     assert(opts.account_key, "opts.account_key parameter is required")
 
 ***0     if (opts.prefix == nil)
-***0         opts.prefix = ""
+   4         opts.prefix = ""
 
          -- only set if has not set
-***0     if (opts.table == nil)
-   4       opts.table = string.lower(opts.table_name)
-   4       opts.table_name = "#{opts.prefix}#{opts.table}"
+   4     if (opts.table == nil)
+   4       opts.table      = string.lower(opts.table_name)
+***0       opts.table_name = "#{opts.prefix}#{opts.table}"
 
-   4 item_headers = (opts, method="GET") ->
-   8   opts_name(opts)
-   4   sharedkeylite(opts)
-***0   hdrs = {
-   6     ["Authorization"]: "SharedKeyLite #{opts.account_name}:#{opts.sig}",
-***0     ["x-ms-date"]: opts.date,
-   4     ["Accept"]: "application/json;odata=nometadata",
+   8 item_headers = (opts, method="GET") ->
+   4   opts_name(opts)
+***0   sharedkeylite(opts)
+   6   hdrs = {
+***0     ["Authorization"]: "SharedKeyLite #{opts.account_name}:#{opts.sig}",
+   4     ["x-ms-date"]: opts.date,
+***0     ["Accept"]: "application/json;odata=nometadata",
 ***0     ["x-ms-version"]: "2018-03-28"
-       }
+   4   }
 
    4   hdrs["Content-Type"] = "application/json" if method == "PUT" or method == "POST" or method == "MERGE"
-   4   hdrs["If-Match"] = "*" if (method == "DELETE")
+   4   hdrs["If-Match"]     = "*" if (method == "DELETE")
 
-   4   hdrs
+       hdrs
 
      -- get table header to create or delete table
-***0 table_opts = (opts={ :table_name, :pk, :rk }, method="GET") ->
-   4   headers = item_headers(opts, method)
-   2   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+   4 table_opts = (opts={ :table_name, :pk, :rk }, method="GET") ->
+   2   headers = item_headers(opts, method)
+***0   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
 
        -- remove item headers
-   1   headers["If-Match"] = nil if method == "DELETE"
+***0   headers["If-Match"] = nil if method == "DELETE"
 
-   4   {
-   2     method: method,
-***0     url: url,
-   2     headers: headers,
+   2   {
+***0     method: method,
+   2     url: url,
+***0     headers: headers,
 ***0     table_name: opts.table_name,
 ***0     account_key: opts.account_key,
 ***0     account_name: opts.account_name
        }
 
      -- list items
-   2 item_list = (opts={ :table_name }, query={ :filter, :top, :select }) ->
+***0 item_list = (opts={ :table_name }, query={ :filter, :top, :select }) ->
 ***0   headers = item_headers(opts, "GET")
-***0   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+   2   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
    2   qs = ""
    2   qs = "#{qs}&$filter=#{query.filter}" if query.filter
-   2   qs = "#{qs}&$top=#{query.top}" if query.top
-   1   qs = "#{qs}&$select=#{query.select}" if query.select
-***0   qs = trim(qs, "&")
+   1   qs = "#{qs}&$top=#{query.top}" if query.top
+***0   qs = "#{qs}&$select=#{query.select}" if query.select
+   2   qs = trim(qs, "&")
    2   full_path = url
    2   full_path = "#{url}?#{qs}" if qs
 
@@ -375,39 +365,39 @@
    2     url: full_path,
    2     headers: headers,
    2     table_name: opts.table_name,
-   2     account_key: opts.account_key,
-***0     account_name: opts.account_name
-   1   }
+***0     account_key: opts.account_key,
+   1     account_name: opts.account_name
+       }
 
      -- create an item
 ***0 item_create = (opts={ :table_name }) ->
-***0   headers = item_headers(opts, "POST")
+   1   headers = item_headers(opts, "POST")
    1   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
 
    1   {
    1     method: "POST",
    1     url: url,
-   1     headers: headers,
-***0     table_name: opts.table_name,
+***0     headers: headers,
+   1     table_name: opts.table_name,
    1     account_key: opts.account_key,
    1     account_name: opts.account_name
    1   }
 
      -- update an item, method can be MERGE to upsert
-***0 item_update = (opts={ :table_name, :pk, :rk }, method="PUT") ->
-   1   opts_name(opts)
-***0   table = "#{opts.table_name}(PartitionKey='#{opts.pk}',RowKey='#{opts.rk}')"
-***0   opts.table_name = table
-   1   headers = item_headers(opts, method)
-   1   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+   1 item_update = (opts={ :table_name, :pk, :rk }, method="PUT") ->
+***0   opts_name(opts)
+***0   table           = "#{opts.table_name}(PartitionKey='#{opts.pk}',RowKey='#{opts.rk}')"
+   1   opts.table_name = table
+   1   headers         = item_headers(opts, method)
+***0   url             = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
 
-   2   {
+   1   {
    1     method: method,
-   1     url: url,
+***0     url: url,
 ***0     headers: headers,
-***0     table_name: opts.table_name,
-   1     account_key: opts.account_key,
-***0     account_name: opts.account_name
+   1     table_name: opts.table_name,
+***0     account_key: opts.account_key,
+   1     account_name: opts.account_name
    1   }
 
      -- retrieve an item
@@ -415,32 +405,32 @@
    1   item_list(opts, { filter: "(PartitionKey eq '#{opts.pk}' and RowKey eq '#{opts.rk}')", top: 1 })
 
      -- delete an item
-***0 item_delete = (opts={ :table_name, :pk, :rk }) -> item_update(opts, "DELETE")
+   1 item_delete = (opts={ :table_name, :pk, :rk }) -> item_update(opts, "DELETE")
 
 ***0 generate_opts = (opts={ :table_name }, format="%Y%m%d", ts=os.time()) ->
-***0   newopts = util.table_clone(opts)
+***0   newopts          = util.table_clone(opts)
 ***0   newopts.mt_table = newopts.table_name
 
        -- trim ending number and replace with dt
    1   newopts.table_name = string_gsub(newopts.mt_table, "%d+$", "") .. os.date(format, ts)
-   1   newopts
+       newopts
 
      -- generate array of daily opts
    1 opts_daily = (opts={ :table_name,  :env_id, :pk, :prefix }, days=1, ts=os.time()) ->
-   1   rst = {}
+   1   rst        = {}
    1   multiplier = days and 1 or -1
-   1   new_ts = ts
-   1   for i = 1, days
-   2     rst[#rst + 1] = generate_opts(opts, "%Y%m%d", new_ts)
+   1   new_ts     = ts
+   2   for i = 1, days
+***0     rst[#rst + 1] = generate_opts(opts, "%Y%m%d", new_ts)
 ***0     new_ts = mydate.add_day(new_ts, days)
 
        rst
 
      -- generate array of monthly opts
 ***0 opts_monthly = (opts={ :table_name, :env_id, :pk, :prefix }, months=1, ts=os.time()) ->
-***0   rst = {}
+***0   rst        = {}
 ***0   multiplier = days and 1 or -1
-***0   new_ts = ts
+***0   new_ts     = ts
 ***0   for i = 1, days
 ***0     rst[#rst + 1] = generate_opts(opts, "%Y%m", new_ts)
 ***0     new_ts = mydate.add_month(new_ts, months)
@@ -449,26 +439,26 @@
 
      -- generate array of yearly opts
 ***0 opts_yearly = (opts={ :table_name, :env_id, :pk, :prefix }, years=1, ts=os.time()) ->
-***0   rst = {}
+***0   rst        = {}
 ***0   multiplier = days and 1 or -1
-***0   new_ts = ts
+***0   new_ts     = ts
 ***0   for i = 1, days
 ***0     rst[#rst + 1] = generate_opts(opts, "%Y", new_ts)
 ***0     new_ts = mydate.add_year(new_ts, years)
 
-   2   rst
+       rst
 
 ***0 create_table = (opts) ->
        -- log.error opts.table_name
-***0   tableName = opts.table_name
+***0   tableName       = opts.table_name
 ***0   opts.table_name = "Tables"
-***0   opts.url = ""
-***0   opts.headers = nil
-***0   opts.method = "POST"
-***0   opts.body = nil
-***0   topts = table_opts(opts, opts.method)
+***0   opts.url        = ""
+***0   opts.headers    = nil
+***0   opts.method     = "POST"
+***0   opts.body       = nil
+***0   topts           = table_opts(opts, opts.method)
 ***0   topts.useSocket = opts.useSocket
-***0   topts.body = to_json({TableName: tableName})
+   2   topts.body      = to_json({TableName: tableName})
        -- log.error topts
 ***0   http.request(topts)
 
@@ -476,7 +466,7 @@
 ***0 request = (opts, createTableIfNotExists=false, retry=2) ->
        --log.error(opts)
 ***0   oldOpts = table_clone(opts)
-***0   res = http.request(opts)
+***0   res     = http.request(opts)
        --log.error(res)
 
        -- exponential retry
@@ -488,15 +478,15 @@
 ***0   if (createTableIfNotExists and res and res.body and (res.body\find("TableNotFound") ~= nil))
          -- log.error res
 ***0     topts = table_clone(oldOpts)
-***0     res = create_table(topts)
+***0     res  = create_table(topts)
          -- log.info topts
          -- log.error res
-***0     res = request(oldOpts)
+***0     res  = request(oldOpts)
 
        res
 
-***0 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
-   2   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
+   2 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
+***0   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
      }
 
 ==============================================================================
@@ -558,9 +548,9 @@
      -- this function will result in first day of next/previous month
 ***0 add_one_month: (ts=os.time(), add=false) ->
 ***0   multiple = add and 1 or -1
-   2   old_dt = os.date("*t", ts)
-***0   new_ts = os.time { year: old_dt.year, month: old_dt.month, day: 1 }
-   2   new_ts = new_ts + multiple * seconds_in_a_month
+   2   old_dt   = os.date("*t", ts)
+***0   new_ts   = os.time { year: old_dt.year, month: old_dt.month, day: 1 }
+   2   new_ts   = new_ts + multiple * seconds_in_a_month
 
      -- loop and add one month at a time
 ***0 add_month: (ts=os.time(), months=1) ->
@@ -635,8 +625,8 @@
 
 ***0   return { code: 0, err: "url is required" } unless opts.url
 
-***0   opts["method"] = string_upper(opts["method"] or 'GET')
-***0   opts["headers"] = opts["headers"] or {["Accept"]: "*/*"}
+***0   opts["method"]                = string_upper(opts["method"] or 'GET')
+***0   opts["headers"]               = opts["headers"] or {["Accept"]: "*/*"}
 ***0   opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
 
        -- auto add content length
@@ -685,20 +675,21 @@
      --  err = <nil or error message>
      --}
 ***0 request = (opts) ->
-***0   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
-
+***0   opts        = { url: opts, method: 'GET' } if type(opts) == 'string'
 ***0   opts.source = stringsource(opts.body)
+***0   result      = {}
+***0   opts.sink   = tablesink(result)
 
-   6   result = {}
-   6   opts.sink = tablesink(result)
    6   one, code, headers, status = make_request opts
-   6   body = table.concat(result)
+
+   6   body    = table.concat(result)
    6   message = #body > 0 and body or "unknown error"
-   6   return {:code, :headers, :status, err: message} unless one
+
+   4   return {:code, :headers, :status, err: message} unless one
 
    4   { :code, :headers, :status, :body }
 
-   4 { :request }
+***0 { :request }
 
 ==============================================================================
 ./mooncrafts/log.moon
@@ -773,9 +764,9 @@
    1 create_signature = (opts, oauth) ->
 
        -- parse url for query string
-***0   parts = url_parse(opts.url)
+***0   parts      = url_parse(opts.url)
    5   parts.port = nil if (url_default_port(parts.scheme) == parts.port)
-   5   base_uri = url_build(parts, false)
+   5   base_uri   = url_build(parts, false)
 
 
        -- allow for unit testing by passing in timestamp
@@ -788,8 +779,8 @@
    5     oauth_version: oauth["version"] or "1.0"
        }
 
-   1   parameters["oauth_token"] = oauth["accesstoken"] if oauth["accesstoken"]
-   1   parameters["oauth_callback"] = unescape_uri(oauth["callback"]) if oauth["callback"]
+   1   parameters["oauth_token"]     = oauth["accesstoken"] if oauth["accesstoken"]
+   1   parameters["oauth_callback"]  = unescape_uri(oauth["callback"]) if oauth["callback"]
 ***0   parameters["oauth_signature"] = sign(opts["body"], opts["method"] or 'GET', parts.query, base_uri, oauth, parameters)
 
    1   "OAuth " .. query_string_encode(parameters, ",", "\"")
@@ -804,13 +795,15 @@
    1 log       = require "mooncrafts.log"
    1 url       = require "mooncrafts.url"
 
+   1 extension = os.getenv("MOONCRAFTS_EXT") or ".moon"
+
    1 import trim, path_sanitize, url_build from util
 
-   1 local *
+***0 local *
 
 ***0 url_parse = url.parse
 ***0 loadcode  = (url) ->
-***0   req = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
+***0   req      = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
 ***0   res, err = httpc.request(req)
 
 ***0   return res unless err
@@ -818,24 +811,25 @@
 ***0   { code: 0, body: err }
 
 ***0 resolve_remote = (modname) ->
-***0   parsed = url_parse modname
+***0   parsed                = url_parse modname
 ***0   parsed.basepath, file = string.match(parsed.path, "^(.*)/([^/]*)$")
-***0   parsed.file = trim(file, "/*") or ""
-***0   parsed.basepath = "/" unless parsed.basepath
-   1   parsed
+***0   parsed.file           = trim(file, "/*") or ""
+   1   parsed.basepath       = "/" unless parsed.basepath
+       parsed
 
      -- attempt to parse and store new basepath
    3 resolve_github = (modname) ->
-   3   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
-   6   parsed = resolve_remote(modname)
-   3   user, repo, blobortree, branch, rest = string.match(parsed.basepath, "(/[^/]+)(/[^/]+)(/[^/]+)(/[^/]+)(.*)")
+   6   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
+   3   parsed = resolve_remote(modname)
+***0   user, repo, blobortree, branch, rest = string.match(parsed.basepath, "(/[^/]+)(/[^/]+)(/[^/]+)(/[^/]+)(.*)")
 ***0   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
-***0   parsed.path = "#{parsed.basepath}/#{parsed.file}"
-   3   parsed.github = true
-   1   parsed
+   3   parsed.path = "#{parsed.basepath}/#{parsed.file}"
+   1   parsed.github = true
+       parsed
 
    1 resolve = (modname, opts={plugins: {}}) ->
-   1   originalName = tostring(modname)\gsub("%.moon$", "")
+   1   extReg       = "%" .. extension .. "$"
+   2   originalName = tostring(modname)\gsub(extReg, "")
    1   rst = {}
 
        -- remote is a url, then parse the url
@@ -847,14 +841,14 @@
        -- if _remotebase, try to parse relative to it
 ***0   remotebase = opts.plugins._remotebase
 
-***0   if remotebase and rst.path == nil
+   1   if remotebase and rst.path == nil
          -- example: {url}/remote/simpson/homer.moon
          -- _remotebase: {url}/remote/simpson
          -- then: children.bart inside of homer would be -> /remote/simpson/children/bart.moon
-***0     remotemodname = "#{remotebase}/#{modname}"
-***0     rst = resolve_remote(remotemodname) if remotemodname\find("http") == 1
-   1     rst._remotebase = remotebase
-***0     rst.isrelative = true
+***0     remotemodname   = "#{remotebase}/#{modname}"
+   1     rst             = resolve_remote(remotemodname) if remotemodname\find("http") == 1
+***0     rst._remotebase = remotebase
+***0     rst.isrelative  = true
 
    1   return { path: modname } unless rst.path
 
@@ -862,19 +856,19 @@
        -- then add back moon extension
        -- reprocess rst path by converting all period to forward slash
        -- keep basepath the way it is
-   1   rst.file = rst.file\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
-   1   rst.path = rst.path\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
+   1   rst.file = rst.file\gsub(extReg, "")\gsub('%.', "/") .. extension
+***0   rst.path = rst.path\gsub(extReg, "")\gsub('%.', "/") .. extension
 
        -- save old path
 ***0   oldpath        = rst.path
 ***0   rst.path       = path_sanitize(rst.basepath)
 ***0   rst.basepath   = url_build(rst, false)
-***0   rst.path       = oldpath
+   1   rst.path       = oldpath
    1   rst.codeloader = loadcode
 
        -- it should set new _remotebase, unless it's a relative load
    2   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
-   2   rst
+   1   rst
 
    1 { :resolve, :resolve_github, :resolve_remote, :loadcode }
 
@@ -948,19 +942,17 @@
 
 ***0       if env_t
    3         t_tbl = type(tbl)
- 300         if t_tbl ~= "table"
- 297           error("field '".. t_name .. "' already added as " .. t_tbl)
-
- 258         tbl[field] = env_t[field]
+ 300         assert(t_tbl == "table", "field '" .. t_name .. "' already added as " .. t_tbl)
+ 297         tbl[field] = env_t[field]
 
          else
-  15       val = src_env[name]
-  15       assert(type(val) ~= "table", "can't copy table reference")
-***0       env[name] = val
+ 258       val = src_env[name]
+ 258       assert(type(val) ~= "table", "can't copy table reference")
+  15       env[name] = val
 
- 204   env._G = dest_env
+***0   env._G = dest_env
 
-***0   setmetatable(dest_env, { __index: env })
+ 204   setmetatable(dest_env, { __index: env })
 
  204 loadstring = (code, name, env=_G) ->
  204   assert(type(code) == "string", "code must be a string")
@@ -1400,20 +1392,20 @@ Summary
 
 File                             Hits Missed Coverage
 -----------------------------------------------------
-./mooncrafts/asynclogger.moon    44   17     72.13%
+./mooncrafts/asynclogger.moon    45   14     76.27%
 ./mooncrafts/awsauth.moon        37   18     67.27%
-./mooncrafts/azauth.moon         21   57     26.92%
-./mooncrafts/aztable.moon        67   74     47.52%
+./mooncrafts/azauth.moon         22   56     28.21%
+./mooncrafts/aztable.moon        64   71     47.41%
 ./mooncrafts/crypto.moon         18   7      72.00%
 ./mooncrafts/date.moon           5    14     26.32%
 ./mooncrafts/hmacauth.moon       7    7      50.00%
 ./mooncrafts/http.moon           16   11     59.26%
-./mooncrafts/httpsocket.moon     16   4      80.00%
+./mooncrafts/httpsocket.moon     13   7      65.00%
 ./mooncrafts/log.moon            4    13     23.53%
 ./mooncrafts/oauth1.moon         33   8      80.49%
-./mooncrafts/remoteresolver.moon 25   23     52.08%
-./mooncrafts/sandbox.moon        33   33     50.00%
+./mooncrafts/remoteresolver.moon 26   22     54.17%
+./mooncrafts/sandbox.moon        33   32     50.77%
 ./mooncrafts/url.moon            63   92     40.65%
 ./mooncrafts/util.moon           71   33     68.27%
 -----------------------------------------------------
-Total                            460  411    52.81%
+Total                            457  405    53.02%

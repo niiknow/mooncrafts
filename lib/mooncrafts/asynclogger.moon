@@ -11,7 +11,7 @@ local *
 
 -- number of items when flush
   -- currently set to 1 until we get azure bulk to work
-BUFFER_COUNT = 1
+BUFFER_COUNT   = 1
 
 -- time between flush
   -- currently set to very low until we get azure bulk to work
@@ -19,7 +19,7 @@ FLUSH_INTERVAL = 0.01
 
 myopts = {}
 
-dolog = (rsp) =>
+dolog  = (rsp) =>
   v        = {}
   req      = rsp.req
   logs     = req.logs or {}
@@ -45,30 +45,27 @@ dolog = (rsp) =>
     account_key: myopts.account_key
   })
 
-  v.RowKey = rk
+  v.RowKey       = rk
   v.PartitionKey = pk
-  v.host = req.host
-  v.path = req.path
-  v.time = req.end - req.start
-  v.req = to_json(req)
-  v.err = tostring(rsp.err)
-  v.code = rsp.code
-  v.status = rsp.status
-  v.headers = to_json(rsp.headers)
-  v.body = rsp.body
-  v.logs = to_json(logs) if (#logs > 0)
-  opts.body = to_json(v)
+  v.host         = req.host
+  v.path         = req.path
+  v.time         = req.end - req.start
+  v.req          = to_json(req)
+  v.err          = tostring(rsp.err)
+  v.code         = rsp.code
+  v.status       = rsp.status
+  v.headers      = to_json(rsp.headers)
+  v.body         = rsp.body
+  v.logs         = to_json(logs) if (#logs > 0)
+  opts.body      = to_json(v)
   opts.useSocket = true
-  res = azt.request(opts, true)
+  res            = azt.request(opts, true)
   res
 
 class AsyncLogger
   new: (opts={:account_name, :account_key}) =>
-    if (opts.account_name == nil)
-        error("opts.account_name parameter is required")
-
-    if (opts.account_key == nil)
-        error("opts.account_key parameter is required")
+    assert(opts.account_name, "opts.account_name parameter is required")
+    assert(opts.account_key, "opts.account_key parameter is required")
 
     myopts = opts
 

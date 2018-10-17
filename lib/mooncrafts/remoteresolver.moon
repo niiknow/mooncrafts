@@ -3,13 +3,15 @@ httpc     = require "mooncrafts.http"
 log       = require "mooncrafts.log"
 url       = require "mooncrafts.url"
 
+extension = os.getenv("MOONCRAFTS_EXT") or ".moon"
+
 import trim, path_sanitize, url_build from util
 
 local *
 
 url_parse = url.parse
 loadcode  = (url) ->
-  req = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
+  req      = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
   res, err = httpc.request(req)
 
   return res unless err
@@ -17,10 +19,10 @@ loadcode  = (url) ->
   { code: 0, body: err }
 
 resolve_remote = (modname) ->
-  parsed = url_parse modname
+  parsed                = url_parse modname
   parsed.basepath, file = string.match(parsed.path, "^(.*)/([^/]*)$")
-  parsed.file = trim(file, "/*") or ""
-  parsed.basepath = "/" unless parsed.basepath
+  parsed.file           = trim(file, "/*") or ""
+  parsed.basepath       = "/" unless parsed.basepath
   parsed
 
 -- attempt to parse and store new basepath
@@ -34,7 +36,8 @@ resolve_github = (modname) ->
   parsed
 
 resolve = (modname, opts={plugins: {}}) ->
-  originalName = tostring(modname)\gsub("%.moon$", "")
+  extReg       = "%" .. extension .. "$"
+  originalName = tostring(modname)\gsub(extReg, "")
   rst = {}
 
   -- remote is a url, then parse the url
@@ -50,10 +53,10 @@ resolve = (modname, opts={plugins: {}}) ->
     -- example: {url}/remote/simpson/homer.moon
     -- _remotebase: {url}/remote/simpson
     -- then: children.bart inside of homer would be -> /remote/simpson/children/bart.moon
-    remotemodname = "#{remotebase}/#{modname}"
-    rst = resolve_remote(remotemodname) if remotemodname\find("http") == 1
+    remotemodname   = "#{remotebase}/#{modname}"
+    rst             = resolve_remote(remotemodname) if remotemodname\find("http") == 1
     rst._remotebase = remotebase
-    rst.isrelative = true
+    rst.isrelative  = true
 
   return { path: modname } unless rst.path
 
@@ -61,8 +64,8 @@ resolve = (modname, opts={plugins: {}}) ->
   -- then add back moon extension
   -- reprocess rst path by converting all period to forward slash
   -- keep basepath the way it is
-  rst.file = rst.file\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
-  rst.path = rst.path\gsub("%.moon$", "")\gsub('%.', "/") .. ".moon"
+  rst.file = rst.file\gsub(extReg, "")\gsub('%.', "/") .. extension
+  rst.path = rst.path\gsub(extReg, "")\gsub('%.', "/") .. extension
 
   -- save old path
   oldpath        = rst.path

@@ -27,15 +27,16 @@ make_request = (opts) ->
 --  err = <nil or error message>
 --}
 request = (opts) ->
-  opts = { url: opts, method: 'GET' } if type(opts) == 'string'
-
+  opts        = { url: opts, method: 'GET' } if type(opts) == 'string'
   opts.source = stringsource(opts.body)
+  result      = {}
+  opts.sink   = tablesink(result)
 
-  result = {}
-  opts.sink = tablesink(result)
   one, code, headers, status = make_request opts
-  body = table.concat(result)
+
+  body    = table.concat(result)
   message = #body > 0 and body or "unknown error"
+
   return {:code, :headers, :status, err: message} unless one
 
   { :code, :headers, :status, :body }

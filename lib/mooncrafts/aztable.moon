@@ -15,21 +15,16 @@ local *
 -- generate opts
 opts_name = (opts={ :table_name, :pk, :prefix, :account_key, :account_name }) ->
     -- validate account_name and account_key
-    if (opts == nil)
-        error("opts parameter is required")
-
-    if (opts.account_name == nil)
-        error("opts.account_name parameter is required")
-
-    if (opts.account_key == nil)
-        error("opts.account_key parameter is required")
+    assert(opts, "opts parameter is required")
+    assert(opts.account_name, "opts.account_name parameter is required")
+    assert(opts.account_key, "opts.account_key parameter is required")
 
     if (opts.prefix == nil)
         opts.prefix = ""
 
     -- only set if has not set
     if (opts.table == nil)
-      opts.table = string.lower(opts.table_name)
+      opts.table      = string.lower(opts.table_name)
       opts.table_name = "#{opts.prefix}#{opts.table}"
 
 item_headers = (opts, method="GET") ->
@@ -43,7 +38,7 @@ item_headers = (opts, method="GET") ->
   }
 
   hdrs["Content-Type"] = "application/json" if method == "PUT" or method == "POST" or method == "MERGE"
-  hdrs["If-Match"] = "*" if (method == "DELETE")
+  hdrs["If-Match"]     = "*" if (method == "DELETE")
 
   hdrs
 
@@ -102,10 +97,10 @@ item_create = (opts={ :table_name }) ->
 -- update an item, method can be MERGE to upsert
 item_update = (opts={ :table_name, :pk, :rk }, method="PUT") ->
   opts_name(opts)
-  table = "#{opts.table_name}(PartitionKey='#{opts.pk}',RowKey='#{opts.rk}')"
+  table           = "#{opts.table_name}(PartitionKey='#{opts.pk}',RowKey='#{opts.rk}')"
   opts.table_name = table
-  headers = item_headers(opts, method)
-  url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+  headers         = item_headers(opts, method)
+  url             = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
 
   {
     method: method,
@@ -124,7 +119,7 @@ item_retrieve = (opts={ :table_name, :pk, :rk }) ->
 item_delete = (opts={ :table_name, :pk, :rk }) -> item_update(opts, "DELETE")
 
 generate_opts = (opts={ :table_name }, format="%Y%m%d", ts=os.time()) ->
-  newopts = util.table_clone(opts)
+  newopts          = util.table_clone(opts)
   newopts.mt_table = newopts.table_name
 
   -- trim ending number and replace with dt
@@ -133,9 +128,9 @@ generate_opts = (opts={ :table_name }, format="%Y%m%d", ts=os.time()) ->
 
 -- generate array of daily opts
 opts_daily = (opts={ :table_name,  :env_id, :pk, :prefix }, days=1, ts=os.time()) ->
-  rst = {}
+  rst        = {}
   multiplier = days and 1 or -1
-  new_ts = ts
+  new_ts     = ts
   for i = 1, days
     rst[#rst + 1] = generate_opts(opts, "%Y%m%d", new_ts)
     new_ts = mydate.add_day(new_ts, days)
@@ -144,9 +139,9 @@ opts_daily = (opts={ :table_name,  :env_id, :pk, :prefix }, days=1, ts=os.time()
 
 -- generate array of monthly opts
 opts_monthly = (opts={ :table_name, :env_id, :pk, :prefix }, months=1, ts=os.time()) ->
-  rst = {}
+  rst        = {}
   multiplier = days and 1 or -1
-  new_ts = ts
+  new_ts     = ts
   for i = 1, days
     rst[#rst + 1] = generate_opts(opts, "%Y%m", new_ts)
     new_ts = mydate.add_month(new_ts, months)
@@ -155,9 +150,9 @@ opts_monthly = (opts={ :table_name, :env_id, :pk, :prefix }, months=1, ts=os.tim
 
 -- generate array of yearly opts
 opts_yearly = (opts={ :table_name, :env_id, :pk, :prefix }, years=1, ts=os.time()) ->
-  rst = {}
+  rst        = {}
   multiplier = days and 1 or -1
-  new_ts = ts
+  new_ts     = ts
   for i = 1, days
     rst[#rst + 1] = generate_opts(opts, "%Y", new_ts)
     new_ts = mydate.add_year(new_ts, years)
@@ -166,15 +161,15 @@ opts_yearly = (opts={ :table_name, :env_id, :pk, :prefix }, years=1, ts=os.time(
 
 create_table = (opts) ->
   -- log.error opts.table_name
-  tableName = opts.table_name
+  tableName       = opts.table_name
   opts.table_name = "Tables"
-  opts.url = ""
-  opts.headers = nil
-  opts.method = "POST"
-  opts.body = nil
-  topts = table_opts(opts, opts.method)
+  opts.url        = ""
+  opts.headers    = nil
+  opts.method     = "POST"
+  opts.body       = nil
+  topts           = table_opts(opts, opts.method)
   topts.useSocket = opts.useSocket
-  topts.body = to_json({TableName: tableName})
+  topts.body      = to_json({TableName: tableName})
   -- log.error topts
   http.request(topts)
 
@@ -182,7 +177,7 @@ create_table = (opts) ->
 request = (opts, createTableIfNotExists=false, retry=2) ->
   --log.error(opts)
   oldOpts = table_clone(opts)
-  res = http.request(opts)
+  res     = http.request(opts)
   --log.error(res)
 
   -- exponential retry
@@ -194,10 +189,10 @@ request = (opts, createTableIfNotExists=false, retry=2) ->
   if (createTableIfNotExists and res and res.body and (res.body\find("TableNotFound") ~= nil))
     -- log.error res
     topts = table_clone(oldOpts)
-    res = create_table(topts)
+    res  = create_table(topts)
     -- log.info topts
     -- log.error res
-    res = request(oldOpts)
+    res  = request(oldOpts)
 
   res
 

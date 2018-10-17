@@ -65,9 +65,7 @@ build_env = (src_env, dest_env={}, wl=whitelist) ->
 
       if env_t
         t_tbl = type(tbl)
-        if t_tbl ~= "table"
-          error("field '".. t_name .. "' already added as " .. t_tbl)
-
+        assert(t_tbl == "table", "field '" .. t_name .. "' already added as " .. t_tbl)
         tbl[field] = env_t[field]
 
     else

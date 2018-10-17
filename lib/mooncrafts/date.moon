@@ -18,9 +18,9 @@ add_day: (ts=os.time(), days=1) ->
 -- this function will result in first day of next/previous month
 add_one_month: (ts=os.time(), add=false) ->
   multiple = add and 1 or -1
-  old_dt = os.date("*t", ts)
-  new_ts = os.time { year: old_dt.year, month: old_dt.month, day: 1 }
-  new_ts = new_ts + multiple * seconds_in_a_month
+  old_dt   = os.date("*t", ts)
+  new_ts   = os.time { year: old_dt.year, month: old_dt.month, day: 1 }
+  new_ts   = new_ts + multiple * seconds_in_a_month
 
 -- loop and add one month at a time
 add_month: (ts=os.time(), months=1) ->

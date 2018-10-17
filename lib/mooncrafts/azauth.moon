@@ -18,15 +18,14 @@ getHeader = (headers, name, additionalHeaders={}) -> headers[name] or additional
 sharedkeylite = (opts = { :account_name, :account_key, :table_name }) ->
   opts.time = opts.time or os.time()
   opts.date = opts.date or date_utc(opts.time)
-  opts.sig = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
+  opts.sig  = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
   opts
 
 canonicalizedResource = (opts) ->
   parsedUrl = opts.parsedUrl
-  query = string_split(opts.query, "&")
-  qs = query_string_encode(query, "\n", "", (v) -> v)
-
-  params = {
+  query     = string_split(opts.query, "&")
+  qs        = query_string_encode(query, "\n", "", (v) -> v)
+  params    = {
     "/#{opts.account_name}#{parsedUrl.path}",
     qs
   }
@@ -34,13 +33,12 @@ canonicalizedResource = (opts) ->
   concat(params, "\n")
 
 canonicalizedHeaders = (headers) ->
-  rst = {}
+  rst  = {}
   keys = {}
 
   -- sort
   for k in pairs(headers) do keys[#keys+1] = tostring(k)
   sort(keys)
-
 
   for i=1, #keys
     k = keys[i]

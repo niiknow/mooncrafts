@@ -20,15 +20,9 @@ opts_name = function(opts)
       account_name = account_name
     }
   end
-  if (opts == nil) then
-    error("opts parameter is required")
-  end
-  if (opts.account_name == nil) then
-    error("opts.account_name parameter is required")
-  end
-  if (opts.account_key == nil) then
-    error("opts.account_key parameter is required")
-  end
+  assert(opts, "opts parameter is required")
+  assert(opts.account_name, "opts.account_name parameter is required")
+  assert(opts.account_key, "opts.account_key parameter is required")
   if (opts.prefix == nil) then
     opts.prefix = ""
   end
