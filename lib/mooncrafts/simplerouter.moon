@@ -37,7 +37,7 @@ class SimpleRouter
     assert(req, "request object is required")
     assert(req.headers, "request headers parameter is required")
 
-    rst   = {code: 0, headers: {}}
+    rst   = {headers: {}}
     bauth = @conf.basic_auth
 
     if strlen(bauth) > 0
@@ -78,7 +78,7 @@ class SimpleRouter
     assert(req, "request object is required")
     assert(req.url, "request url is required")
 
-    rst = { }
+    rst = @parseBasicAuth(req)
 
     myRules = @conf.redirects
     reqUrl  = req.url
@@ -89,11 +89,13 @@ class SimpleRouter
 
       -- parse dest
       if match
-        rst.rule    = r
+        rst.rules   = rst.rules or {}
+        table_insert(rst.rules, r)
         rst.target  = url.build_with_splats(r.dest, params)
         -- a redirect if status is greater than 300
         rst.isRedir = r.status > 300
         rst.params  = params
+
         -- otherwise, it could be a rewrite or proxy
         return rst
 

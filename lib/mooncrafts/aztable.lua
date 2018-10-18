@@ -5,8 +5,8 @@ local http = require("mooncrafts.http")
 local log = require("mooncrafts.log")
 local string_gsub = string.gsub
 local my_max_number = 9007199254740991
-local sharedkeylite
-sharedkeylite = azureauth.sharedkeylite
+local sharedkeylite, sign
+sharedkeylite, sign = azureauth.sharedkeylite, azureauth.sign
 local to_json, applyDefaults, trim, table_clone
 to_json, applyDefaults, trim, table_clone = util.to_json, util.applyDefaults, util.trim, util.table_clone
 local opts_name, item_headers, table_opts, item_list, item_create, item_update, item_retrieve, item_delete, generate_opts, opts_daily, opts_monthly, opts_yearly, create_table, request

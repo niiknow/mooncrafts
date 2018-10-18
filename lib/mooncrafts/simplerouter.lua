@@ -27,7 +27,6 @@ do
       assert(req, "request object is required")
       assert(req.headers, "request headers parameter is required")
       local rst = {
-        code = 0,
         headers = { }
       }
       local bauth = self.conf.basic_auth
@@ -75,14 +74,15 @@ do
     parseRedirects = function(self, req)
       assert(req, "request object is required")
       assert(req.url, "request url is required")
-      local rst = { }
+      local rst = self:parseBasicAuth(req)
       local myRules = self.conf.redirects
       local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
         local match, params = url.match_pattern(reqUrl, r.pattern)
         if match then
-          rst.rule = r
+          rst.rules = rst.rules or { }
+          table_insert(rst.rules, r)
           rst.target = url.build_with_splats(r.dest, params)
           rst.isRedir = r.status > 300
           rst.params = params

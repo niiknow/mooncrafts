@@ -7,7 +7,7 @@ log           = require "mooncrafts.log"
 string_gsub   = string.gsub
 my_max_number = 9007199254740991  -- from javascript max safe int
 
-import sharedkeylite from azureauth
+import sharedkeylite, sign from azureauth
 import to_json, applyDefaults, trim, table_clone from util
 
 local *

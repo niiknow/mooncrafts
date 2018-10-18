@@ -15,7 +15,7 @@ date_utc = (date=os.time()) -> os.date("!%a, %d %b %Y %H:%M:%S GMT", date)
 
 getHeader = (headers, name, additionalHeaders={}) -> headers[name] or additionalHeaders[name] or ""
 
-sharedkeylite = (opts = { :account_name, :account_key, :table_name }) ->
+sharedkeylite = (opts={ :account_name, :account_key, :table_name }) ->
   opts.time = opts.time or os.time()
   opts.date = opts.date or date_utc(opts.time)
   opts.sig  = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
@@ -90,18 +90,19 @@ stringForBlobOrQueue = (req, additionalHeaders) ->
 
   concat(params, "\n")
 
-sign = (opts, stringGenerator=stringForTable) ->
+sharedkey = (opts, stringGenerator=stringForTable) ->
   opts.time      = opts.time or os.time()
   opts.date      = opts.date or date_utc(opts.time)
   opts.parsedUrl = url_parse(opts.url)
 
   additionalHeaders                 = {}
-  additionalHeaders["x-ms-version"] = "2016-05-31"
+  additionalHeaders["x-ms-version"] = "2018-03-28"
   additionalHeaders["x-ms-date"]    = date_utc(opts.time)
 
   stringToSign = stringGenerator(opts, additionalHeaders)
-  sig          = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
+  opts.sig      = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
-  additionalHeaders
+  opts.additionalHeaders
+  opts
 
-{ :date_utc, :sharedkeylite}
+{ :date_utc, :sharedkeylite, :sharedkey }

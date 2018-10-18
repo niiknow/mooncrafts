@@ -193,7 +193,7 @@
 
    2 getHeader = (headers, name, additionalHeaders={}) -> headers[name] or additionalHeaders[name] or ""
 
-   4 sharedkeylite = (opts = { :account_name, :account_key, :table_name }) ->
+   4 sharedkeylite = (opts={ :account_name, :account_key, :table_name }) ->
 ***0   opts.time = opts.time or os.time()
 ***0   opts.date = opts.date or date_utc(opts.time)
    4   opts.sig  = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
@@ -268,21 +268,22 @@
 
 ***0   concat(params, "\n")
 
-***0 sign = (opts, stringGenerator=stringForTable) ->
+***0 sharedkey = (opts, stringGenerator=stringForTable) ->
 ***0   opts.time      = opts.time or os.time()
 ***0   opts.date      = opts.date or date_utc(opts.time)
 ***0   opts.parsedUrl = url_parse(opts.url)
 
 ***0   additionalHeaders                 = {}
-***0   additionalHeaders["x-ms-version"] = "2016-05-31"
+***0   additionalHeaders["x-ms-version"] = "2018-03-28"
 ***0   additionalHeaders["x-ms-date"]    = date_utc(opts.time)
 
 ***0   stringToSign = stringGenerator(opts, additionalHeaders)
-***0   sig          = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
+***0   opts.sig      = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
 ***0   additionalHeaders["Authorization"] = "SharedKey #{opts.account_name}:#{sig}"
-       additionalHeaders
+       opts.additionalHeaders
+   2   opts
 
-***0 { :date_utc, :sharedkeylite}
+***0 { :date_utc, :sharedkeylite, :sharedkey }
 
 ==============================================================================
 ./mooncrafts/aztable.moon
@@ -296,7 +297,7 @@
    2 string_gsub   = string.gsub
    2 my_max_number = 9007199254740991  -- from javascript max safe int
 
-   2 import sharedkeylite from azureauth
+   2 import sharedkeylite, sign from azureauth
    2 import to_json, applyDefaults, trim, table_clone from util
 
 ***0 local *
@@ -1031,52 +1032,52 @@
 
    1 class SimpleRouter
 ***0   new: (conf) =>
-   5     assert(conf, "config object is required")
-   5     myConf = {}
-   5     myConf.redirects  = compile_list(conf.redirects or {})
-***0     myConf.headers    = compile_list(conf.headers or {})
-   5     myConf.basic_auth = trim(conf.basic_auth or "")
+   8     assert(conf, "config object is required")
+   8     myConf = {}
+   8     myConf.redirects  = compile_list(conf.redirects or {})
+   8     myConf.headers    = compile_list(conf.headers or {})
+***0     myConf.basic_auth = trim(conf.basic_auth or "")
          -- print util.to_json(myConf)
-   5     @conf = myConf
+  16     @conf = myConf
 
        -- this is a before-request/access level event
-   4   parseBasicAuth: (req) =>
+   1   parseBasicAuth: (req) =>
    1     assert(req, "request object is required")
-   1     assert(req.headers, "request headers parameter is required")
+***0     assert(req.headers, "request headers parameter is required")
 
-***0     rst   = {code: 0, headers: {}}
+   1     rst   = {headers: {}}
    1     bauth = @conf.basic_auth
 
-   1     if strlen(bauth) > 0
-***0       authorization = req.headers.authorization
+***0     if strlen(bauth) > 0
+   6       authorization = req.headers.authorization
 
-   3       if not authorization
+   1       if not authorization
    1         rst.code    = 401
-   1         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
-***0         rst.body    = "Please auth!"
+***0         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
+   1         rst.body    = "Please auth!"
    1         return rst
 
-   1       userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
-           unless userpass_b64
+***0       userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
+   2       unless userpass_b64
    2         rst.code    = 401
-   2         rst.headers =  {["Content-Type"]: "text/plain"}
+***0         rst.headers =  {["Content-Type"]: "text/plain"}
 ***0         rst.body    = "Your browser sent a bad Authorization HTTP header!"
 ***0         return rst
 
 ***0       userpass = base64_decode(userpass_b64)
            unless userpass
 ***0         rst.code    = 401
-***0         rst.headers =  {["Content-Type"]: "text/plain"}
-   2         rst.body    = "Your browser sent a bad Authorization HTTP header!"
+   2         rst.headers =  {["Content-Type"]: "text/plain"}
+   1         rst.body    = "Your browser sent a bad Authorization HTTP header!"
    1         return rst
 
 ***0       unless bauth == userpass
-***0         rst.code    = 403
+   1         rst.code    = 403
    1         rst.headers =  {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
    1         rst.body    = "Auth failed!"
-   1         return rst
+***0         return rst
 
-         rst
+   5     rst
 
 
        -- parse request and return result
@@ -1085,10 +1086,10 @@
    3     assert(req, "request object is required")
    3     assert(req.url, "request url is required")
 
-   5     rst = { }
+   5     rst = @parseBasicAuth(req)
 
    5     myRules = @conf.redirects
-   5     reqUrl  = req.url
+   3     reqUrl  = req.url
 
    6     for i=1, #myRules
    3       r             = myRules[i]
@@ -1096,41 +1097,43 @@
 
            -- parse dest
 ***0       if match
-***0         rst.rule    = r
-   1         rst.target  = url.build_with_splats(r.dest, params)
+***0         rst.rules   = rst.rules or {}
+   1         table_insert(rst.rules, r)
+***0         rst.target  = url.build_with_splats(r.dest, params)
              -- a redirect if status is greater than 300
    3         rst.isRedir = r.status > 300
    3         rst.params  = params
-             -- otherwise, it could be a rewrite or proxy
-   3         return rst
 
-         rst
+             -- otherwise, it could be a rewrite or proxy
+***0         return rst
+
+   3     rst
 
        -- parse header and return result
        -- this is an after-request event
    9   parseHeaders: (req) =>
          -- print util.to_json(req)
-   9     assert(req, "request object is required")
-   4     assert(req.url, "request url is required")
+   4     assert(req, "request object is required")
+***0     assert(req.url, "request url is required")
 
-***0     rst = { rules: {}, headers: {} }
-***0     myRules = @conf.headers
-   3     reqUrl  = req.url
+   3     rst = { rules: {}, headers: {} }
+   1     myRules = @conf.headers
+***0     reqUrl  = req.url
 
-***0     for i=1, #myRules
-   1       r     = myRules[i]
-   2       match = url.match_pattern(reqUrl, r.pattern)
+   2     for i=1, #myRules
+***0       r     = myRules[i]
+  11       match = url.match_pattern(reqUrl, r.pattern)
            -- print util.to_json(params)
 
-  11       if match
+  22       if match
   22         table_insert(rst.rules, r)
              -- print util.to_json(rst.headers)
              -- print util.to_json(r.headers)
-  11         table_extend(rst.headers, r.headers)
+   1         table_extend(rst.headers, r.headers)
 
    1     rst
 
-   1 SimpleRouter
+     SimpleRouter
 
 ==============================================================================
 ./mooncrafts/url.moon
@@ -1538,7 +1541,7 @@ File                             Hits Missed Coverage
 -----------------------------------------------------
 ./mooncrafts/asynclogger.moon    45   14     76.27%
 ./mooncrafts/awsauth.moon        37   18     67.27%
-./mooncrafts/azauth.moon         22   56     28.21%
+./mooncrafts/azauth.moon         23   56     29.11%
 ./mooncrafts/aztable.moon        64   71     47.41%
 ./mooncrafts/crypto.moon         18   7      72.00%
 ./mooncrafts/date.moon           5    14     26.32%
@@ -1549,8 +1552,8 @@ File                             Hits Missed Coverage
 ./mooncrafts/oauth1.moon         33   8      80.49%
 ./mooncrafts/remoteresolver.moon 26   22     54.17%
 ./mooncrafts/sandbox.moon        33   32     50.77%
-./mooncrafts/simplerouter.moon   60   19     75.95%
+./mooncrafts/simplerouter.moon   60   22     73.17%
 ./mooncrafts/url.moon            90   58     60.81%
 ./mooncrafts/util.moon           73   32     69.52%
 -----------------------------------------------------
-Total                            546  389    58.40%
+Total                            547  392    58.25%

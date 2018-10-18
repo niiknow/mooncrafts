@@ -13,7 +13,7 @@ do
 end
 local base64_decode, base64_encode
 base64_decode, base64_encode = crypto.base64_decode, crypto.base64_encode
-local date_utc, getHeader, sharedkeylite, canonicalizedResource, canonicalizedHeaders, stringForTable, stringForBlobOrQueue, sign
+local date_utc, getHeader, sharedkeylite, canonicalizedResource, canonicalizedHeaders, stringForTable, stringForBlobOrQueue, sharedkey
 date_utc = function(date)
   if date == nil then
     date = os.time()
@@ -104,7 +104,7 @@ stringForBlobOrQueue = function(req, additionalHeaders)
   }
   return concat(params, "\n")
 end
-sign = function(opts, stringGenerator)
+sharedkey = function(opts, stringGenerator)
   if stringGenerator == nil then
     stringGenerator = stringForTable
   end
@@ -112,14 +112,16 @@ sign = function(opts, stringGenerator)
   opts.date = opts.date or date_utc(opts.time)
   opts.parsedUrl = url_parse(opts.url)
   local additionalHeaders = { }
-  additionalHeaders["x-ms-version"] = "2016-05-31"
+  additionalHeaders["x-ms-version"] = "2018-03-28"
   additionalHeaders["x-ms-date"] = date_utc(opts.time)
   local stringToSign = stringGenerator(opts, additionalHeaders)
-  local sig = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
+  opts.sig = hmacauth.sign(base64_decode(opts.account_key), stringToSign)
   additionalHeaders["Authorization"] = "SharedKey " .. tostring(opts.account_name) .. ":" .. tostring(sig)
-  return additionalHeaders
+  local _ = opts.additionalHeaders
+  return opts
 end
 return {
   date_utc = date_utc,
-  sharedkeylite = sharedkeylite
+  sharedkeylite = sharedkeylite,
+  sharedkey = sharedkey
 }

@@ -6,7 +6,7 @@ base64_encode   = crypto.base64_encode
 describe "mooncrafts.simplerouter", ->
 
   it "correctly parse with no basic auth", ->
-    expected = {code: 0, headers: {}}
+    expected = {headers: {}}
 
     opts = {}
 
@@ -78,7 +78,7 @@ describe "mooncrafts.simplerouter", ->
     assert.same expected, actual
 
     -- test good auth
-    expected = {code: 0, headers: {}}
+    expected = {headers: {}}
 
     req = {
         "url": 'http://test.com:80/hello/world',
@@ -231,20 +231,13 @@ describe "mooncrafts.simplerouter", ->
                     'X-TokenReal': true
                 }
             }
-        }
+        },
+        headers: {}
     }
 
     req = {
-        "url": '/hello/world'
-    }
-
-    router = simplerouter(opts)
-    actual = router\parseRedirects(req)
-    assert.same '/go/team', actual.target
-    assert.same true, actual.isRedir
-
-    req = {
-        "url": 'http://test.com:80/hello/world'
+        "url": '/hello/world',
+        headers: {}
     }
 
     router = simplerouter(opts)
@@ -253,7 +246,18 @@ describe "mooncrafts.simplerouter", ->
     assert.same true, actual.isRedir
 
     req = {
-        "url": '/hello'
+        "url": 'http://test.com:80/hello/world',
+        headers: {}
+    }
+
+    router = simplerouter(opts)
+    actual = router\parseRedirects(req)
+    assert.same '/go/team', actual.target
+    assert.same true, actual.isRedir
+
+    req = {
+        "url": '/hello',
+        headers: {}
     }
     router = simplerouter(opts)
     actual = router\parseRedirects(req)
