@@ -888,7 +888,7 @@
      --
      -- remotefs = require("mooncrafts.remotefs")
      -- fs = remotefs({ngx_path: '/proxy'})
-     -- content = fs.read("/niiknow/moonship/master/lib/moonship/remoteresolver.moon")
+     -- content = fs.read("/niiknow/mooncrafts/master/dist.ini")
      --
 
 ***0 util      = require "mooncrafts.util"
@@ -908,7 +908,7 @@
 
          -- default base to github
 ***0     myConf.base     = trim(conf.base or "https://raw.githubusercontent.com/", "%/*")
-   3     myConf.ngx_path = conf.ngx_path or "/__libpublic"
+   3     myConf.ngx_path = conf.ngx_path or "/__mooncrafts"
 
 ***0     @conf = myConf
 
@@ -945,7 +945,7 @@
 ***0 url_parse  = url.parse
 
 ***0 loadcode   = (url) ->
-***0   req      = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
+***0   req      = { url: url, method: "GET", capture_url: "/__mooncrafts", headers: {} }
 ***0   res, err = httpc.request(req)
 
 ***0   return res unless err
