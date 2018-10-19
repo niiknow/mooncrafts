@@ -13,6 +13,7 @@ do
       if location:find(":") == nil then
         url = self.conf.base .. "/" .. trim(path_sanitize(location), "%/*")
       end
+      ngx.log(ngx.ERR, 'remotefs retrieving: ' .. url)
       local req = {
         url = url,
         method = "GET",
