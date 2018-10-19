@@ -18,12 +18,12 @@ class Liquid
     myfs        = @fs
     ext         = @ext
 
-    -- ngx.log(ngx.ERR, 'yo yo yo2 ' .. str)
+    -- ngx.log(ngx.ERR, '1 ' .. str)
     getHandler = (view) ->
       view ..= ext if not ends_with(view, ext)
-      -- ngx.log(ngx.ERR, 'yo yo yo2 ' .. view)
+      -- ngx.log(ngx.ERR, '2 ' .. view)
       rst = trim(myfs\read(view))
-      ngx.log(ngx.ERR, 'yo yo yo2 ' .. rst)
+      -- ngx.log(ngx.ERR, '3 ' .. rst)
       rst
 
     interpreter\interpret( InterpreterContext\new(data), nil, nil, FileSystem\new(getHandler) )

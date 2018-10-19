@@ -23,7 +23,6 @@ do
           view = view .. ext
         end
         local rst = trim(myfs:read(view))
-        ngx.log(ngx.ERR, 'yo yo yo2 ' .. rst)
         return rst
       end
       return interpreter:interpret(InterpreterContext:new(data), nil, nil, FileSystem:new(getHandler))

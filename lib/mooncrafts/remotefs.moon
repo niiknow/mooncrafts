@@ -30,7 +30,7 @@ class Remotefs
     -- build location
     url = location
     url = @conf.base .. "/" .. trim(path_sanitize(location), "%/*") if location\find(":") == nil
-    ngx.log(ngx.ERR, 'remotefs retrieving: ' .. url)
+    -- ngx.log(ngx.ERR, 'remotefs retrieving: ' .. url)
     req = { url: url, method: "GET", capture_url: @conf.ngx_path, headers: {} }
     httpc.request(req)
 
