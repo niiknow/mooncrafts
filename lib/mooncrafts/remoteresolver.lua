@@ -11,7 +11,7 @@ loadcode = function(url)
   local req = {
     url = url,
     method = "GET",
-    capture_url = "/__libpublic",
+    capture_url = "/__mooncrafts",
     headers = { }
   }
   local res, err = httpc.request(req)
@@ -19,7 +19,6 @@ loadcode = function(url)
     return res
   end
   return {
-    code = 0,
     body = err
   }
 end

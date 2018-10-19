@@ -64,6 +64,7 @@ strlen          = string.len
 table_insert    = table.insert
 table_extend    = util.table_extend
 string_match    = string.match
+url_parse       = url.parse
 
 compile_list = (opts) ->
   opts.req_rules  = {}
@@ -78,6 +79,11 @@ compile_list = (opts) ->
     else
       table_insert(opts.req_rules, r)
 
+    r.dest = trim(r.dest or "")
+
+    -- make sure status is correct for relative path
+    r.status = 302 if (r.status <= 300 or r.status >= 400) and r.dest\find("/") == 1
+
   opts
 
 class UriRuleHandler
@@ -91,7 +97,7 @@ class UriRuleHandler
     assert(req, "request object is required")
     assert(req.headers, "request headers parameter is required")
 
-    rst   = {headers: {}}
+    rst   = {code: 0, headers: {}, rules: {}}
     bauth = @conf.basic_auth
 
     if strlen(bauth) > 0
@@ -134,6 +140,9 @@ class UriRuleHandler
 
     rst = @parseBasicAuth(req)
 
+    -- exit if invalid auth
+    return rst if (rst.code > 0)
+
     myRules = @conf.redirects
     reqUrl  = req.url
 
@@ -143,21 +152,20 @@ class UriRuleHandler
 
       -- parse dest
       if match
-        status      = rst.status or 0
-        rst.rules   = rst.rules or {}
+        status = r.status or 0
         table_insert(rst.rules, r)
 
         -- only process if r.dest has a value
-        if (r.dest)
+        if (strlen(r.dest) > 0)
           rst.target  = url.build_with_splats(r.dest, params)
 
         -- a redirect if status is greater than 300
         rst.isRedir = status > 300
         rst.params  = params
+        rst.code    = status
 
-        -- break if valid status
-        if (status > 0)
-          return rst
+        -- stop rule processing for valid status
+        return rst if (rst.code > 0)
 
     rst
 
@@ -185,24 +193,53 @@ class UriRuleHandler
 
     rst
 
-    handleRequest: (ngx, fallbackDest="/__fallback") =>
+    handlePage: (ngx) =>
+      -- handle page rendering
+
+    handleProxy: (ngx, rst, proxyPath) =>
+      -- change the host to target host
+      parsed_target = url_parse rst.target
+      ngx.var.host  = parsed_target.host
+
+      -- set appropriate headers before proxy
+
+      -- finally execute proxy
+      return ngx.exec(proxyPath or "/proxy")
+
+    handleRequest: (ngx, proxyPath) =>
       -- preprocess rule
-      rst = parseRedirects(ngx.req)
+      rst = @parseRedirects(ngx.req)
       rst.target = fallbackDest if not (rst.dest)
 
       -- process result
-      if not (rst.isRedir)
+      if rst.isRedir
         -- redirect
-        ngx.redirect(rst.target, rst.code)
-      else
-        -- capture fallback handler
-        rsp = {}
-        rst.code = rsp.code
-        rst.headers = rsp.headers
+        return ngx.redirect(rst.target, rst.code)
 
+      -- create additional response headers
+      page_rst = { code: 0 }
 
-      -- post process rule
-      ngx.say(rst.body)
-      ngx.exit(rst.code or ngx.HTTP_OK)
+      -- proxy pass if target
+      if (rst.target)
+        page_rst = @handleProxy(ngx, rst, proxyPath)
+      else -- handle the current page
+        page_rst = @handlePage(ngx.req)
+
+      -- only set headers if valid result
+      if (page_rst.code > 200 or page_rst.code < 300)
+        headers     = page_rst.headers
+        new_headers = @parseHeaders(ngx.req)
+
+        -- override existing response headers
+        for k, v in pairs(new_headers)
+            if k ~= 'content-length' then headers(k, v)
+
+        -- now set the response header
+        for k, v in pairs(headers) do ngx.header[k] = v
+
+      -- allow template to handle it's own error
+      -- and response with appropriate error body
+      ngx.say(page_rst.body) if (page_rst.body)
+      ngx.exit(page_rst.code) if (pagerst.code)
 
 UriRuleHandler

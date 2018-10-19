@@ -8,11 +8,11 @@ if ngx then
 end
 local concat
 concat = table.concat
-local query_string_encode
-query_string_encode = util.query_string_encode
+local query_string_encode, string_connection_parse
+query_string_encode, string_connection_parse = util.query_string_encode, util.string_connection_parse
 local string_upper = string.upper
-local dorequest
-dorequest = function(opts)
+local doRequest
+doRequest = function(opts)
   if ngx and not opts.useSocket then
     return http_ngx.request(opts)
   end
@@ -28,28 +28,32 @@ request = function(opts)
   end
   if not (opts.url) then
     return {
-      code = 0,
       err = "url is required"
     }
   end
-  opts["method"] = string_upper(opts["method"] or 'GET')
-  opts["headers"] = opts["headers"] or {
+  local headers = opts["headers"] or {
     ["Accept"] = "*/*"
   }
-  opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
+  headers["User-Agent"] = headers["User-Agent"] or "Mozilla/5.0"
+  opts["method"] = string_upper(opts["method"] or 'GET')
+  opts["headers"] = headers
   local body = opts["body"]
   if body then
     body = (type(body) == "table") and query_string_encode(body) or body
     opts.body = body
     opts.headers["content-length"] = #body
   end
-  if opts["auth"] then
-    opts.headers["Authorization"] = "Basic " .. tostring(encode_base64(concat(opts.auth, ':')))
+  if (headers.auth_basic) then
+    local basic_auth = encode_base64(headers.auth_basic)
+    opts.headers["Authorization"] = "Basic " .. tostring(basic_auth)
+    headers["auth_basic"] = nil
   end
-  if opts["oauth"] then
-    opts.headers["Authorization"] = oauth1.create_signature(opts, opts["oauth"])
+  if (headers.auth_oauth1) then
+    local auth_oauth1 = string_connection_parse(headers.auth_oauth1)
+    opts.headers["Authorization"] = oauth1.create_signature(opts, oauth1)
+    headers["auth_oauth1"] = nil
   end
-  return dorequest(opts)
+  return doRequest(opts)
 end
 return {
   request = request

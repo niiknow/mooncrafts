@@ -18,7 +18,9 @@ request_ngx = function(request_uri, opts)
   }
   local bh = ngx.req.get_headers()
   for k, v in pairs(bh) do
-    ngx.req.clear_header(k)
+    if k ~= 'content-length' then
+      ngx.req.clear_header(k)
+    end
   end
   local h = opts.headers or {
     ["Accept"] = "*/*"
@@ -32,7 +34,6 @@ request_ngx = function(request_uri, opts)
   local rsp, err = ngx.location.capture(capture_url, req_t)
   if err then
     return {
-      code = 0,
       err = err
     }
   end
@@ -65,7 +66,6 @@ request = function(opts)
   local rsp, err = http_handle:request_uri(opts.url, options)
   if err then
     return {
-      code = 0,
       err = err
     }
   end

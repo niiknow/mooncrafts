@@ -6,10 +6,10 @@ http_socket  = require "mooncrafts.httpsocket"
 http_ngx     = require "mooncrafts.nginx.http" if ngx
 
 import concat from table
-import query_string_encode from util
+import query_string_encode, string_connection_parse from util
 
 string_upper = string.upper
-dorequest    = (opts) ->
+doRequest    = (opts) ->
   return http_ngx.request(opts) if ngx and not opts.useSocket
 
   http_socket.request(opts)
@@ -27,11 +27,13 @@ request = (opts) ->
 
   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
 
-  return { code: 0, err: "url is required" } unless opts.url
+  return { err: "url is required" } unless opts.url
+
+  headers                 = opts["headers"] or {["Accept"]: "*/*"}
+  headers["User-Agent"] or= "Mozilla/5.0"
 
   opts["method"]                = string_upper(opts["method"] or 'GET')
-  opts["headers"]               = opts["headers"] or {["Accept"]: "*/*"}
-  opts["headers"]["User-Agent"] = opts["headers"]["User-Agent"] or "Mozilla/5.0"
+  opts["headers"]               = headers
 
   -- auto add content length
   body = opts["body"]
@@ -40,9 +42,16 @@ request = (opts) ->
     opts.body = body
     opts.headers["content-length"] = #body
 
-  opts.headers["Authorization"] = "Basic #{encode_base64(concat(opts.auth, ':'))}" if opts["auth"]
-  opts.headers["Authorization"] = oauth1.create_signature opts, opts["oauth"] if opts["oauth"]
+  if (headers.auth_basic)
+    basic_auth = encode_base64(headers.auth_basic)
+    opts.headers["Authorization"] = "Basic #{basic_auth}"
+    headers["auth_basic"] = nil
 
-  dorequest(opts)
+  if (headers.auth_oauth1)
+    auth_oauth1 = string_connection_parse(headers.auth_oauth1)
+    opts.headers["Authorization"] = oauth1.create_signature opts, oauth1
+    headers["auth_oauth1"] = nil
+
+  doRequest(opts)
 
 { :request }

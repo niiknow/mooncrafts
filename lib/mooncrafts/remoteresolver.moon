@@ -12,12 +12,12 @@ local *
 url_parse  = url.parse
 
 loadcode   = (url) ->
-  req      = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
+  req      = { url: url, method: "GET", capture_url: "/__mooncrafts", headers: {} }
   res, err = httpc.request(req)
 
   return res unless err
 
-  { code: 0, body: err }
+  { body: err }
 
 resolve_remote = (modname) ->
   parsed                = url_parse modname

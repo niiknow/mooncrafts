@@ -9,6 +9,7 @@ local strlen = string.len
 local table_insert = table.insert
 local table_extend = util.table_extend
 local string_match = string.match
+local url_parse = url.parse
 local compile_list
 compile_list = function(opts)
   opts.req_rules = { }
@@ -23,6 +24,10 @@ compile_list = function(opts)
     else
       table_insert(opts.req_rules, r)
     end
+    r.dest = trim(r.dest or "")
+    if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
+      r.status = 302
+    end
   end
   return opts
 end
@@ -34,7 +39,9 @@ do
       assert(req, "request object is required")
       assert(req.headers, "request headers parameter is required")
       local rst = {
-        headers = { }
+        code = 0,
+        headers = { },
+        rules = { }
       }
       local bauth = self.conf.basic_auth
       if strlen(bauth) > 0 then
@@ -82,21 +89,24 @@ do
       assert(req, "request object is required")
       assert(req.url, "request url is required")
       local rst = self:parseBasicAuth(req)
+      if (rst.code > 0) then
+        return rst
+      end
       local myRules = self.conf.redirects
       local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
         local match, params = url.match_pattern(reqUrl, r.pattern)
         if match then
-          local status = rst.status or 0
-          rst.rules = rst.rules or { }
+          local status = r.status or 0
           table_insert(rst.rules, r)
-          if (r.dest) then
+          if (strlen(r.dest) > 0) then
             rst.target = url.build_with_splats(r.dest, params)
           end
           rst.isRedir = status > 300
           rst.params = params
-          if (status > 0) then
+          rst.code = status
+          if (rst.code > 0) then
             return rst
           end
         end
@@ -121,24 +131,51 @@ do
         end
       end
       local _ = rst
+      _ = {
+        handlePage = function(self, ngx) end
+      }
+      _ = {
+        handleProxy = function(self, ngx, rst, proxyPath)
+          local parsed_target = url_parse(rst.target)
+          ngx.var.host = parsed_target.host
+          return ngx.exec(proxyPath or "/proxy")
+        end
+      }
       return {
-        handleRequest = function(self, ngx, fallbackDest)
-          if fallbackDest == nil then
-            fallbackDest = "/__fallback"
-          end
-          rst = parseRedirects(ngx.req)
+        handleRequest = function(self, ngx, proxyPath)
+          rst = self:parseRedirects(ngx.req)
           if not (rst.dest) then
             rst.target = fallbackDest
           end
-          if not (rst.isRedir) then
-            ngx.redirect(rst.target, rst.code)
-          else
-            local rsp = { }
-            rst.code = rsp.code
-            rst.headers = rsp.headers
+          if rst.isRedir then
+            return ngx.redirect(rst.target, rst.code)
           end
-          ngx.say(rst.body)
-          return ngx.exit(rst.code or ngx.HTTP_OK)
+          local page_rst = {
+            code = 0
+          }
+          if (rst.target) then
+            page_rst = self:handleProxy(ngx, rst, proxyPath)
+          else
+            page_rst = self:handlePage(ngx.req)
+          end
+          if (page_rst.code > 200 or page_rst.code < 300) then
+            local headers = page_rst.headers
+            local new_headers = self:parseHeaders(ngx.req)
+            for k, v in pairs(new_headers) do
+              if k ~= 'content-length' then
+                headers(k, v)
+              end
+            end
+            for k, v in pairs(headers) do
+              ngx.header[k] = v
+            end
+          end
+          if (page_rst.body) then
+            ngx.say(page_rst.body)
+          end
+          if (pagerst.code) then
+            return ngx.exit(page_rst.code)
+          end
         end
       }
     end

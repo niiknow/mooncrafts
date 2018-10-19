@@ -18,17 +18,19 @@ request_ngx = (request_uri, opts={}) ->
 
   -- clear all browser headers
   bh = ngx.req.get_headers()
-  for k, v in pairs(bh) do ngx.req.clear_header(k)
+  for k, v in pairs(bh)
+    if k ~= 'content-length' then ngx.req.clear_header(k)
+
   h = opts.headers or {["Accept"]: "*/*"}
 
-  for k,v in pairs(h) do ngx.req.set_header(k, v)
+  for k, v in pairs(h) do ngx.req.set_header(k, v)
   req_t.body = opts.body if opts.body
 
   -- ngx.log(ngx.INFO, util.to_json(opts))
 
   rsp, err = ngx.location.capture(capture_url, req_t)
 
-  return { code: 0, err: err } if err
+  return { err: err } if err
 
   { body: rsp.body, status: "#{rsp.status}", code: rsp.status, headers: rsp.headers, err: err }
 
@@ -63,7 +65,7 @@ request = (opts) ->
 
   rsp, err = http_handle\request_uri(opts.url, options)
 
-  return { code: 0, err: err } if err
+  return { err: err } if err
 
   { body: rsp.body, status: rsp.reason, code: rsp.status, headers: rsp.headers, err: err }
 
