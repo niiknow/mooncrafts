@@ -23,7 +23,8 @@ do
         if not ends_with(view, ext) then
           view = view .. ext
         end
-        local rst = myfs:read(view .. ".liquid")
+        ngx.log(ngx.ERR, 'yo yo yo2 ' .. view)
+        local rst = myfs:read(view)
         return trim(rst)
       end
       return interpreter:interpret(InterpreterContext:new(data), nil, nil, FileSystem:new(getHandler))
@@ -33,7 +34,7 @@ do
         data = { }
       end
       local myfs = self.fs
-      if not ends_with(view, ext) then
+      if not ends_with(view, self.ext) then
         view = view .. ext
       end
       local rst = myfs:read(view .. ".liquid")

@@ -21,7 +21,8 @@ class Liquid
     ngx.log(ngx.ERR, 'yo yo yo2 ' .. str)
     getHandler = (view) ->
       view ..= ext if not ends_with(view, ext)
-      rst = myfs\read(view .. ".liquid")
+      ngx.log(ngx.ERR, 'yo yo yo2 ' .. view)
+      rst = myfs\read(view)
       trim(rst)
 
     interpreter\interpret( InterpreterContext\new(data), nil, nil, FileSystem\new(getHandler) )
@@ -29,7 +30,7 @@ class Liquid
   renderView: (view, data={}) =>
     myfs = @fs
     -- ngx.log(ngx.ERR, 'yo yo yo2 ' .. util.to_json(myfs.conf))
-    view ..= ext if not ends_with(view, ext)
+    view ..= ext if not ends_with(view, @ext)
 
     rst = myfs\read(view .. ".liquid")
     file = myfs\read(view)

@@ -43,14 +43,10 @@ trim = function(str, pattern)
   end
 end
 starts_with = function(str, start)
-  return {
-    str = sub(1, #start) == start
-  }
+  return string_sub(str, 1, #start) == start
 end
 ends_with = function(str, ending)
-  return ending == "" or {
-    str = sub(-#ending) == ending
-  }
+  return ending == "" or string_sub(str, -#ending) == ending
 end
 path_sanitize = function(str)
   return (tostring(str)):gsub("[^a-zA-Z0-9.-_/\\]", ""):gsub("%.%.+", ""):gsub("//+", "/"):gsub("\\\\+", "/")
@@ -260,5 +256,5 @@ return {
   string_connection_parse = string_connection_parse,
   string_random = string_random,
   starts_with = starts_with,
-  ends_with
+  ends_with = ends_with
 }

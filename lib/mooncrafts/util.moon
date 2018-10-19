@@ -42,10 +42,10 @@ trim = (str, pattern="%s*") ->
     str\match "^#{pattern}(.-)#{pattern}$"
 
 starts_with = (str, start) ->
-  str:sub(1, #start) == start
+  string_sub(str, 1, #start) == start
 
 ends_with = (str, ending) ->
-  ending == "" or str:sub(-#ending) == ending
+  ending == "" or string_sub(str, -#ending) == ending
 
 --- sanitize a path.
 -- path should not have double quote, single quote, period <br />
@@ -187,5 +187,5 @@ string_connection_parse = (str, fieldSep=";", valSep="=") ->
   :json_encodable, :from_json, :to_json, :table_clone,
   :table_extend, :query_string_encode, :applyDefaults,
   :string_split, :string_connection_parse, :string_random,
-  :starts_with, ends_with
+  :starts_with, :ends_with
 }
