@@ -1,3 +1,6 @@
+-- liquid templating engine by https://github.com/chenxianyu2015/liquid-lua
+-- base on version: https://github.com/3scale/liquid-lua/blob/dcf3a4a9cf2654b5e0b9569a7e45e79ff5ab092e/lib/liquid.lua
+
 local cjson = require 'cjson'
 local Liquid = {}
 local Lexer = {}
