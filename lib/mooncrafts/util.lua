@@ -21,7 +21,7 @@ end
 for i = 97, 122 do
   insert(charset, char(i))
 end
-local string_sub, string_gmatch, string_random, trim, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
+local string_sub, string_gmatch, string_random, trim, starts_with, ends_with, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
 string_sub = string.sub
 string_gmatch = string.gmatch
 string_random = function(length)
@@ -41,6 +41,16 @@ trim = function(str, pattern)
   else
     return str:match("^" .. tostring(pattern) .. "(.-)" .. tostring(pattern) .. "$")
   end
+end
+starts_with = function(str, start)
+  return {
+    str = sub(1, #start) == start
+  }
+end
+ends_with = function(str, ending)
+  return ending == "" or {
+    str = sub(-#ending) == ending
+  }
 end
 path_sanitize = function(str)
   return (tostring(str)):gsub("[^a-zA-Z0-9.-_/\\]", ""):gsub("%.%.+", ""):gsub("//+", "/"):gsub("\\\\+", "/")
@@ -248,5 +258,7 @@ return {
   applyDefaults = applyDefaults,
   string_split = string_split,
   string_connection_parse = string_connection_parse,
-  string_random = string_random
+  string_random = string_random,
+  starts_with = starts_with,
+  ends_with
 }

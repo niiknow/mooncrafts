@@ -8,7 +8,6 @@ util             = require "mooncrafts.util"
 local *
 
 to_json       = util.to_json
-table_contact = table.concat
 
 doformat = (p) ->
   if type(p) == "table"
@@ -22,7 +21,7 @@ doformat = (p) ->
 formatter = (...) ->
   params = [doformat(v) for v in *{...}]
 
-  table_concat(params, ' ')
+  table.concat(params, ' ')
 
 log = logger.new( "info", list_writer.new( console_color.new() ), formatter )
 

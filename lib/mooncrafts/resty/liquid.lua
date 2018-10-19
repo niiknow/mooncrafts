@@ -1,26 +1,54 @@
 local liquid = require("mooncrafts.vendor.liquid")
+local util = require("mooncrafts.util")
+local trim, ends_with
+trim, ends_with = util.trim, util.ends_with
 local Lexer, Parser, Interpreter, FileSystem, InterpreterContext
 Lexer, Parser, Interpreter, FileSystem, InterpreterContext = liquid.Lexer, liquid.Parser, liquid.Interpreter, liquid.FileSystem, liquid.InterpreterContext
 local Liquid
 do
   local _class_0
   local _base_0 = {
-    renderStr = function(self, str)
-      local lexer = Lexer.new(document)
-      local parser = Parser.new(lexer)
-      local interpreter = Interpreter.new(parser)
-      local getHandler
-      getHandler = function(path)
-        return fs:read(path)
+    render = function(self, str, data)
+      if data == nil then
+        data = { }
       end
-      return interpreter.interpret(InterpreterContext.new(str), nil, nil, FileSystem.new(getHandler))
+      local lexer = Lexer:new(str)
+      local parser = Parser:new(lexer)
+      local interpreter = Interpreter:new(parser)
+      local myfs = self.fs
+      local ext = self.ext
+      ngx.log(ngx.ERR, 'yo yo yo2 ' .. str)
+      local getHandler
+      getHandler = function(view)
+        if not ends_with(view, ext) then
+          view = view .. ext
+        end
+        local rst = myfs:read(view .. ".liquid")
+        return trim(rst)
+      end
+      return interpreter:interpret(InterpreterContext:new(data), nil, nil, FileSystem:new(getHandler))
     end,
-    render = function(self, view) end
+    renderView = function(self, view, data)
+      if data == nil then
+        data = { }
+      end
+      local myfs = self.fs
+      if not ends_with(view, ext) then
+        view = view .. ext
+      end
+      local rst = myfs:read(view .. ".liquid")
+      local file = myfs:read(view)
+      return self:render(file, data)
+    end
   }
   _base_0.__index = _base_0
   _class_0 = setmetatable({
-    __init = function(self, fs)
+    __init = function(self, fs, ext)
+      if ext == nil then
+        ext = ".liquid"
+      end
       self.fs = fs
+      self.ext = ext
     end,
     __base = _base_0,
     __name = "Liquid"

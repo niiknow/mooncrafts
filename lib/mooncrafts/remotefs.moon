@@ -30,6 +30,7 @@ class Remotefs
     -- build location
     url = location
     url = @conf.base .. "/" .. trim(path_sanitize(location), "%/*") if location\find(":") == nil
+
     req = { url: url, method: "GET", capture_url: @conf.ngx_path, headers: {} }
     httpc.request(req)
 
