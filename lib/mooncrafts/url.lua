@@ -58,7 +58,7 @@ split = function(url, pathOnly)
   assert(url, "url parameter is required")
   url = trim(url)
   local scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-  local user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+  local user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, ""
   if scheme == nil and pathOnly then
     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
   else
@@ -84,7 +84,11 @@ split = function(url, pathOnly)
   if queryp and strlen(queryp) > 0 then
     local m = string_split(queryp, "#")
     query = m[1]
-    fragment = m[2]
+    if m[2] then
+      fragment = "#" .. m[2]
+    else
+      fragment = ""
+    end
     pathAndQuery = path .. "?" .. queryp
   end
   if port == nil or port == "" then
@@ -101,7 +105,7 @@ split = function(url, pathOnly)
     port,
     path or nil,
     query or nil,
-    fragment or nil,
+    fragment,
     authority or nil,
     pathAndQuery
   }
@@ -122,14 +126,14 @@ parse = function(url, pathOnly)
     port = parts[5] or nil,
     path = parts[6] or nil,
     query = parts[7] or nil,
-    fragment = parts[8] or nil,
+    fragment = parts[8],
     authority = parts[9] or nil,
-    pathAndQuery = parts[10] or nil
+    path_and_query = parts[10]
   }
   rst.original = url
   if (rst.scheme and rst.authority) then
-    rst.authorativeUrl = tostring(rst.scheme) .. "://" .. tostring(rst.authority) .. tostring(rst.pathAndQuery)
-    rst.fullUrl = tostring(rst.scheme) .. "://" .. tostring(rst.host) .. tostring(rst.pathAndQuery)
+    rst.sign_url = tostring(rst.scheme) .. "://" .. tostring(rst.authority) .. tostring(rst.path_and_query)
+    rst.full_url = tostring(rst.scheme) .. "://" .. tostring(rst.host) .. tostring(rst.path_and_query)
   end
   return rst
 end
@@ -187,7 +191,7 @@ end
 match_pattern = function(reqUrl, pattern)
   if pattern.original:find('https?') == nil then
     if reqUrl:find('https?') ~= nil then
-      reqUrl = parse(reqUrl, true).pathAndQuery
+      reqUrl = parse(reqUrl, true).path_and_query
     end
   end
   local matches = {

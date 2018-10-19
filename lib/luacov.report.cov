@@ -697,10 +697,10 @@
 ==============================================================================
      -- implement singleton log
 
-   9 logger           = require "log"
-   9 list_writer      = require "log.writer.list"
-   9 console_color    = require "log.writer.console.color"
-   9 util             = require "mooncrafts.util"
+  10 logger           = require "log"
+  10 list_writer      = require "log.writer.list"
+  10 console_color    = require "log.writer.console.color"
+  10 util             = require "mooncrafts.util"
 
 ***0 local *
 
@@ -789,6 +789,90 @@
    1 { :create_signature }
 
 ==============================================================================
+./mooncrafts/parallel.moon
+==============================================================================
+     -- for running stuff in parallel
+
+   1 coroutine = require("coroutine")
+
+   1 local *
+
+   1 co_create  = coroutine.create
+   1 co_yield   = coroutine.yield
+***0 co_running = coroutine.running
+   1 co_resume  = coroutine.resume
+   4 co_status  = coroutine.status
+   3 unpack     = table.unpack
+
+***0 list = (args, limit) ->
+       -- check args
+   1   fn_list = args
+   1   for i=1, #fn_list
+   1     if type(fn_list[i]) ~= "function" then
+***0       return 0, "arg must #{i} be function"
+
+   1   num     = #fn_list
+   1   limit   = num unless limit ~= nil and limit > num
+   1   results = {}
+***0   tasks   = {}
+   1   context = {
+   1     remain_count: num
+***0     error_count: 0
+***0     results: {}
+   4     caller_coroutine: co_running!
+   6     exec_count: 0
+   3   }
+
+       -- create our threads
+   3   for i=1, num
+         -- create async handler
+   3     tasks[i] = co_create( (index, fn) ->
+           -- print 'starting ' .. index
+   1       ok, result = pcall fn  -- use pcall to handle error
+           -- print 'ending ' .. index
+
+           -- pack result
+   8       context.results[index] = {
+***0         ok: ok
+   4         result: result
+  16       }
+
+           -- decrement running threads count
+  12       context.remain_count -= 1
+
+           -- finally, exit if no remaining thread
+   4       if context.remain_count == 0
+             -- resume caller thread if it's not dead
+   1         if co_status(context.caller_coroutine) ~= 'dead'
+   1           co_resume(context.caller_coroutine)
+         )
+
+       -- loop while any task is suspended or limit has not reached
+***0   while true
+         -- now execute any suspended task
+   1     for i=1, num
+   1       task = tasks[i]
+   1       if co_status(task) == 'suspended' then co_resume(task, i, fn_list[i])
+
+         -- this prevent infinit loop based on limit
+***0     context.exec_count += 1
+
+         -- we've reached our limit, get out
+***0     if context.remain_count <= 0 or context.exec_count > limit
+           -- make sure we're not waiting for it externally
+***0       context.remain_count = 0
+           break
+
+       -- externally, make sure to wait for all threads to finish
+       -- if we somehow got here by excessive inner thread yields
+***0   if context.remain_count > 0
+***0     co_yield!
+
+       context.results
+
+***0 { :list }
+
+==============================================================================
 ./mooncrafts/remoteresolver.moon
 ==============================================================================
    1 util      = require "mooncrafts.util"
@@ -802,8 +886,9 @@
 
 ***0 local *
 
-***0 url_parse = url.parse
-***0 loadcode  = (url) ->
+***0 url_parse  = url.parse
+
+***0 loadcode   = (url) ->
 ***0   req      = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
 ***0   res, err = httpc.request(req)
 
@@ -814,42 +899,42 @@
 ***0 resolve_remote = (modname) ->
 ***0   parsed                = url_parse modname
 ***0   parsed.basepath, file = string.match(parsed.path, "^(.*)/([^/]*)$")
-***0   parsed.file           = trim(file, "/*") or ""
-   1   parsed.basepath       = "/" unless parsed.basepath
-       parsed
+   1   parsed.file           = trim(file, "/*") or ""
+***0   parsed.basepath       = "/" unless parsed.basepath
+   3   parsed
 
      -- attempt to parse and store new basepath
-   3 resolve_github = (modname) ->
-   6   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
-   3   parsed = resolve_remote(modname)
+   6 resolve_github = (modname) ->
+   3   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
+***0   parsed  = resolve_remote(modname)
 ***0   user, repo, blobortree, branch, rest = string.match(parsed.basepath, "(/[^/]+)(/[^/]+)(/[^/]+)(/[^/]+)(.*)")
-***0   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
-   3   parsed.path = "#{parsed.basepath}/#{parsed.file}"
-   1   parsed.github = true
-       parsed
+   3   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
+   1   parsed.path     = "#{parsed.basepath}/#{parsed.file}"
+***0   parsed.github   = true
+   1   parsed
 
    1 resolve = (modname, opts={plugins: {}}) ->
-   1   extReg       = "%" .. extension .. "$"
-   2   originalName = tostring(modname)\gsub(extReg, "")
+   2   extReg       = "%" .. extension .. "$"
+   1   originalName = tostring(modname)\gsub(extReg, "")
    1   rst = {}
 
        -- remote is a url, then parse the url
-   1   rst = resolve_remote(modname) if modname\find("http") == 1
+***0   rst = resolve_remote(modname) if modname\find("http") == 1
 
        -- if github, then parse and store new basepath
 ***0   rst = resolve_github(modname) if modname\find("github%.com/") == 1
 
        -- if _remotebase, try to parse relative to it
-***0   remotebase = opts.plugins._remotebase
+   1   remotebase = opts.plugins._remotebase
 
    1   if remotebase and rst.path == nil
          -- example: {url}/remote/simpson/homer.moon
          -- _remotebase: {url}/remote/simpson
          -- then: children.bart inside of homer would be -> /remote/simpson/children/bart.moon
-***0     remotemodname   = "#{remotebase}/#{modname}"
-   1     rst             = resolve_remote(remotemodname) if remotemodname\find("http") == 1
+   1     remotemodname   = "#{remotebase}/#{modname}"
+***0     rst             = resolve_remote(remotemodname) if remotemodname\find("http") == 1
 ***0     rst._remotebase = remotebase
-***0     rst.isrelative  = true
+   1     rst.isrelative  = true
 
    1   return { path: modname } unless rst.path
 
@@ -857,49 +942,57 @@
        -- then add back moon extension
        -- reprocess rst path by converting all period to forward slash
        -- keep basepath the way it is
-   1   rst.file = rst.file\gsub(extReg, "")\gsub('%.', "/") .. extension
-***0   rst.path = rst.path\gsub(extReg, "")\gsub('%.', "/") .. extension
+***0   rst.file = rst.file\gsub(extReg, "")\gsub('%.', "/") .. extension
+   1   rst.path = rst.path\gsub(extReg, "")\gsub('%.', "/") .. extension
 
        -- save old path
 ***0   oldpath        = rst.path
 ***0   rst.path       = path_sanitize(rst.basepath)
-***0   rst.basepath   = url_build(rst, false)
+   1   rst.basepath   = url_build(rst, false)
    1   rst.path       = oldpath
    1   rst.codeloader = loadcode
 
-       -- it should set new _remotebase, unless it's a relative load
-   2   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
+       -- set new _remotebase, unless it's a relative load
+   1   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
    1   rst
 
-   1 { :resolve, :resolve_github, :resolve_remote, :loadcode }
+***0 { :resolve, :resolve_github, :resolve_remote, :loadcode }
 
 ==============================================================================
 ./mooncrafts/sandbox.moon
 ==============================================================================
-   1 parse   = require "moonscript.parse"
-   1 compile = require "moonscript.compile"
+     -- allow sandbox for execution of both lua and moonscript
+     -- this is done in best effort
+     -- during testing with openresty, I find that there are ways
+     -- you can get out of the sandbox:
+     -- 1. such as sloppy code that expose global variables on ngx object
+     -- 2. bad handling of environment variables
+     -- 3. bad handling of script static in framework
+
+***0 parse   = require "moonscript.parse"
+***0 compile = require "moonscript.compile"
    1 util    = require "mooncrafts.util"
    1 log     = require "mooncrafts.log"
 
 ***0 table_pack = table.pack or (...) -> { n: select("#", ...), ... }
-***0 has_52_compatible_load = _VERSION ~= "Lua 5.1" or tostring(assert)\match "builtin"
-***0 pack_1 = (first, ...) -> first, table_pack(...)
+   1 has_52_compatible_load = _VERSION ~= "Lua 5.1" or tostring(assert)\match "builtin"
+   1 pack_1 = (first, ...) -> first, table_pack(...)
 
 ***0 loads = has_52_compatible_load and load or (code, name, mode, env) ->
-   1   return nil, "can't load binary chunk" if code.byte(code, 1) == 27
+***0   return nil, "can't load binary chunk" if code.byte(code, 1) == 27
 
 ***0   chunk, err = loadstring(code, name)
 ***0   setfenv(chunk, env) if chunk and env
-   1   chunk, err
+***0   chunk, err
 
 ***0 readfile = (file) ->
-***0   f = io.open(file, "rb")
+   1   f = io.open(file, "rb")
 ***0   content = f\read("*all")
 ***0   f\close()
        content
 
      --- List of safe library methods (5.1 to 5.3)
-     whitelist = [[
+   1 whitelist = [[
      _VERSION assert error ipairs next pairs pcall select tonumber tostring type unpack xpcall
 
      bit32.arshift bit32.band bit32.bnot bit32.bor bit32.btest bit32.bxor bit32.extract bit32.lrotate
@@ -922,7 +1015,7 @@
      table.concat table.insert table.maxn table.pack table.remove table.sort table.unpack
 
      utf8.char utf8.charpattern utf8.codepoint utf8.codes utf8.len utf8.offset
-***0 ]]
+   1 ]]
 
 
 ***0 opts = {plugins: {}}
@@ -930,36 +1023,36 @@
 ***0 local *
 
      -- Builds the environment table for a sandbox.
-   1 build_env = (src_env, dest_env={}, wl=whitelist) ->
-   1   env = {}
-   1   for name in wl\gmatch "%S+"
+***0 build_env = (src_env, dest_env={}, wl=whitelist) ->
+   3   env = {}
+   2   for name in wl\gmatch "%S+"
 ***0     t_name, field = name\match "^([^%.]+)%.([^%.]+)$"
-   1     if t_name
-***0       tbl = env[t_name]
-   3       env_t = src_env[t_name]
-***0       if tbl == nil and env_t
-***0         tbl = {}
-   3         env[t_name] = tbl
+   3     if t_name
+ 300       tbl = env[t_name]
+ 297       env_t = src_env[t_name]
+ 297       if tbl == nil and env_t
+ 258         tbl = {}
+ 258         env[t_name] = tbl
 
-***0       if env_t
-   3         t_tbl = type(tbl)
- 300         assert(t_tbl == "table", "field '" .. t_name .. "' already added as " .. t_tbl)
- 297         tbl[field] = env_t[field]
+  15       if env_t
+  15         t_tbl = type(tbl)
+***0         assert(t_tbl == "table", "field '" .. t_name .. "' already added as " .. t_tbl)
+ 258         tbl[field] = env_t[field]
 
          else
- 258       val = src_env[name]
- 258       assert(type(val) ~= "table", "can't copy table reference")
-  15       env[name] = val
+ 204       val = src_env[name]
+ 204       assert(type(val) ~= "table", "can't copy table reference")
+***0       env[name] = val
 
-***0   env._G = dest_env
+  39   env._G = dest_env
 
- 204   setmetatable(dest_env, { __index: env })
+***0   setmetatable(dest_env, { __index: env })
 
- 204 loadstring = (code, name, env=_G) ->
- 204   assert(type(code) == "string", "code must be a string")
-***0   assert(type(env) == "table", "env is required")
+   3 loadstring = (code, name, env=_G) ->
+   3   assert(type(code) == "string", "code must be a string")
+   3   assert(type(env) == "table", "env is required")
 
-  39   loads(code, name or "sandbox", "t", env)
+   1   loads(code, name or "sandbox", "t", env)
 
      --- Executes Lua code in a sandbox.
      --
@@ -969,20 +1062,20 @@
      -- @param wl        String with a list of library functions imported from the global namespace (default `sandbox.whitelist`).
      -- @return          The `env` where the code was ran, or `nil` in case of error.
      -- @return          The chunk return values, or an error message.
-   5 loadstring_safe = (code, name, env={}, wl) ->
-   2   env = build_env(_G, env, wl)
+   2 loadstring_safe = (code, name, env={}, wl) ->
+   1   env = build_env(_G, env, wl)
 ***0   loadstring(code, name, env)
 
-   5 loadfile = (file, env=_G) ->
-   5   assert(type(file) == "string", "file name is required")
-   1   assert(type(env) == "table", "env is required")
+   2 loadfile = (file, env=_G) ->
+   1   assert(type(file) == "string", "file name is required")
+***0   assert(type(env) == "table", "env is required")
 
-   2   code = readfile(file)
-   1   loadstring(code, file, env)
+***0   code = readfile(file)
+***0   loadstring(code, file, env)
 
-   4 loadfile_safe = (file, env={}, wl) ->
-   2   env = build_env(_G, env, wl)
-   1   loadfile(file, env)
+***0 loadfile_safe = (file, env={}, wl) ->
+***0   env = build_env(_G, env, wl)
+***0   loadfile(file, env)
 
 ***0 exec = (fn) ->
 ***0   ok, ret = pcall(fn)
@@ -990,16 +1083,20 @@
 
 ***0 exec_code = (code, name, env={}, wl) ->
 ***0   fn = loadstring_safe(code, name, env, wl)
-***0   exec(fn)
+   1   exec(fn)
 
-***0 compile_moon = (moon_code) ->
+     -- compile moonscript code to lua source, load and execute
+     -- lua_src = sandbox.compile_moon(rsp.body)
+     -- fn = sandbox.loadstring_safe(lua_src, 'file name', function_vars)
+     -- rst, err = sandbox.exec(fn)
+   1 compile_moon = (moon_code) ->
 ***0   tree, err = parse.string moon_code
-***0   return nil, "Parse error: " .. err unless tree
+   1   return nil, "Parse error: " .. err unless tree
 
-***0   lua_code, err, pos = compile.tree tree
-***0   return nil, compile.format_error err, pos, moon_code unless lua_code
+   1   lua_code, err, pos = compile.tree tree
+   1   return nil, compile.format_error err, pos, moon_code unless lua_code
 
-       lua_code
+   1   lua_code
 
    1 { :build_env, :whitelist, :loadstring, :loadstring_safe, :loadfile, :loadfile_safe, :exec, :exec_code, :compile_moon }
 
@@ -1199,7 +1296,7 @@
   82   url = trim(url)
 
   41   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-  41   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+  41   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, ""
 
 ***0   if scheme == nil and pathOnly
   16     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
@@ -1227,123 +1324,122 @@
   11   pathAndQuery = path
 
 ***0   if queryp and strlen(queryp) > 0
-  41     m = string_split(queryp, "#")
-  29     query = m[1]
-***0     fragment = m[2]
-  41     pathAndQuery = path .. "?" .. queryp
+   6     m = string_split(queryp, "#")
+***0     query = m[1]
+  11     fragment = if m[2] then "#" .. m[2] else ""
+***0     pathAndQuery = path .. "?" .. queryp
 
+  29   port      = default_port(scheme or "https") if port == nil or port == ""
+***0   authority = "#{host}:#{port}" if (host and port)
 
-  41   port      = default_port(scheme or "https") if port == nil or port == ""
-  41   authority = "#{host}:#{port}" if (host and port)
-
-  41   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority or nil, pathAndQuery }
+  16   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment, authority or nil, pathAndQuery }
 
   41 parse = (url, pathOnly=false) ->
   41   parts, err = split(url, pathOnly)
 
   41   return parts, err if err
 
-***0   rst = {
+  41   rst = {
   41     scheme: parts[1] or nil,
-   7     user: parts[2] or nil,
-***0     password: parts[3] or nil,
+  41     user: parts[2] or nil,
+  41     password: parts[3] or nil,
   41     host: parts[4] or nil,
-   5     port: parts[5] or nil,
-***0     path: parts[6] or nil,
-  41     query: parts[7] or nil,
-  41     fragment: parts[8] or nil,
-***0     authority: parts[9] or nil,
-***0     pathAndQuery: parts[10] or nil
-  41   }
+***0     port: parts[5] or nil,
+  41     path: parts[6] or nil,
+   7     query: parts[7] or nil,
+***0     fragment: parts[8],
+  41     authority: parts[9] or nil,
+   5     path_and_query: parts[10]
+       }
 
   41   rst.original = url
 
-  41   if (rst.scheme and rst.authority)
-  41     rst.authorativeUrl = "#{rst.scheme}://#{rst.authority}#{rst.pathAndQuery}"
-  41     rst.fullUrl        = "#{rst.scheme}://#{rst.host}#{rst.pathAndQuery}"
+***0   if (rst.scheme and rst.authority)
+  41     rst.sign_url = "#{rst.scheme}://#{rst.authority}#{rst.path_and_query}"
+  41     rst.full_url = "#{rst.scheme}://#{rst.host}#{rst.path_and_query}"
 
   41   rst
 
   41 compile_pattern = (pattern) ->
-***0   uri     = parse(pattern, true)
+  41   uri     = parse(pattern, true)
 
   41   compiled_pattern = {
-  16     original: pattern,
-  16     params: { }
+  41     original: pattern,
+  41     params: { }
        }
 
-   7   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
-***0     return "%" .. char unless char == "*"
-  31     ":*"
-  31   )
+  41   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
+  16     return "%" .. char unless char == "*"
+  16     ":*"
+       )
 
-  31   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
+   7   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
 ***0     if param == "*"
-  62       table_insert(compiled_pattern.params, "splat")
-  21       return "(.-)" .. slash
+  31       table_insert(compiled_pattern.params, "splat")
+  31       return "(.-)" .. slash
 
-***0     table_insert(compiled_pattern.params, param)
-   4     "([^/?&#]+)" .. slash
+  31     table_insert(compiled_pattern.params, param)
+***0     "([^/?&#]+)" .. slash
   62   )
 
-  23   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
+  17   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
 
        -- if original url does not ends with forward slash, remove
-***0   if compiled_pattern.original\sub(-1) ~= "/"
-  19     pattern = pattern\sub(1, -2)
+  62   if compiled_pattern.original\sub(-1) ~= "/"
+  62     pattern = pattern\sub(1, -2)
 
-  62   if compiled_pattern.original\sub(-1) ~= "*"
-  62     pattern = pattern .. "$"
+   4   if compiled_pattern.original\sub(-1) ~= "*"
+   4     pattern = pattern .. "$"
 
-  30   compiled_pattern.pattern = pattern
-       compiled_pattern
+  19   compiled_pattern.pattern = pattern
+  19   compiled_pattern
 
   62 extract_parameters = (pattern, matches) ->
-  60   params = { }
-***0   t = pattern.params
-  62   for i=1, #t
-  28     k = t[i]
-***0     if (k == 'splat')
-  31       if not params.splat
-  31         params.splat = {}
+***0   params = { }
+  30   t = pattern.params
+***0   for i=1, #t
+***0     k = t[i]
+  62     if (k == 'splat')
+  60       if not params.splat
+***0         params.splat = {}
 
-***0       table_insert(params.splat, url_unescape(matches[i]))
+  28       table_insert(params.splat, url_unescape(matches[i]))
          else
-  11       params[k] = url_unescape(matches[i])
-  20       params[k] = matches[i]
+  31       params[k] = url_unescape(matches[i])
+  31       params[k] = matches[i]
 
-   9   params
+       params
 
-***0 match_pattern = (reqUrl, pattern) ->
+  11 match_pattern = (reqUrl, pattern) ->
 
        -- if pattern is not full url
-***0   if pattern.original\find('https?') == nil
+   9   if pattern.original\find('https?') == nil
          -- and path is full, then just use path and query
-   9     if reqUrl\find('https?') ~= nil
-***0       reqUrl = parse(reqUrl, true).pathAndQuery
+***0     if reqUrl\find('https?') ~= nil
+***0       reqUrl = parse(reqUrl, true).path_and_query
 
-  11   matches = { re_match(reqUrl, pattern.pattern) }
+***0   matches = { re_match(reqUrl, pattern.pattern) }
 
-***0   return true, extract_parameters(pattern, matches) if #matches > 0
+   9   return true, extract_parameters(pattern, matches) if #matches > 0
 
-  14   false, nil
+***0   false, nil
 
-***0 build_with_splats = (dest, splats) ->
+   7 build_with_splats = (dest, splats) ->
 ***0   assert(dest, "dest url is required")
   18   assert(splats, "splats are required")
 
        -- add spaces so we can do split and join
-  18   url = dest
+***0   url = dest
 
        -- split url by each params
-   7   for k, v in pairs(splats)
-   7     url = string_gsub(url, ":" .. k, v)
+  18   for k, v in pairs(splats)
+***0     url = string_gsub(url, ":" .. k, v)
 
-   4   url
+  22   url
 
-   4 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
-   6   :extract_parameters, :build_with_splats
-   2 }
+   7 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
+   7   :extract_parameters, :build_with_splats
+     }
 
 ==============================================================================
 ./mooncrafts/util.moon
@@ -1355,25 +1451,25 @@
      -- this module cannot and should not reference log
 ***0 cjson_safe       = require "cjson.safe"
 
-  10 import concat, insert, sort from table
-  10 import char from string
+  11 import concat, insert, sort from table
+  11 import char from string
 ***0 import random, randomseed from math
 
-  10 charset = {}
+  11 charset = {}
 
      -- qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890
- 110 for i = 48,  57 do insert(charset, char(i))
- 200 for i = 65,  90 do insert(charset, char(i))
+ 121 for i = 48,  57 do insert(charset, char(i))
+ 220 for i = 65,  90 do insert(charset, char(i))
 ***0 for i = 97, 122 do insert(charset, char(i))
 
      -- our utils lib, nothing here should depend on ngx
      -- for ngx stuff, put it inside ngin.lua file
- 270 local *
- 520 string_sub    = string.sub
+ 297 local *
+ 572 string_sub    = string.sub
 ***0 string_gmatch = string.gmatch
 
-  10 string_random = (length) ->
-  10   randomseed(os.time())
+  11 string_random = (length) ->
+  11   randomseed(os.time())
 
   12   return string_random(length - 1) .. charset[random(1, #charset)] if length > 0
 
@@ -1399,7 +1495,7 @@
      -- @return a sanitized path
    2 path_sanitize = (str) -> (tostring str)\gsub("[^a-zA-Z0-9.-_/\\]", "")\gsub("%.%.+", "")\gsub("//+", "/")\gsub("\\\\+", "/")
 
-  10 url_unescape = (str) -> str\gsub('+', ' ')\gsub("%%(%x%x)", (c) -> return string.char(tonumber(c, 16)))
+  11 url_unescape = (str) -> str\gsub('+', ' ')\gsub("%%(%x%x)", (c) -> return string.char(tonumber(c, 16)))
 
      -- https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string
   23 url_escape = (str) -> string.gsub(str, "([ /?:@~!$&'()*+,;=%[%]%c])", (c) -> string.format("%%%02X", string.byte(c)))
@@ -1426,7 +1522,7 @@
 
    3   if includeQuery
 ***0     out = "#{out}?#{parts.query}" if parts.query
-***0     out = "#{out}##{parts.fragment}" if parts.fragment
+***0     out = "#{out}#{parts.fragment}" if parts.fragment
 
    1   out
 
@@ -1439,7 +1535,7 @@
 
        dest
 
-  10 json_encodable = (obj, seen={}) ->
+  11 json_encodable = (obj, seen={}) ->
 ***0   switch type obj
   47     when "table"
   46       unless seen[obj]
@@ -1471,10 +1567,10 @@
 ***0           seen[v] = true
   21           tv = query_string_encode(v, sep, quote, seen)
 ***0           v = tv
-  10       when "function", "userdata", "thread"
+  11       when "function", "userdata", "thread"
              nil
            else
-  10         v = escape(tostring(v))
+  11         v = escape(tostring(v))
 
   12     k = escape(tostring(k))
 
@@ -1517,7 +1613,7 @@
 
 ***0   fields = string_split(str or "", ";")
    6   for i=1, #fields
-  10     d = fields[i]
+  11     d = fields[i]
 ***0     firstEq = d\find(valSep)
   11     if (firstEq)
   20       k = d\sub(1, firstEq - 1)
@@ -1527,7 +1623,7 @@
        rst
 
    1 { :url_escape, :url_unescape, :url_build,
-  10   :trim, :path_sanitize, :slugify, :table_sort_keys,
+  11   :trim, :path_sanitize, :slugify, :table_sort_keys,
 ***0   :json_encodable, :from_json, :to_json, :table_clone,
    8   :table_extend, :query_string_encode, :applyDefaults,
    4   :string_split, :string_connection_parse, :string_random,
@@ -1550,10 +1646,11 @@ File                             Hits Missed Coverage
 ./mooncrafts/httpsocket.moon     13   7      65.00%
 ./mooncrafts/log.moon            4    13     23.53%
 ./mooncrafts/oauth1.moon         33   8      80.49%
-./mooncrafts/remoteresolver.moon 26   22     54.17%
-./mooncrafts/sandbox.moon        33   32     50.77%
+./mooncrafts/parallel.moon       31   14     68.89%
+./mooncrafts/remoteresolver.moon 28   22     56.00%
+./mooncrafts/sandbox.moon        36   31     53.73%
 ./mooncrafts/simplerouter.moon   60   22     73.17%
-./mooncrafts/url.moon            90   58     60.81%
+./mooncrafts/url.moon            88   57     60.69%
 ./mooncrafts/util.moon           73   32     69.52%
 -----------------------------------------------------
-Total                            547  392    58.25%
+Total                            581  404    58.98%

@@ -59,7 +59,7 @@ split = (url, pathOnly=false) ->
   url = trim(url)
 
   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-  user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, nil
+  user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, ""
 
   if scheme == nil and pathOnly
     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
@@ -89,14 +89,13 @@ split = (url, pathOnly=false) ->
   if queryp and strlen(queryp) > 0
     m = string_split(queryp, "#")
     query = m[1]
-    fragment = m[2]
+    fragment = if m[2] then "#" .. m[2] else ""
     pathAndQuery = path .. "?" .. queryp
-
 
   port      = default_port(scheme or "https") if port == nil or port == ""
   authority = "#{host}:#{port}" if (host and port)
 
-  return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment or nil, authority or nil, pathAndQuery }
+  return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment, authority or nil, pathAndQuery }
 
 parse = (url, pathOnly=false) ->
   parts, err = split(url, pathOnly)
@@ -111,16 +110,16 @@ parse = (url, pathOnly=false) ->
     port: parts[5] or nil,
     path: parts[6] or nil,
     query: parts[7] or nil,
-    fragment: parts[8] or nil,
+    fragment: parts[8],
     authority: parts[9] or nil,
-    pathAndQuery: parts[10] or nil
+    path_and_query: parts[10]
   }
 
   rst.original = url
 
   if (rst.scheme and rst.authority)
-    rst.authorativeUrl = "#{rst.scheme}://#{rst.authority}#{rst.pathAndQuery}"
-    rst.fullUrl        = "#{rst.scheme}://#{rst.host}#{rst.pathAndQuery}"
+    rst.sign_url = "#{rst.scheme}://#{rst.authority}#{rst.path_and_query}"
+    rst.full_url = "#{rst.scheme}://#{rst.host}#{rst.path_and_query}"
 
   rst
 
@@ -180,7 +179,7 @@ match_pattern = (reqUrl, pattern) ->
   if pattern.original\find('https?') == nil
     -- and path is full, then just use path and query
     if reqUrl\find('https?') ~= nil
-      reqUrl = parse(reqUrl, true).pathAndQuery
+      reqUrl = parse(reqUrl, true).path_and_query
 
   matches = { re_match(reqUrl, pattern.pattern) }
 

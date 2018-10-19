@@ -11,18 +11,18 @@ tests = {
 
     {
       "authority": 'example.com:443',
-      "fragment": 'yes',
+      "fragment": '#yes',
       "user": "hi",
       "password": "ho",
       "host": 'example.com',
       "path": '/hello/',
-      "pathAndQuery": '/hello/?cruel=world#yes',
+      "path_and_query": '/hello/?cruel=world#yes',
       "port": '443',
       "query": 'cruel=world',
       "scheme": 'https',
-      "fullUrl": 'https://example.com/hello/?cruel=world#yes',
+      "full_url": 'https://example.com/hello/?cruel=world#yes',
       "original": 'https://hi:ho@example.com:443/hello/?cruel=world#yes',
-      "authorativeUrl": 'https://example.com:443/hello/?cruel=world#yes'
+      "sign_url": 'https://example.com:443/hello/?cruel=world#yes'
     }
   }
 
@@ -32,9 +32,9 @@ tests = {
       url.parse '/hello/?cruel=world#yes', true
 
     {
-      "fragment": 'yes'
+      "fragment": '#yes'
       "path": '/hello/'
-      "pathAndQuery": '/hello/?cruel=world#yes'
+      "path_and_query": '/hello/?cruel=world#yes'
       "query": 'cruel=world'
       "port": '443'
       "original": '/hello/?cruel=world#yes'

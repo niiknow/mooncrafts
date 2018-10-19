@@ -1,3 +1,11 @@
+-- allow sandbox for execution of both lua and moonscript
+-- this is done in best effort
+-- during testing with openresty, I find that there are ways
+-- you can get out of the sandbox:
+-- 1. such as sloppy code that expose global variables on ngx object
+-- 2. bad handling of environment variables
+-- 3. bad handling of script static in framework
+
 parse   = require "moonscript.parse"
 compile = require "moonscript.compile"
 util    = require "mooncrafts.util"
@@ -114,6 +122,10 @@ exec_code = (code, name, env={}, wl) ->
   fn = loadstring_safe(code, name, env, wl)
   exec(fn)
 
+-- compile moonscript code to lua source, load and execute
+-- lua_src = sandbox.compile_moon(rsp.body)
+-- fn = sandbox.loadstring_safe(lua_src, 'file name', function_vars)
+-- rst, err = sandbox.exec(fn)
 compile_moon = (moon_code) ->
   tree, err = parse.string moon_code
   return nil, "Parse error: " .. err unless tree

@@ -10,13 +10,13 @@ describe "mooncrafts.remoteresolver", ->
       "host": 'github.com'
       "port": '443'
       "scheme": 'https'
-      "fragment": '!yep'
+      "fragment": '#!yep'
       "query": "hello=worl%20d",
-      "authorativeUrl": "https://github.com:443/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
-      "fullUrl": "https://github.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
+      "sign_url": "https://github.com:443/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
+      "full_url": "https://github.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
       "original": "https://github.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
       "path": "/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon"
-      "pathAndQuery": "/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
+      "path_and_query": "/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
     }
     actual = remoteresolver.resolve_remote("https://github.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep")
     assert.same expected, actual
@@ -27,17 +27,17 @@ describe "mooncrafts.remoteresolver", ->
       "authority": 'raw.githubusercontent.com:443'
       "basepath": '/niiknow/moonship/master/lib/moonship'
       "file": 'remoteresolver.moon'
-      'fullUrl': 'https://raw.githubusercontent.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
+      'full_url': 'https://raw.githubusercontent.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
       "original": 'https://raw.githubusercontent.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
       "host": 'raw.githubusercontent.com'
       "path": '/niiknow/moonship/master/lib/moonship/remoteresolver.moon'
-      "pathAndQuery": '/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
+      "path_and_query": '/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep'
       "github": true
       "port": '443'
       "scheme": 'https'
-      "fragment": '!yep'
+      "fragment": '#!yep'
       "query": "hello=worl%20d"
-      "authorativeUrl": "https://raw.githubusercontent.com:443/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
+      "sign_url": "https://raw.githubusercontent.com:443/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep"
     }
     actual = remoteresolver.resolve_github("github.com/niiknow/moonship/blob/master/lib/moonship/remoteresolver.moon?hello=worl%20d#!yep")
     assert.same expected, actual
@@ -51,15 +51,15 @@ describe "mooncrafts.remoteresolver", ->
       "file": 'remoteresolver.moon'
       "host": 'noogen.net'
       "path": '/remoteresolver.moon'
-      "pathAndQuery": '/remoteresolver.moon?hello=worl%20d#!yep'
+      "path_and_query": '/remoteresolver.moon?hello=worl%20d#!yep'
       "port": '80'
       "isrelative": true
       "scheme": 'http'
-      "fragment": '!yep'
+      "fragment": '#!yep'
       "query": "hello=worl%20d"
       "original": "http://noogen.net/remoteresolver.moon?hello=worl%20d#!yep"
-      "authorativeUrl": "http://noogen.net:80/remoteresolver.moon?hello=worl%20d#!yep"
-      "fullUrl": "http://noogen.net/remoteresolver.moon?hello=worl%20d#!yep"
+      "sign_url": "http://noogen.net:80/remoteresolver.moon?hello=worl%20d#!yep"
+      "full_url": "http://noogen.net/remoteresolver.moon?hello=worl%20d#!yep"
     }
     actual = remoteresolver.resolve("remoteresolver.moon?hello=worl%20d#!yep", {plugins: {_remotebase: "http://noogen.net"}})
     actual.codeloader = nil

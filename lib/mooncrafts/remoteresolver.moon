@@ -9,8 +9,9 @@ import trim, path_sanitize, url_build from util
 
 local *
 
-url_parse = url.parse
-loadcode  = (url) ->
+url_parse  = url.parse
+
+loadcode   = (url) ->
   req      = { url: url, method: "GET", capture_url: "/__libpublic", headers: {} }
   res, err = httpc.request(req)
 
@@ -28,11 +29,11 @@ resolve_remote = (modname) ->
 -- attempt to parse and store new basepath
 resolve_github = (modname) ->
   modname = modname\gsub("github%.com/", "https://raw.githubusercontent.com/")
-  parsed = resolve_remote(modname)
+  parsed  = resolve_remote(modname)
   user, repo, blobortree, branch, rest = string.match(parsed.basepath, "(/[^/]+)(/[^/]+)(/[^/]+)(/[^/]+)(.*)")
   parsed.basepath = path_sanitize("#{user}#{repo}#{branch}#{rest}")
-  parsed.path = "#{parsed.basepath}/#{parsed.file}"
-  parsed.github = true
+  parsed.path     = "#{parsed.basepath}/#{parsed.file}"
+  parsed.github   = true
   parsed
 
 resolve = (modname, opts={plugins: {}}) ->
@@ -74,7 +75,7 @@ resolve = (modname, opts={plugins: {}}) ->
   rst.path       = oldpath
   rst.codeloader = loadcode
 
-  -- it should set new _remotebase, unless it's a relative load
+  -- set new _remotebase, unless it's a relative load
   rst._remotebase = trim(rst.basepath, "%/*") unless rst.isrelative
   rst
 

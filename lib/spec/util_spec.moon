@@ -21,7 +21,7 @@ tests = {
     ->
       util.url_build {
         "authority": 'example.com:443',
-        "fragment": 'yes',
+        "fragment": '#yes',
         "host": 'example.com',
         "path": '/hello/',
         "port": '443',

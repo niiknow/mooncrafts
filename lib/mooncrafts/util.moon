@@ -76,7 +76,7 @@ url_build = (parts, includeQuery=true) ->
 
   if includeQuery
     out = "#{out}?#{parts.query}" if parts.query
-    out = "#{out}##{parts.fragment}" if parts.fragment
+    out = "#{out}#{parts.fragment}" if parts.fragment
 
   out
 

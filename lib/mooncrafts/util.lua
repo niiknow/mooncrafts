@@ -82,7 +82,7 @@ url_build = function(parts, includeQuery)
       out = tostring(out) .. "?" .. tostring(parts.query)
     end
     if parts.fragment then
-      out = tostring(out) .. "#" .. tostring(parts.fragment)
+      out = tostring(out) .. tostring(parts.fragment)
     end
   end
   return out

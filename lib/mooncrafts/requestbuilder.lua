@@ -5,28 +5,38 @@ do
   local _class_0
   local _base_0 = {
     build = function(self, opts)
-      local req_wrapper = { }
+      local req = { }
       if ngx then
         ngx.req.read_body()
-        req_wrapper = {
+        local req_headers = ngx.req.get_headers()
+        local scheme = ngx.var.scheme
+        local path = ngx.var.request_uri
+        local port = ngx.var.server_port
+        local is_args = ngx.var.is_args
+        local args = ngx.var.args
+        local queryStringParameters = ngx.req.get_uri_args()
+        req = {
           body = ngx.req.get_body_data(),
           form = ngx.req.get_post_args(),
-          headers = ngx.req.get_headers(),
-          host = ngx.var.host,
-          method = ngx.req.get_method(),
-          path = ngx.var.uri,
-          port = ngx.var.server_port,
-          query = ngx.req.get_uri_args(),
-          querystring = ngx.req.args,
+          headers = req_headers,
+          host = host,
+          http_method = ngx.req.get_method(),
+          path = path,
+          port = server_port,
+          args = args,
+          is_args = is_args,
+          query_string_parameters = queryStringParameters,
           remote_addr = ngx.var.remote_addr,
           referer = ngx.var.http_referer or "-",
           scheme = ngx.var.scheme,
           server_addr = ngx.var.server_addr,
-          user_agent = ""
+          user_agent = req_headers["User-Agent"],
+          full_uri = tostring(scheme) .. "://$host$path$is_args$args",
+          sign_uri = tostring(scheme) .. "://$host:$port$path$is_args$args",
+          cb = queryStringParameters.cb,
+          language = req_headers["Accept-Language"]
         }
-        req_wrapper.cb = req_wrapper.query.cb
-        req_wrapper.user_agent = req_wrapper.headers["User-Agent"]
-        self.req = req_wrapper
+        self.req = req
       end
       self.req.logs = { }
       return self
