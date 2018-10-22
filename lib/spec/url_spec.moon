@@ -61,7 +61,7 @@ tests = {
     {
       original: "/*",
       params: { "splat" },
-      pattern: "/(.-)"
+      pattern: "/(.*)"
     }
   }
 
@@ -85,7 +85,7 @@ tests = {
     {
       original: 'https://www.example.com:443/foo/bar/*',
       params: { "splat" },
-      pattern: "https://www%.example%.com:443/foo/bar/(.-)"
+      pattern: "https://www%.example%.com:443/foo/bar/(.*)"
     }
   }
 
@@ -129,7 +129,7 @@ tests = {
     {
       original: '/say/*/to/*',
       params: { "splat", "splat" },
-      pattern: "/say/(.-)/to/(.-)"
+      pattern: "/say/(.*)/to/(.*)"
     }
   }
 

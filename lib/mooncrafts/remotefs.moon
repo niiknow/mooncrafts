@@ -1,7 +1,7 @@
 -- resolve remote file like it's local file
 --
 -- remotefs = require("mooncrafts.remotefs")
--- fs = remotefs({ngx_path: '/proxy'})
+-- fs = remotefs({ngx_path: '/__mooncrafts'})
 -- content = fs.read("/niiknow/mooncrafts/master/dist.ini")
 --
 

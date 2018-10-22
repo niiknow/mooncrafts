@@ -1,4 +1,4 @@
-VERSION          = 0.3.3
+VERSION          = 0.3.4
 OPENRESTY_PREFIX = /usr/local/openresty
 PREFIX          ?= /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include
@@ -10,9 +10,14 @@ INSTALL         ?= install
 all: build ;
 
 install: all
-	$(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DIR)/mooncrafts
-	$(INSTALL) lib/mooncrafts/*.* $(DESTDIR)/$(LUA_LIB_DIR)/mooncrafts
-	$(INSTALL) lib/mooncrafts/nginx/*.* $(DESTDIR)/$(LUA_LIB_DIR)/mooncrafts/nginx
+	$(INSTALL) -d $(LUA_LIB_DIR)/mooncrafts
+	$(INSTALL) lib/mooncrafts/*.* $(LUA_LIB_DIR)/mooncrafts
+	$(INSTALL) -d $(LUA_LIB_DIR)/mooncrafts/nginx
+	$(INSTALL) lib/mooncrafts/nginx/*.* $(LUA_LIB_DIR)/mooncrafts/nginx
+	$(INSTALL) -d $(LUA_LIB_DIR)/mooncrafts/resty
+	$(INSTALL) lib/mooncrafts/resty/*.* $(LUA_LIB_DIR)/mooncrafts/resty
+	$(INSTALL) -d $(LUA_LIB_DIR)/mooncrafts/vendor
+	$(INSTALL) lib/mooncrafts/vendor/*.* $(LUA_LIB_DIR)/mooncrafts/vendor
 
 test-resty: all
 	PATH=$(OPENRESTY_PREFIX)/nginx/sbin:$$PATH prove -I../test-nginx/lib -r t

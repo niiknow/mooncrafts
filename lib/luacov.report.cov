@@ -886,7 +886,7 @@
      -- resolve remote file like it's local file
      --
      -- remotefs = require("mooncrafts.remotefs")
-     -- fs = remotefs({ngx_path: '/proxy'})
+     -- fs = remotefs({ngx_path: '/__mooncrafts'})
      -- content = fs.read("/niiknow/mooncrafts/master/dist.ini")
      --
 
@@ -1432,7 +1432,7 @@
    8   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
 ***0     if param == "*"
   31       table_insert(compiled_pattern.params, "splat")
-  31       return "(.-)" .. slash
+  31       return "(.*)" .. slash
 
   31     table_insert(compiled_pattern.params, param)
 ***0     "([^/?&#]+)" .. slash
@@ -1450,52 +1450,48 @@
   19   compiled_pattern.pattern = pattern
   19   compiled_pattern
 
-  62 extract_parameters = (pattern, matches) ->
+  62 extract_parameters = (pat, matches) ->
 ***0   params = { }
-  30   t = pattern.params
+  30   t = pat.params
+       -- ngx.log(ngx.ERR, "xx " .. util.to_json(matches))
 ***0   for i=1, #t
-***0     k = t[i]
-  62     if (k == 'splat')
-  60       if not params.splat
-***0         params.splat = {}
+  62     k = t[i]
+  60     params[k] = url_unescape(matches[i])
 
-  28       table_insert(params.splat, url_unescape(matches[i]))
-         else
-  31       params[k] = url_unescape(matches[i])
-  31       params[k] = matches[i]
+  62   params
 
-       params
-
-  11 match_pattern = (reqUrl, pattern) ->
+***0 match_pattern = (reqUrl, pat) ->
 
        -- if pattern is not full url
-   9   if pattern.original\find('https?') == nil
+   8   if pat.original\find('https?') == nil
          -- and path is full, then just use path and query
-***0     if reqUrl\find('https?') ~= nil
-***0       reqUrl = parse(reqUrl, true).path_and_query
+  11     if reqUrl\find('https?') ~= nil
+  11       reqUrl = parse(reqUrl, true).path_and_query
 
-***0   matches = { re_match(reqUrl, pattern.pattern) }
+   9   matches = { re_match(reqUrl, pat.pattern) }
+       -- ngx.log(ngx.ERR, reqUrl .. " matches " .. util.to_json(matches))
+***0   return true, extract_parameters(pat, matches) if #matches > 0
 
-   9   return true, extract_parameters(pattern, matches) if #matches > 0
+   8   false, nil
 
-***0   false, nil
-
-   8 build_with_splats = (dest, splats) ->
-***0   assert(dest, "dest url is required")
-  18   assert(splats, "splats are required")
+  18 build_with_splats = (dest, splats) ->
+  14   assert(dest, "dest url is required")
+   8   assert(splats, "splats are required")
 
        -- add spaces so we can do split and join
-***0   url = dest
+  18   url = dest
 
        -- split url by each params
-  18   for k, v in pairs(splats)
-***0     url = string_gsub(url, ":" .. k, v)
+       -- ngx.log(ngx.ERR, dest .. "--" .. util.to_json(splats))
+  22   for k, v in pairs(splats)
+***0     vv = if type(v) == "table" then v[1] else v
+   7     url = string_gsub(url, ":" .. k, v)
 
-  22   url
+       url
 
-   7 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
-   8   :extract_parameters, :build_with_splats
-     }
+   4 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
+   4   :extract_parameters, :build_with_splats
+   6 }
 
 ==============================================================================
 ./mooncrafts/util.moon
@@ -1714,7 +1710,7 @@ File                             Hits Missed Coverage
 ./mooncrafts/remoteresolver.moon 31   19     62.00%
 ./mooncrafts/sandbox.moon        36   31     53.73%
 ./mooncrafts/simplerouter.moon   60   22     73.17%
-./mooncrafts/url.moon            88   57     60.69%
+./mooncrafts/url.moon            91   51     64.08%
 ./mooncrafts/util.moon           75   35     68.18%
 -----------------------------------------------------
-Total                            601  417    59.04%
+Total                            604  411    59.51%

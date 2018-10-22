@@ -139,7 +139,7 @@ compile_pattern = (pattern) ->
   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
     if param == "*"
       table_insert(compiled_pattern.params, "splat")
-      return "(.-)" .. slash
+      return "(.*)" .. slash
 
     table_insert(compiled_pattern.params, param)
     "([^/?&#]+)" .. slash
@@ -157,33 +157,27 @@ compile_pattern = (pattern) ->
   compiled_pattern.pattern = pattern
   compiled_pattern
 
-extract_parameters = (pattern, matches) ->
+extract_parameters = (pat, matches) ->
   params = { }
-  t = pattern.params
+  t = pat.params
+  -- ngx.log(ngx.ERR, "xx " .. util.to_json(matches))
   for i=1, #t
     k = t[i]
-    if (k == 'splat')
-      if not params.splat
-        params.splat = {}
-
-      table_insert(params.splat, url_unescape(matches[i]))
-    else
-      params[k] = url_unescape(matches[i])
-      params[k] = matches[i]
+    params[k] = url_unescape(matches[i])
 
   params
 
-match_pattern = (reqUrl, pattern) ->
+match_pattern = (reqUrl, pat) ->
 
   -- if pattern is not full url
-  if pattern.original\find('https?') == nil
+  if pat.original\find('https?') == nil
     -- and path is full, then just use path and query
     if reqUrl\find('https?') ~= nil
       reqUrl = parse(reqUrl, true).path_and_query
 
-  matches = { re_match(reqUrl, pattern.pattern) }
-
-  return true, extract_parameters(pattern, matches) if #matches > 0
+  matches = { re_match(reqUrl, pat.pattern) }
+  -- ngx.log(ngx.ERR, reqUrl .. " matches " .. util.to_json(matches))
+  return true, extract_parameters(pat, matches) if #matches > 0
 
   false, nil
 
@@ -195,7 +189,9 @@ build_with_splats = (dest, splats) ->
   url = dest
 
   -- split url by each params
+  -- ngx.log(ngx.ERR, dest .. "--" .. util.to_json(splats))
   for k, v in pairs(splats)
+    vv = if type(v) == "table" then v[1] else v
     url = string_gsub(url, ":" .. k, v)
 
   url

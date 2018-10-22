@@ -7,6 +7,8 @@ local Remotefs = require("mooncrafts.remotefs")
 local requestbuilder = require("mooncrafts.requestbuilder")
 local url_parse = url.parse
 local compile_pattern = url.compile_pattern
+local match_pattern = url.match_pattern
+local build_with_splats = url.build_with_splats
 local base64_decode = crypto.base64_decode
 local strlen = string.len
 local string_upper = string.upper
@@ -18,8 +20,8 @@ local table_clone = util.table_clone
 local table_remove = table.remove
 local join = table.concat
 local table_insert = table.insert
-local compile_list
-compile_list = function(opts)
+local compile_rules
+compile_rules = function(opts)
   opts.req_rules = { }
   opts.res_rules = { }
   for k, r in pairs(opts.rules) do
@@ -41,7 +43,7 @@ compile_list = function(opts)
   end
   return opts
 end
-local UriRuleHandler
+local Router
 do
   local _class_0
   local _base_0 = {
@@ -53,11 +55,12 @@ do
       local req_headers = ngx.req.get_headers()
       local scheme = ngx.var.scheme
       local path = trim(ngx.var.request_uri)
-      local port = ngx.var.server_port
-      local is_args = ngx.var.is_args
-      local args = ngx.var.args
+      local port = ngx.var.server_port or 80
+      local is_args = ngx.var.is_args or ""
+      local args = ngx.var.args or ""
       local queryStringParameters = ngx.req.get_uri_args()
-      url = tostring(scheme) .. "://$host$path$is_args$args"
+      local host = ngx.var.host or "127.0.0.1"
+      url = tostring(scheme) .. "://" .. tostring(host) .. tostring(path) .. tostring(is_args) .. tostring(args)
       local path_parts = string_split(trim(path, "/"))
       return {
         body = ngx.req.get_body_data(),
@@ -76,8 +79,8 @@ do
         scheme = ngx.var.scheme,
         server_addr = ngx.var.server_addr,
         user_agent = ngx.var.http_user_agent,
-        url = tostring(scheme) .. "://$host$path$is_args$args",
-        sign_url = tostring(scheme) .. "://$host:$port$path$is_args$args",
+        url = url,
+        sign_url = tostring(scheme) .. "://" .. tostring(host) .. ":" .. tostring(port) .. tostring(path) .. tostring(is_args) .. tostring(args),
         cb = queryStringParameters.cb,
         cookies = ngx.var.http_cookie,
         language = ngx.var.http_accept_language,
@@ -92,7 +95,7 @@ do
         headers = { },
         rules = { }
       }
-      local bauth = self.conf.basic_auth
+      local bauth = self.conf.basic_auth or ""
       if strlen(bauth) > 0 then
         req.headers['authorization'] = nil
         if not req.authorization then
@@ -146,7 +149,9 @@ do
       for i = 1, #myRules do
         local r = myRules[i]
         if (r.http_methods == "*" or r.http_methods:find(req.http_method)) then
-          local match, params = url.match_pattern(reqUrl, r.pattern)
+          ngx.log(ngx.ERR, util.to_json(r))
+          local match, params = match_pattern(reqUrl, r.pattern)
+          ngx.log(ngx.ERR, util.to_json(params))
           if match then
             local status = r.status or 0
             table_insert(rst.rules, r)
@@ -157,7 +162,7 @@ do
               rst.pathParameters = params
             end
             if (strlen(r.dest) > 0) then
-              rst.target = url.build_with_splats(r.dest, params)
+              rst.target = build_with_splats(r.dest, params)
             end
             rst.isRedir = status > 300
             rst.code = status
@@ -184,7 +189,7 @@ do
       for i = 1, #myRules do
         local r = myRules[i]
         if (r.http_methods == "*" or r.http_methods:find(req.http_method)) then
-          local match = url.match_pattern(reqUrl, r.pattern)
+          local match = match_pattern(reqUrl, r.pattern)
           if match then
             table_insert(rst.rules, r)
             table_extend(rst.headers, r.headers)
@@ -195,7 +200,7 @@ do
     end,
     handlePage = function(self, req, rst, proxyPath)
       if proxyPath == nil then
-        proxyPath = '/proxy'
+        proxyPath = '/__proxy'
       end
       local path = trim(req.path, "/")
       if not (rst.template) then
@@ -232,7 +237,7 @@ do
     end,
     handleProxy = function(self, req, rst, proxyPath)
       if proxyPath == nil then
-        proxyPath = '/proxy'
+        proxyPath = '/__proxy'
       end
       req = {
         url = rst.target,
@@ -245,7 +250,7 @@ do
     end,
     handleRequest = function(self, ngx, proxyPath)
       if proxyPath == nil then
-        proxyPath = '/proxy'
+        proxyPath = '/__proxy'
       end
       local req = self:parseNginxRequest(ngx)
       local rst = self:parseRedirects(req)
@@ -303,7 +308,7 @@ do
       self.conf = conf
     end,
     __base = _base_0,
-    __name = "UriRuleHandler"
+    __name = "Router"
   }, {
     __index = _base_0,
     __call = function(cls, ...)
@@ -313,6 +318,6 @@ do
     end
   })
   _base_0.__class = _class_0
-  UriRuleHandler = _class_0
+  Router = _class_0
 end
-return UriRuleHandler
+return Router

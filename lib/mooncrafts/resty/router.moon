@@ -59,6 +59,8 @@ Remotefs = require("mooncrafts.remotefs")
 requestbuilder  = require "mooncrafts.requestbuilder"
 url_parse       = url.parse
 compile_pattern = url.compile_pattern
+match_pattern   = url.match_pattern
+build_with_splats = url.build_with_splats
 base64_decode   = crypto.base64_decode
 strlen          = string.len
 string_upper    = string.upper
@@ -71,7 +73,7 @@ table_remove    = table.remove
 join            = table.concat
 table_insert    = table.insert
 
-compile_list = (opts) ->
+compile_rules = (opts) ->
   opts.req_rules  = {}
   opts.res_rules = {}
 
@@ -93,7 +95,7 @@ compile_list = (opts) ->
 
   opts
 
-class UriRuleHandler
+class Router
   new: (opts) =>
     conf = compile_rules(opts)
     fs   = Remotefs({base: conf.base})
@@ -108,13 +110,13 @@ class UriRuleHandler
     req_headers = ngx.req.get_headers!
     scheme = ngx.var.scheme
     path = trim(ngx.var.request_uri)
-    port = ngx.var.server_port
-    is_args = ngx.var.is_args
-    args = ngx.var.args
+    port = ngx.var.server_port or 80
+    is_args = ngx.var.is_args or ""
+    args = ngx.var.args or ""
     queryStringParameters = ngx.req.get_uri_args!
-    url = "#{scheme}://$host$path$is_args$args"
+    host = ngx.var.host or "127.0.0.1"
+    url = "#{scheme}://#{host}#{path}#{is_args}#{args}"
     path_parts = string_split(trim(path, "/"))
-
     {
       body: ngx.req.get_body_data!
       form: ngx.req.get_post_args!
@@ -132,8 +134,8 @@ class UriRuleHandler
       scheme: ngx.var.scheme
       server_addr: ngx.var.server_addr
       user_agent: ngx.var.http_user_agent
-      url: "#{scheme}://$host$path$is_args$args"
-      sign_url: "#{scheme}://$host:$port$path$is_args$args"
+      url: url
+      sign_url: "#{scheme}://#{host}:#{port}#{path}#{is_args}#{args}"
       cb: queryStringParameters.cb
       cookies: ngx.var.http_cookie
       language: ngx.var.http_accept_language
@@ -146,7 +148,7 @@ class UriRuleHandler
     assert(req.headers, "request headers parameter is required")
 
     rst   = {code: 0, headers: {}, rules: {}}
-    bauth = @conf.basic_auth
+    bauth = @conf.basic_auth or ""
 
     if strlen(bauth) > 0
       -- prevent auth header from reaching downstream requests
@@ -200,9 +202,11 @@ class UriRuleHandler
       -- parse by specific method
       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
 
+        ngx.log(ngx.ERR, util.to_json(r))
         -- then match by path
-        match, params = url.match_pattern(reqUrl, r.pattern)
+        match, params = match_pattern(reqUrl, r.pattern)
 
+        ngx.log(ngx.ERR, util.to_json(params))
         -- parse dest
         if match
           status = r.status or 0
@@ -211,7 +215,7 @@ class UriRuleHandler
           rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
 
           -- set target if valid dest
-          rst.target   = url.build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
+          rst.target   = build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
           -- a redirect if status is greater than 300
           rst.isRedir  = status > 300
           rst.code     = status
@@ -239,7 +243,7 @@ class UriRuleHandler
       -- parse by specific method
       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
 
-        match = url.match_pattern(reqUrl, r.pattern)
+        match = match_pattern(reqUrl, r.pattern)
         -- print util.to_json(params)
 
         if match
@@ -251,7 +255,7 @@ class UriRuleHandler
     rst
 
   -- handle page rendering
-  handlePage: (req, rst, proxyPath='/proxy') =>
+  handlePage: (req, rst, proxyPath='/__proxy') =>
     -- only handle pages: no file extension
     path = trim(req.path, "/")
     rst.template = "page" if not (rst.template)
@@ -279,7 +283,7 @@ class UriRuleHandler
       body: @viewEngine\render(page.body, req)
     }
 
-  handleProxy: (req, rst, proxyPath='/proxy') =>
+  handleProxy: (req, rst, proxyPath='/__proxy') =>
     req = {
       url: rst.target,
       method: "GET",
@@ -289,7 +293,7 @@ class UriRuleHandler
     }
     httpc.request(req)
 
-  handleRequest: (ngx, proxyPath='/proxy') =>
+  handleRequest: (ngx, proxyPath='/__proxy') =>
     -- preprocess rule
     req = @parseNginxRequest(ngx)
     rst = @parseRedirects(req)
@@ -330,4 +334,4 @@ class UriRuleHandler
     ngx.say(page_rst.body) if (page_rst.body)
     ngx.exit(page_rst.code) if (pagerst.code)
 
-UriRuleHandler
+Router

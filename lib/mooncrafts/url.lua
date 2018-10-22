@@ -152,7 +152,7 @@ compile_pattern = function(pattern)
   pattern = pattern:gsub(':([a-z_%*]+)(/?)', function(param, slash)
     if param == "*" then
       table_insert(compiled_pattern.params, "splat")
-      return "(.-)" .. slash
+      return "(.*)" .. slash
     end
     table_insert(compiled_pattern.params, param)
     return "([^/?&#]+)" .. slash
@@ -171,34 +171,26 @@ compile_pattern = function(pattern)
   compiled_pattern.pattern = pattern
   return compiled_pattern
 end
-extract_parameters = function(pattern, matches)
+extract_parameters = function(pat, matches)
   local params = { }
-  local t = pattern.params
+  local t = pat.params
   for i = 1, #t do
     local k = t[i]
-    if (k == 'splat') then
-      if not params.splat then
-        params.splat = { }
-      end
-      table_insert(params.splat, url_unescape(matches[i]))
-    else
-      params[k] = url_unescape(matches[i])
-      params[k] = matches[i]
-    end
+    params[k] = url_unescape(matches[i])
   end
   return params
 end
-match_pattern = function(reqUrl, pattern)
-  if pattern.original:find('https?') == nil then
+match_pattern = function(reqUrl, pat)
+  if pat.original:find('https?') == nil then
     if reqUrl:find('https?') ~= nil then
       reqUrl = parse(reqUrl, true).path_and_query
     end
   end
   local matches = {
-    re_match(reqUrl, pattern.pattern)
+    re_match(reqUrl, pat.pattern)
   }
   if #matches > 0 then
-    return true, extract_parameters(pattern, matches)
+    return true, extract_parameters(pat, matches)
   end
   return false, nil
 end
@@ -207,6 +199,12 @@ build_with_splats = function(dest, splats)
   assert(splats, "splats are required")
   local url = dest
   for k, v in pairs(splats) do
+    local vv
+    if type(v) == "table" then
+      vv = v[1]
+    else
+      vv = v
+    end
     url = string_gsub(url, ":" .. k, v)
   end
   return url
