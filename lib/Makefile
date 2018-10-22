@@ -11,7 +11,7 @@ watch: build
 	moonc -w mooncrafts
 
 clean: build
-	rm $$(find ./ | grep \.lua$$)
+	rm $$(find . -path ./mooncrafts/vendor -prune -o -name '*.lua' -print)
 
 init:
 	sudo luarocks install busted
