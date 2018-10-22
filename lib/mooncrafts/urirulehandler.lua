@@ -2,7 +2,8 @@ local crypto = require("mooncrafts.crypto")
 local util = require("mooncrafts.util")
 local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
-local liquid = require("mooncrafts.resty.liquid")
+local Liquid = require("mooncrafts.resty.liquid")
+local Remotefs = require("mooncrafts.remotefs")
 local requestbuilder = require("mooncrafts.requestbuilder")
 local url_parse = url.parse
 local compile_pattern = url.compile_pattern
@@ -140,7 +141,7 @@ do
       if (rst.code > 0) then
         return rst
       end
-      local myRules = self.conf.redirects
+      local myRules = self.conf.req_rules
       local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
@@ -178,14 +179,16 @@ do
         rules = { },
         headers = { }
       }
-      local myRules = self.conf.headers
+      local myRules = self.conf.res_rules
       local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
-        local match = url.match_pattern(reqUrl, r.pattern)
-        if match then
-          table_insert(rst.rules, r)
-          table_extend(rst.headers, r.headers)
+        if (r.http_methods == "*" or r.http_methods:find(req.http_method)) then
+          local match = url.match_pattern(reqUrl, r.pattern)
+          if match then
+            table_insert(rst.rules, r)
+            table_extend(rst.headers, r.headers)
+          end
         end
       end
       return rst
@@ -194,10 +197,12 @@ do
       if proxyPath == nil then
         proxyPath = '/proxy'
       end
-      local parts = table_clone(rst.path_parts)
       local path = trim(req.path, "/")
       if not (rst.template) then
         rst.template = "page"
+      end
+      if strlen(req.path) <= 0 then
+        path = "-"
       end
       local urls = {
         {
@@ -291,6 +296,10 @@ do
   _class_0 = setmetatable({
     __init = function(self, opts)
       local conf = compile_rules(opts)
+      local fs = Remotefs({
+        base = conf.base
+      })
+      self.viewEngine = Liquid(fs)
       self.conf = conf
     end,
     __base = _base_0,

@@ -2,8 +2,8 @@
 -- this router is built for use with openresty
 --
 -- bucket: 'bucket-name'
--- sitename: 'the-site-name'
--- basepath: 'https://<bucket-name>.s3-website-<AWS-region>.amazonaws.com/the-site-name'
+-- name: 'the-site-name'
+-- base: 'https://<bucket-name>.s3-website-<AWS-region>.amazonaws.com/the-site-name'
 --
 -- rules: {
 --   for: '/path/regex'
@@ -53,7 +53,8 @@ crypto = require "mooncrafts.crypto"
 util   = require "mooncrafts.util"
 log    = require "mooncrafts.log"
 url    = require "mooncrafts.url"
-liquid = require "mooncrafts.resty.liquid"
+Liquid = require "mooncrafts.resty.liquid"
+Remotefs = require("mooncrafts.remotefs")
 
 requestbuilder  = require "mooncrafts.requestbuilder"
 url_parse       = url.parse
@@ -95,7 +96,8 @@ compile_list = (opts) ->
 class UriRuleHandler
   new: (opts) =>
     conf = compile_rules(opts)
-
+    fs   = Remotefs({base: conf.base})
+    @viewEngine = Liquid(fs)
     @conf = conf
 
 
@@ -189,7 +191,7 @@ class UriRuleHandler
     -- exit if invalid auth
     return rst if (rst.code > 0)
 
-    myRules = @conf.redirects
+    myRules = @conf.req_rules
     reqUrl  = req.url
 
     for i=1, #myRules
@@ -228,28 +230,32 @@ class UriRuleHandler
     assert(req.url, "request url is required")
 
     rst = { rules: {}, headers: {} }
-    myRules = @conf.headers
+    myRules = @conf.res_rules
     reqUrl  = req.url
 
     for i=1, #myRules
       r     = myRules[i]
-      match = url.match_pattern(reqUrl, r.pattern)
-      -- print util.to_json(params)
 
-      if match
-        table_insert(rst.rules, r)
-        -- print util.to_json(rst.headers)
-        -- print util.to_json(r.headers)
-        table_extend(rst.headers, r.headers)
+      -- parse by specific method
+      if (r.http_methods == "*" or r.http_methods\find(req.http_method))
+
+        match = url.match_pattern(reqUrl, r.pattern)
+        -- print util.to_json(params)
+
+        if match
+          table_insert(rst.rules, r)
+          -- print util.to_json(rst.headers)
+          -- print util.to_json(r.headers)
+          table_extend(rst.headers, r.headers)
 
     rst
 
   -- handle page rendering
   handlePage: (req, rst, proxyPath='/proxy') =>
     -- only handle pages: no file extension
-    parts = table_clone(rst.path_parts)
     path = trim(req.path, "/")
     rst.template = "page" if not (rst.template)
+    path = "-" if strlen(req.path) <= 0
 
     urls = {
       {"#{base}/templates/#{rst.template}.liquid"}
