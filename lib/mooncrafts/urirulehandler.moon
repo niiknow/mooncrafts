@@ -160,18 +160,15 @@ class UriRuleHandler
       if match
         status = r.status or 0
         table_insert(rst.rules, r)
+        rst.template_data  = r.template_data if r.template_data
+        rst.pathParameters = params or {} -- provide downstream with pathParameters
 
-        -- only process if r.dest has a value
-        if (strlen(r.dest) > 0)
-          rst.target  = url.build_with_splats(r.dest, params)
-
+        -- set target if valid dest
+        rst.target   = url.build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
         -- a redirect if status is greater than 300
         rst.isRedir  = status > 300
-        rst.params   = params
         rst.code     = status
         rst.template = r.template if r.template
-
-        rst.template_data = r.template_data if r.template_data
 
         -- stop rule processing for valid status
         return rst if (rst.code > 0)
@@ -202,7 +199,9 @@ class UriRuleHandler
 
     rst
 
-  parseRequest: (ngx) =>
+  parseNginxRequest: (ngx) =>
+    return {} if not ngx
+
     ngx.req.read_body!
     req_headers = ngx.req.get_headers!
     scheme = ngx.var.scheme
@@ -213,7 +212,8 @@ class UriRuleHandler
     queryStringParameters = ngx.req.get_uri_args!
     url = "#{scheme}://$host$path$is_args$args"
     path_parts = string_split(trim(path, "/"))
-    req = {
+
+    {
       body: ngx.req.get_body_data!
       form: ngx.req.get_post_args!
       headers: req_headers
@@ -279,7 +279,7 @@ class UriRuleHandler
 
   handleRequest: (ngx, proxyPath='/proxy') =>
     -- preprocess rule
-    req = @parseRequest(ngx)
+    req = @parseNginxRequest(ngx)
     rst = @parseRedirects(req)
 
     rst.template = "index" if req.path == "/"
@@ -288,7 +288,7 @@ class UriRuleHandler
     -- redirect
     return ngx.redirect(rst.target, rst.code) if rst.isRedir
 
-    -- append headers added from rule
+    -- append headers based on matching rules
     rules = rst.rules
     for i=1, #rules
       r = rules[i]
@@ -299,9 +299,9 @@ class UriRuleHandler
     if (rst.target)
       page_rst = @handleProxy(req, rst, proxyPath)
     else -- handle the current page
-      page_rst = @handlePage(req, rst)
+      page_rst = @handlePage(req, rst, proxyPath)
 
-    -- handle response headers for valid response
+    -- set response headers for valid response
     if (page_rst.code >= 200 or page_rst.code < 300)
       headers     = page_rst.headers
       new_headers = @parseHeaders(req)

@@ -110,17 +110,17 @@ do
         if match then
           local status = r.status or 0
           table_insert(rst.rules, r)
+          if r.template_data then
+            rst.template_data = r.template_data
+          end
+          rst.pathParameters = params or { }
           if (strlen(r.dest) > 0) then
             rst.target = url.build_with_splats(r.dest, params)
           end
           rst.isRedir = status > 300
-          rst.params = params
           rst.code = status
           if r.template then
             rst.template = r.template
-          end
-          if r.template_data then
-            rst.template_data = r.template_data
           end
           if (rst.code > 0) then
             return rst
@@ -148,7 +148,10 @@ do
       end
       return rst
     end,
-    parseRequest = function(self, ngx)
+    parseNginxRequest = function(self, ngx)
+      if not ngx then
+        return { }
+      end
       ngx.req.read_body()
       local req_headers = ngx.req.get_headers()
       local scheme = ngx.var.scheme
@@ -159,7 +162,7 @@ do
       local queryStringParameters = ngx.req.get_uri_args()
       url = tostring(scheme) .. "://$host$path$is_args$args"
       local path_parts = string_split(trim(path, "/"))
-      local req = {
+      return {
         body = ngx.req.get_body_data(),
         form = ngx.req.get_post_args(),
         headers = req_headers,
@@ -236,7 +239,7 @@ do
       if proxyPath == nil then
         proxyPath = '/proxy'
       end
-      local req = self:parseRequest(ngx)
+      local req = self:parseNginxRequest(ngx)
       local rst = self:parseRedirects(req)
       if req.path == "/" then
         rst.template = "index"
@@ -259,7 +262,7 @@ do
       if (rst.target) then
         local page_rst = self:handleProxy(req, rst, proxyPath)
       else
-        local page_rst = self:handlePage(req, rst)
+        local page_rst = self:handlePage(req, rst, proxyPath)
       end
       if (page_rst.code >= 200 or page_rst.code < 300) then
         local headers = page_rst.headers
