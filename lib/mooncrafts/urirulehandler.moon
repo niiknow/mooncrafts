@@ -3,10 +3,10 @@
 --
 -- bucket: 'bucket-name'
 -- sitename: 'the-site-name'
--- basepath: 'http://s3.amazonaws.com/bucket-name/the-site-name'
+-- basepath: 'https://<bucket-name>.s3-website-<AWS-region>.amazonaws.com/the-site-name'
 --
 -- rules: {
---   match_uri: '/path/regex'
+--   for: '/path/regex'
 --   method: 'POST,GET,NULL_IS_ALL'
 --   type: 'request/response'
 --   dest: 'destination path or url'
@@ -30,7 +30,7 @@
 -- 4xx - client errors
 -- 5xx - server error
 --
--- syntax match_uri:
+-- syntax for:
 -- '/simple' - simple path
 -- '/user/:id' - capture id params
 -- '/do/*' - capture splat param
@@ -38,8 +38,8 @@
 -- 'POST,GET /simple' - match only specific HTTP method instead of all
 --
 -- syntax dest:
+-- '/relative/path/' - for redirect
 -- 'https://yourapi.com/user/:id' - use id in request to proxy
--- 'POST https://anotherapi.com/user/:id' - translate all methods to post
 --
 -- syntax headers auth:
 -- 'auth_basic': 'user:pass' - provide basic auth to proxy server
@@ -56,7 +56,9 @@ crypto = require "mooncrafts.crypto"
 util   = require "mooncrafts.util"
 log    = require "mooncrafts.log"
 url    = require "mooncrafts.url"
+liquid = require "mooncrafts.resty.liquid"
 
+requestbuilder  = require "mooncrafts.requestbuilder"
 compile_pattern = url.compile_pattern
 base64_decode   = crypto.base64_decode
 trim            = util.trim
@@ -65,6 +67,10 @@ table_insert    = table.insert
 table_extend    = util.table_extend
 string_match    = string.match
 url_parse       = url.parse
+string_split    = util.string_split
+table_remove    = table.remove
+table_clone     = util.table_clone
+join            = table.concat
 
 compile_list = (opts) ->
   opts.req_rules  = {}
@@ -80,6 +86,7 @@ compile_list = (opts) ->
       table_insert(opts.req_rules, r)
 
     r.dest = trim(r.dest or "")
+    r.headers or={}
 
     -- make sure status is correct for relative path
     r.status = 302 if (r.status <= 300 or r.status >= 400) and r.dest\find("/") == 1
@@ -119,7 +126,7 @@ class UriRuleHandler
       userpass = base64_decode(userpass_b64)
       unless userpass
         rst.code    = 401
-        rst.headers =  {["Content-Type"]: "text/plain"}
+        rst.headers = {["Content-Type"]: "text/plain"}
         rst.body    = "Your browser sent a bad Authorization HTTP header!"
         return rst
 
@@ -193,53 +200,128 @@ class UriRuleHandler
 
     rst
 
-    handlePage: (ngx) =>
-      -- handle page rendering
+  parseRequest: (ngx) =>
+    ngx.req.read_body!
+    req_headers = ngx.req.get_headers!
+    scheme = ngx.var.scheme
+    path = trim(ngx.var.request_uri)
+    port = ngx.var.server_port
+    is_args = ngx.var.is_args
+    args = ngx.var.args
+    queryStringParameters = ngx.req.get_uri_args!
+    url = "#{scheme}://$host$path$is_args$args"
+    path_parts = string_split(trim(path, "/"))
+    req = {
+      body: ngx.req.get_body_data!
+      form: ngx.req.get_post_args!
+      headers: req_headers
+      host: host
+      http_method: ngx.var.request_method
+      path: path
+      path_parts: split
+      port: server_port
+      args: args
+      is_args: is_args
+      query_string_parameters: queryStringParameters
+      remote_addr: ngx.var.remote_addr
+      referer: ngx.var.http_referer or "-"
+      scheme: ngx.var.scheme
+      server_addr: ngx.var.server_addr
+      user_agent: ngx.var.http_user_agent
+      url: "#{scheme}://$host$path$is_args$args"
+      sign_url: "#{scheme}://$host:$port$path$is_args$args"
+      cb: queryStringParameters.cb
+      cookies: ngx.var.http_cookie
+      language: req_headers["Accept-Language"]
+    }
 
-    handleProxy: (ngx, rst, proxyPath) =>
-      -- change the host to target host
-      parsed_target = url_parse rst.target
-      ngx.var.host  = parsed_target.host
+  -- handle page rendering
+  handlePage: (req, rst, proxyPath='/proxy') =>
+    -- only handle pages: no file extension
+    parts = table_clone(rst.path_parts)
+    path = trim(req.path, "/")
+    urls = {
+      {"#{base}/templates/index.liquid"}
+      {"#{base}/templates/page.liquid"}
+      {"#{base}/contents/#{path}.json"}
+    }
 
-      -- set appropriate headers before proxy
+    -- attempt to get extra template
+    if (#parts > 1)
+      extra   = parts[1]
+      urls[4] = {"#{base}/templates/#{extra}.liquid"}
 
-      -- finally execute proxy
-      return ngx.exec(proxyPath or "/proxy")
+    home, page, data, extra = ngx.location.capture_multi(urls)
 
-    handleRequest: (ngx, proxyPath) =>
-      -- preprocess rule
-      rst = @parseRedirects(ngx.req)
-      rst.target = fallbackDest if not (rst.dest)
+    if (data and data.status == ngx.HTTP_NOT_FOUND)
+      return data
 
-      -- process result
-      if rst.isRedir
-        -- redirect
-        return ngx.redirect(rst.target, rst.code)
+    -- extra template found, use the extra template to render
+    if (extra and extra.status == ngx.HTTP_OK)
+      page = extra
 
-      -- create additional response headers
-      page_rst = { code: 0 }
+    -- use home template if path is home
+    if (req.path == "/" and home and home.status == ngx.HTTP_OK)
+      page = home
 
-      -- proxy pass if target
-      if (rst.target)
-        page_rst = @handleProxy(ngx, rst, proxyPath)
-      else -- handle the current page
-        page_rst = @handlePage(ngx.req)
+    -- prepare local variables
+    req.page = {}
+    if (data and data.status == ngx.HTTP_OK)
+      req.page = util.from_json(data.body)
 
-      -- only set headers if valid result
-      if (page_rst.code > 200 or page_rst.code < 300)
-        headers     = page_rst.headers
-        new_headers = @parseHeaders(ngx.req)
+    -- push in request
+    {
+      code: 200
+      headers: {}
+      body: @viewEngine\render(page.body, req)
+    }
 
-        -- override existing response headers
-        for k, v in pairs(new_headers)
-            if k ~= 'content-length' then headers(k, v)
+  handleProxy: (req, rst, proxyPath='/proxy') =>
+    req = {
+      url: rst.target,
+      method: "GET",
+      capture_url: proxyPath,
+      headers: rst.headers,
+      body: rst.body
+    }
+    httpc.request(req)
 
-        -- now set the response header
-        for k, v in pairs(headers) do ngx.header[k] = v
+  handleRequest: (ngx, proxyPath='/proxy') =>
+    -- preprocess rule
+    req = @parseRequest(ngx)
+    rst = @parseRedirects(req)
 
-      -- allow template to handle it's own error
-      -- and response with appropriate error body
-      ngx.say(page_rst.body) if (page_rst.body)
-      ngx.exit(page_rst.code) if (pagerst.code)
+    -- redirect
+    return ngx.redirect(rst.target, rst.code) if rst.isRedir
+
+    -- handle request headers
+    rules = rst.rules
+    for i=1, #rules
+      r = rules[i]
+      for k, v in pairs(r.headers)
+        rst.headers[k] = v unless k == 'content-length'
+
+    -- proxy pass if target
+    if (rst.target)
+      page_rst = @handleProxy(req, rst, proxyPath)
+    else -- handle the current page
+      page_rst = @handlePage(req, rst)
+
+    -- handle response headers for valid response
+    if (page_rst.code >= 200 or page_rst.code < 300)
+      headers     = page_rst.headers
+      new_headers = @parseHeaders(req)
+
+      -- override existing response headers
+      for k, v in pairs(new_headers)
+        headers[k] = v unless k == 'content-length'
+
+      -- now set the response header
+      for k, v in pairs(headers) do ngx.header[k] = v
+
+    -- allow template to handle it's own error
+    -- and response with appropriate error body
+    ngx.say(page_rst.body) if (page_rst.body)
+    ngx.exit(page_rst.code) if (pagerst.code)
 
 UriRuleHandler

@@ -2,6 +2,8 @@ local crypto = require("mooncrafts.crypto")
 local util = require("mooncrafts.util")
 local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
+local liquid = require("mooncrafts.resty.liquid")
+local requestbuilder = require("mooncrafts.requestbuilder")
 local compile_pattern = url.compile_pattern
 local base64_decode = crypto.base64_decode
 local trim = util.trim
@@ -10,6 +12,10 @@ local table_insert = table.insert
 local table_extend = util.table_extend
 local string_match = string.match
 local url_parse = url.parse
+local string_split = util.string_split
+local table_remove = table.remove
+local table_clone = util.table_clone
+local join = table.concat
 local compile_list
 compile_list = function(opts)
   opts.req_rules = { }
@@ -25,6 +31,7 @@ compile_list = function(opts)
       table_insert(opts.req_rules, r)
     end
     r.dest = trim(r.dest or "")
+    r.headers = r.headers or { }
     if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
       r.status = 302
     end
@@ -130,54 +137,140 @@ do
           table_extend(rst.headers, r.headers)
         end
       end
-      local _ = rst
-      _ = {
-        handlePage = function(self, ngx) end
+      return rst
+    end,
+    parseRequest = function(self, ngx)
+      ngx.req.read_body()
+      local req_headers = ngx.req.get_headers()
+      local scheme = ngx.var.scheme
+      local path = trim(ngx.var.request_uri)
+      local port = ngx.var.server_port
+      local is_args = ngx.var.is_args
+      local args = ngx.var.args
+      local queryStringParameters = ngx.req.get_uri_args()
+      url = tostring(scheme) .. "://$host$path$is_args$args"
+      local path_parts = string_split(trim(path, "/"))
+      local req = {
+        body = ngx.req.get_body_data(),
+        form = ngx.req.get_post_args(),
+        headers = req_headers,
+        host = host,
+        http_method = ngx.var.request_method,
+        path = path,
+        path_parts = split,
+        port = server_port,
+        args = args,
+        is_args = is_args,
+        query_string_parameters = queryStringParameters,
+        remote_addr = ngx.var.remote_addr,
+        referer = ngx.var.http_referer or "-",
+        scheme = ngx.var.scheme,
+        server_addr = ngx.var.server_addr,
+        user_agent = ngx.var.http_user_agent,
+        url = tostring(scheme) .. "://$host$path$is_args$args",
+        sign_url = tostring(scheme) .. "://$host:$port$path$is_args$args",
+        cb = queryStringParameters.cb,
+        cookies = ngx.var.http_cookie,
+        language = req_headers["Accept-Language"]
       }
-      _ = {
-        handleProxy = function(self, ngx, rst, proxyPath)
-          local parsed_target = url_parse(rst.target)
-          ngx.var.host = parsed_target.host
-          return ngx.exec(proxyPath or "/proxy")
-        end
+    end,
+    handlePage = function(self, req, rst, proxyPath)
+      if proxyPath == nil then
+        proxyPath = '/proxy'
+      end
+      local parts = table_clone(rst.path_parts)
+      local path = trim(req.path, "/")
+      local urls = {
+        {
+          tostring(base) .. "/templates/index.liquid"
+        },
+        {
+          tostring(base) .. "/templates/page.liquid"
+        },
+        {
+          tostring(base) .. "/contents/" .. tostring(path) .. ".json"
+        }
       }
+      if (#parts > 1) then
+        local extra = parts[1]
+        urls[4] = {
+          tostring(base) .. "/templates/" .. tostring(extra) .. ".liquid"
+        }
+      end
+      local home, page, data, extra = ngx.location.capture_multi(urls)
+      if (data and data.status == ngx.HTTP_NOT_FOUND) then
+        return data
+      end
+      if (extra and extra.status == ngx.HTTP_OK) then
+        page = extra
+      end
+      if (req.path == "/" and home and home.status == ngx.HTTP_OK) then
+        page = home
+      end
+      req.page = { }
+      if (data and data.status == ngx.HTTP_OK) then
+        req.page = util.from_json(data.body)
+      end
       return {
-        handleRequest = function(self, ngx, proxyPath)
-          rst = self:parseRedirects(ngx.req)
-          if not (rst.dest) then
-            rst.target = fallbackDest
-          end
-          if rst.isRedir then
-            return ngx.redirect(rst.target, rst.code)
-          end
-          local page_rst = {
-            code = 0
-          }
-          if (rst.target) then
-            page_rst = self:handleProxy(ngx, rst, proxyPath)
-          else
-            page_rst = self:handlePage(ngx.req)
-          end
-          if (page_rst.code > 200 or page_rst.code < 300) then
-            local headers = page_rst.headers
-            local new_headers = self:parseHeaders(ngx.req)
-            for k, v in pairs(new_headers) do
-              if k ~= 'content-length' then
-                headers(k, v)
-              end
-            end
-            for k, v in pairs(headers) do
-              ngx.header[k] = v
-            end
-          end
-          if (page_rst.body) then
-            ngx.say(page_rst.body)
-          end
-          if (pagerst.code) then
-            return ngx.exit(page_rst.code)
+        code = 200,
+        headers = { },
+        body = self.viewEngine:render(page.body, req)
+      }
+    end,
+    handleProxy = function(self, req, rst, proxyPath)
+      if proxyPath == nil then
+        proxyPath = '/proxy'
+      end
+      req = {
+        url = rst.target,
+        method = "GET",
+        capture_url = proxyPath,
+        headers = rst.headers,
+        body = rst.body
+      }
+      return httpc.request(req)
+    end,
+    handleRequest = function(self, ngx, proxyPath)
+      if proxyPath == nil then
+        proxyPath = '/proxy'
+      end
+      local req = self:parseRequest(ngx)
+      local rst = self:parseRedirects(req)
+      if rst.isRedir then
+        return ngx.redirect(rst.target, rst.code)
+      end
+      local rules = rst.rules
+      for i = 1, #rules do
+        local r = rules[i]
+        for k, v in pairs(r.headers) do
+          if not (k == 'content-length') then
+            rst.headers[k] = v
           end
         end
-      }
+      end
+      if (rst.target) then
+        local page_rst = self:handleProxy(req, rst, proxyPath)
+      else
+        local page_rst = self:handlePage(req, rst)
+      end
+      if (page_rst.code >= 200 or page_rst.code < 300) then
+        local headers = page_rst.headers
+        local new_headers = self:parseHeaders(req)
+        for k, v in pairs(new_headers) do
+          if not (k == 'content-length') then
+            headers[k] = v
+          end
+        end
+        for k, v in pairs(headers) do
+          ngx.header[k] = v
+        end
+      end
+      if (page_rst.body) then
+        ngx.say(page_rst.body)
+      end
+      if (pagerst.code) then
+        return ngx.exit(page_rst.code)
+      end
     end
   }
   _base_0.__index = _base_0

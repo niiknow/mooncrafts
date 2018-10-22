@@ -714,7 +714,6 @@
 ***0 local *
 
 ***0 to_json       = util.to_json
-***0 table_contact = table.concat
 
 ***0 doformat = (p) ->
 ***0   if type(p) == "table"
@@ -728,7 +727,7 @@
 ***0 formatter = (...) ->
 ***0   params = [doformat(v) for v in *{...}]
 
-***0   table_concat(params, ' ')
+***0   table.concat(params, ' ')
 
 ***0 log = logger.new( "info", list_writer.new( console_color.new() ), formatter )
 
@@ -916,17 +915,18 @@
          -- build location
 ***0     url = location
    2     url = @conf.base .. "/" .. trim(path_sanitize(location), "%/*") if location\find(":") == nil
-   1     req = { url: url, method: "GET", capture_url: @conf.ngx_path, headers: {} }
-***0     httpc.request(req)
+         -- ngx.log(ngx.ERR, 'remotefs retrieving: ' .. url)
+***0     req = { url: url, method: "GET", capture_url: @conf.ngx_path, headers: {} }
+   1     httpc.request(req)
 
-   2   read: (location, default="") =>
-***0     rst = @readRaw(location)
+***0   read: (location, default="") =>
+   3     rst = @readRaw(location)
 
-   3     return default if (rst.err or rst.code < 200 or rst.code > 299)
+***0     return default if (rst.err or rst.code < 200 or rst.code > 299)
 
    3     rst.body
 
-   6 Remotefs
+   3 Remotefs
 
 ==============================================================================
 ./mooncrafts/remoteresolver.moon
@@ -1543,6 +1543,12 @@
        else
   69     str\match "^#{pattern}(.-)#{pattern}$"
 
+  12 starts_with = (str, start) ->
+***0   string_sub(str, 1, #start) == start
+
+  12 ends_with = (str, ending) ->
+***0   ending == "" or string_sub(str, -#ending) == ending
+
      --- sanitize a path.
      -- path should not have double quote, single quote, period <br />
      -- purposely left casing alone because paths are case-sensitive <br />
@@ -1582,7 +1588,7 @@
 
    1   out
 
-***0 slugify = (str) -> ((tostring str)\gsub("[%s_]+", "-")\gsub("[^%w%-]+", "")\gsub("-+", "-"))\lower!
+***0 slugify = (str) -> ((tostring str)\lower()\gsub("[%s_]+", "-")\gsub("[^a-z0-9%-]+", "-")\gsub("-+", "-"))
 
    1 string_split = (str, sep, dest={}) ->
 ***0   str = tostring str
@@ -1683,6 +1689,7 @@
 ***0   :json_encodable, :from_json, :to_json, :table_clone,
    8   :table_extend, :query_string_encode, :applyDefaults,
    4   :string_split, :string_connection_parse, :string_random,
+***0   :starts_with, :ends_with
      }
 
 ==============================================================================
@@ -1700,14 +1707,14 @@ File                             Hits Missed Coverage
 ./mooncrafts/hmacauth.moon       7    7      50.00%
 ./mooncrafts/http.moon           17   17     50.00%
 ./mooncrafts/httpsocket.moon     13   7      65.00%
-./mooncrafts/log.moon            4    13     23.53%
+./mooncrafts/log.moon            4    12     25.00%
 ./mooncrafts/oauth1.moon         33   8      80.49%
 ./mooncrafts/parallel.moon       31   14     68.89%
-./mooncrafts/remotefs.moon       15   7      68.18%
+./mooncrafts/remotefs.moon       14   8      63.64%
 ./mooncrafts/remoteresolver.moon 31   19     62.00%
 ./mooncrafts/sandbox.moon        36   31     53.73%
 ./mooncrafts/simplerouter.moon   60   22     73.17%
 ./mooncrafts/url.moon            88   57     60.69%
-./mooncrafts/util.moon           73   32     69.52%
+./mooncrafts/util.moon           75   35     68.18%
 -----------------------------------------------------
-Total                            600  414    59.17%
+Total                            601  417    59.04%

@@ -94,7 +94,7 @@ url_build = function(parts, includeQuery)
   return out
 end
 slugify = function(str)
-  return ((tostring(str)):gsub("[%s_]+", "-"):gsub("[^%w%-]+", ""):gsub("-+", "-")):lower()
+  return ((tostring(str)):lower():gsub("[%s_]+", "-"):gsub("[^a-z0-9%-]+", "-"):gsub("-+", "-"))
 end
 string_split = function(str, sep, dest)
   if dest == nil then

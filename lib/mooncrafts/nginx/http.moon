@@ -1,7 +1,9 @@
 
-http_handle       = require "resty.http"
-util              = require "mooncrafts.util"
-log               = require "mooncrafts.log"
+http_handle = require "resty.http"
+util        = require "mooncrafts.util"
+log         = require "mooncrafts.log"
+
+starts_with = util.starts_with
 
 local *
 request_ngx = (request_uri, opts={}) ->
@@ -19,11 +21,13 @@ request_ngx = (request_uri, opts={}) ->
   -- clear all browser headers
   bh = ngx.req.get_headers()
   for k, v in pairs(bh)
-    if k ~= 'content-length' then ngx.req.clear_header(k)
+    ngx.req.clear_header(k) if k ~= 'content-length'
 
   h = opts.headers or {["Accept"]: "*/*"}
 
-  for k, v in pairs(h) do ngx.req.set_header(k, v)
+  for k, v in pairs(h)
+    ngx.req.set_header(k, v) if not starts_with(k, "auth_")
+
   req_t.body = opts.body if opts.body
 
   -- ngx.log(ngx.INFO, util.to_json(opts))

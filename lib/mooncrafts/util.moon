@@ -86,7 +86,7 @@ url_build = (parts, includeQuery=true) ->
 
   out
 
-slugify = (str) -> ((tostring str)\gsub("[%s_]+", "-")\gsub("[^%w%-]+", "")\gsub("-+", "-"))\lower!
+slugify = (str) -> ((tostring str)\lower()\gsub("[%s_]+", "-")\gsub("[^a-z0-9%-]+", "-")\gsub("-+", "-"))
 
 string_split = (str, sep, dest={}) ->
   str = tostring str

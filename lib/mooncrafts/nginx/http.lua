@@ -1,6 +1,7 @@
 local http_handle = require("resty.http")
 local util = require("mooncrafts.util")
 local log = require("mooncrafts.log")
+local starts_with = util.starts_with
 local request_ngx, request
 request_ngx = function(request_uri, opts)
   if opts == nil then
@@ -26,7 +27,9 @@ request_ngx = function(request_uri, opts)
     ["Accept"] = "*/*"
   }
   for k, v in pairs(h) do
-    ngx.req.set_header(k, v)
+    if not starts_with(k, "auth_") then
+      ngx.req.set_header(k, v)
+    end
   end
   if opts.body then
     req_t.body = opts.body

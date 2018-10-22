@@ -56,7 +56,7 @@ tests = {
 
   {
     -> util.slugify "What is going on right now?"
-    "what-is-going-on-right-now"
+    "what-is-going-on-right-now-"
   }
 
   {
