@@ -22,7 +22,7 @@ compile_list = function(opts)
   opts.req_rules = { }
   opts.res_rules = { }
   for k, r in pairs(opts.rules) do
-    r.pattern = compile_pattern(r.source)
+    r.pattern = compile_pattern(r["for"])
     if r.status == nil then
       r.status = 0
     end
@@ -144,7 +144,7 @@ do
       local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
-        if (r.http_methods == "*" or http_methods:find(req.http_method)) then
+        if (r.http_methods == "*" or r.http_methods:find(req.http_method)) then
           local match, params = url.match_pattern(reqUrl, r.pattern)
           if match then
             local status = r.status or 0

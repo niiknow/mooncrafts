@@ -76,7 +76,7 @@ compile_list = (opts) ->
 
   -- expect list to already been sorted
   for k, r in pairs(opts.rules)
-    r.pattern = compile_pattern(r.source)
+    r.pattern = compile_pattern(r.for)
     r.status  = 0 if r.status == nil
     if (r.type == 'response')
       table_insert(opts.res_rules, r)
@@ -196,7 +196,7 @@ class UriRuleHandler
       r             = myRules[i]
 
       -- parse by specific method
-      if (r.http_methods == "*" or http_methods\find(req.http_method))
+      if (r.http_methods == "*" or r.http_methods\find(req.http_method))
 
         -- then match by path
         match, params = url.match_pattern(reqUrl, r.pattern)
