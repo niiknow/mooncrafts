@@ -4,18 +4,19 @@ local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
 local liquid = require("mooncrafts.resty.liquid")
 local requestbuilder = require("mooncrafts.requestbuilder")
+local url_parse = url.parse
 local compile_pattern = url.compile_pattern
 local base64_decode = crypto.base64_decode
-local trim = util.trim
 local strlen = string.len
-local table_insert = table.insert
-local table_extend = util.table_extend
+local string_upper = string.upper
 local string_match = string.match
-local url_parse = url.parse
+local trim = util.trim
 local string_split = util.string_split
-local table_remove = table.remove
+local table_extend = util.table_extend
 local table_clone = util.table_clone
+local table_remove = table.remove
 local join = table.concat
+local table_insert = table.insert
 local compile_list
 compile_list = function(opts)
   opts.req_rules = { }
@@ -32,9 +33,7 @@ compile_list = function(opts)
     end
     r.dest = trim(r.dest or "")
     r.headers = r.headers or { }
-    if not r.http_methods then
-      r.http_methods = "*"
-    end
+    r.http_methods = string_upper(r.http_methods or "*")
     if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
       r.status = 302
     end
@@ -45,6 +44,45 @@ local UriRuleHandler
 do
   local _class_0
   local _base_0 = {
+    parseNginxRequest = function(self, ngx)
+      if not ngx then
+        return { }
+      end
+      ngx.req.read_body()
+      local req_headers = ngx.req.get_headers()
+      local scheme = ngx.var.scheme
+      local path = trim(ngx.var.request_uri)
+      local port = ngx.var.server_port
+      local is_args = ngx.var.is_args
+      local args = ngx.var.args
+      local queryStringParameters = ngx.req.get_uri_args()
+      url = tostring(scheme) .. "://$host$path$is_args$args"
+      local path_parts = string_split(trim(path, "/"))
+      return {
+        body = ngx.req.get_body_data(),
+        form = ngx.req.get_post_args(),
+        headers = req_headers,
+        host = host,
+        http_method = ngx.var.request_method,
+        path = path,
+        path_parts = split,
+        port = server_port,
+        args = args,
+        is_args = is_args,
+        query_string_parameters = queryStringParameters,
+        remote_addr = ngx.var.remote_addr,
+        referer = ngx.var.http_referer or "-",
+        scheme = ngx.var.scheme,
+        server_addr = ngx.var.server_addr,
+        user_agent = ngx.var.http_user_agent,
+        url = tostring(scheme) .. "://$host$path$is_args$args",
+        sign_url = tostring(scheme) .. "://$host:$port$path$is_args$args",
+        cb = queryStringParameters.cb,
+        cookies = ngx.var.http_cookie,
+        language = ngx.var.http_accept_language,
+        authorization = ngx.var.http_authorization
+      }
+    end,
     parseBasicAuth = function(self, req)
       assert(req, "request object is required")
       assert(req.headers, "request headers parameter is required")
@@ -106,24 +144,28 @@ do
       local reqUrl = req.url
       for i = 1, #myRules do
         local r = myRules[i]
-        local match, params = url.match_pattern(reqUrl, r.pattern)
-        if match then
-          local status = r.status or 0
-          table_insert(rst.rules, r)
-          if r.template_data then
-            rst.template_data = r.template_data
-          end
-          rst.pathParameters = params or { }
-          if (strlen(r.dest) > 0) then
-            rst.target = url.build_with_splats(r.dest, params)
-          end
-          rst.isRedir = status > 300
-          rst.code = status
-          if r.template then
-            rst.template = r.template
-          end
-          if (rst.code > 0) then
-            return rst
+        if (r.http_methods == "*" or http_methods:find(req.http_method)) then
+          local match, params = url.match_pattern(reqUrl, r.pattern)
+          if match then
+            local status = r.status or 0
+            table_insert(rst.rules, r)
+            if r.template_data then
+              rst.template_data = r.template_data
+            end
+            if #params > 0 then
+              rst.pathParameters = params
+            end
+            if (strlen(r.dest) > 0) then
+              rst.target = url.build_with_splats(r.dest, params)
+            end
+            rst.isRedir = status > 300
+            rst.code = status
+            if r.template then
+              rst.template = r.template
+            end
+            if (rst.code > 0) then
+              return rst
+            end
           end
         end
       end
@@ -147,45 +189,6 @@ do
         end
       end
       return rst
-    end,
-    parseNginxRequest = function(self, ngx)
-      if not ngx then
-        return { }
-      end
-      ngx.req.read_body()
-      local req_headers = ngx.req.get_headers()
-      local scheme = ngx.var.scheme
-      local path = trim(ngx.var.request_uri)
-      local port = ngx.var.server_port
-      local is_args = ngx.var.is_args
-      local args = ngx.var.args
-      local queryStringParameters = ngx.req.get_uri_args()
-      url = tostring(scheme) .. "://$host$path$is_args$args"
-      local path_parts = string_split(trim(path, "/"))
-      return {
-        body = ngx.req.get_body_data(),
-        form = ngx.req.get_post_args(),
-        headers = req_headers,
-        host = host,
-        http_method = ngx.var.request_method,
-        path = path,
-        path_parts = split,
-        port = server_port,
-        args = args,
-        is_args = is_args,
-        query_string_parameters = queryStringParameters,
-        remote_addr = ngx.var.remote_addr,
-        referer = ngx.var.http_referer or "-",
-        scheme = ngx.var.scheme,
-        server_addr = ngx.var.server_addr,
-        user_agent = ngx.var.http_user_agent,
-        url = tostring(scheme) .. "://$host$path$is_args$args",
-        sign_url = tostring(scheme) .. "://$host:$port$path$is_args$args",
-        cb = queryStringParameters.cb,
-        cookies = ngx.var.http_cookie,
-        language = ngx.var.http_accept_language,
-        authorization = ngx.var.http_authorization
-      }
     end,
     handlePage = function(self, req, rst, proxyPath)
       if proxyPath == nil then

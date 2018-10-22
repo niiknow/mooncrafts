@@ -7,7 +7,7 @@
 --
 -- rules: {
 --   for: '/path/regex'
---   http_methods: ['POST', 'GET'] -- array of http methods, empty for all
+--   http_methods: "GET,POST" -- array of http methods, * or empty for all
 --   type: 'request/response'
 --   dest: 'destination path or url'
 --   status: 'response status code to use'
@@ -56,18 +56,19 @@ url    = require "mooncrafts.url"
 liquid = require "mooncrafts.resty.liquid"
 
 requestbuilder  = require "mooncrafts.requestbuilder"
+url_parse       = url.parse
 compile_pattern = url.compile_pattern
 base64_decode   = crypto.base64_decode
-trim            = util.trim
 strlen          = string.len
-table_insert    = table.insert
-table_extend    = util.table_extend
+string_upper    = string.upper
 string_match    = string.match
-url_parse       = url.parse
+trim            = util.trim
 string_split    = util.string_split
-table_remove    = table.remove
+table_extend    = util.table_extend
 table_clone     = util.table_clone
+table_remove    = table.remove
 join            = table.concat
+table_insert    = table.insert
 
 compile_list = (opts) ->
   opts.req_rules  = {}
@@ -84,7 +85,7 @@ compile_list = (opts) ->
 
     r.dest = trim(r.dest or "")
     r.headers or={}
-    r.http_methods = "*" if not r.http_methods
+    r.http_methods = string_upper(r.http_methods or "*")
 
     -- make sure status is correct for relative path
     r.status = 302 if (r.status <= 300 or r.status >= 400) and r.dest\find("/") == 1
@@ -96,6 +97,46 @@ class UriRuleHandler
     conf = compile_rules(opts)
 
     @conf = conf
+
+
+  parseNginxRequest: (ngx) =>
+    return {} if not ngx
+
+    ngx.req.read_body!
+    req_headers = ngx.req.get_headers!
+    scheme = ngx.var.scheme
+    path = trim(ngx.var.request_uri)
+    port = ngx.var.server_port
+    is_args = ngx.var.is_args
+    args = ngx.var.args
+    queryStringParameters = ngx.req.get_uri_args!
+    url = "#{scheme}://$host$path$is_args$args"
+    path_parts = string_split(trim(path, "/"))
+
+    {
+      body: ngx.req.get_body_data!
+      form: ngx.req.get_post_args!
+      headers: req_headers
+      host: host
+      http_method: ngx.var.request_method
+      path: path
+      path_parts: split
+      port: server_port
+      args: args
+      is_args: is_args
+      query_string_parameters: queryStringParameters
+      remote_addr: ngx.var.remote_addr
+      referer: ngx.var.http_referer or "-"
+      scheme: ngx.var.scheme
+      server_addr: ngx.var.server_addr
+      user_agent: ngx.var.http_user_agent
+      url: "#{scheme}://$host$path$is_args$args"
+      sign_url: "#{scheme}://$host:$port$path$is_args$args"
+      cb: queryStringParameters.cb
+      cookies: ngx.var.http_cookie
+      language: ngx.var.http_accept_language
+      authorization: ngx.var.http_authorization
+    }
 
   -- this is a before-request/access level event
   parseBasicAuth: (req) =>
@@ -137,7 +178,6 @@ class UriRuleHandler
 
     rst
 
-
   -- parse request and return result
   -- this is a before-request event
   parseRedirects: (req) =>
@@ -154,24 +194,29 @@ class UriRuleHandler
 
     for i=1, #myRules
       r             = myRules[i]
-      match, params = url.match_pattern(reqUrl, r.pattern)
 
-      -- parse dest
-      if match
-        status = r.status or 0
-        table_insert(rst.rules, r)
-        rst.template_data  = r.template_data if r.template_data
-        rst.pathParameters = params or {} -- provide downstream with pathParameters
+      -- parse by specific method
+      if (r.http_methods == "*" or http_methods\find(req.http_method))
 
-        -- set target if valid dest
-        rst.target   = url.build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
-        -- a redirect if status is greater than 300
-        rst.isRedir  = status > 300
-        rst.code     = status
-        rst.template = r.template if r.template
+        -- then match by path
+        match, params = url.match_pattern(reqUrl, r.pattern)
 
-        -- stop rule processing for valid status
-        return rst if (rst.code > 0)
+        -- parse dest
+        if match
+          status = r.status or 0
+          table_insert(rst.rules, r)
+          rst.template_data  = r.template_data if r.template_data
+          rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
+
+          -- set target if valid dest
+          rst.target   = url.build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
+          -- a redirect if status is greater than 300
+          rst.isRedir  = status > 300
+          rst.code     = status
+          rst.template = r.template if r.template
+
+          -- stop rule processing for valid status
+          return rst if (rst.code > 0)
 
     rst
 
@@ -198,45 +243,6 @@ class UriRuleHandler
         table_extend(rst.headers, r.headers)
 
     rst
-
-  parseNginxRequest: (ngx) =>
-    return {} if not ngx
-
-    ngx.req.read_body!
-    req_headers = ngx.req.get_headers!
-    scheme = ngx.var.scheme
-    path = trim(ngx.var.request_uri)
-    port = ngx.var.server_port
-    is_args = ngx.var.is_args
-    args = ngx.var.args
-    queryStringParameters = ngx.req.get_uri_args!
-    url = "#{scheme}://$host$path$is_args$args"
-    path_parts = string_split(trim(path, "/"))
-
-    {
-      body: ngx.req.get_body_data!
-      form: ngx.req.get_post_args!
-      headers: req_headers
-      host: host
-      http_method: ngx.var.request_method
-      path: path
-      path_parts: split
-      port: server_port
-      args: args
-      is_args: is_args
-      query_string_parameters: queryStringParameters
-      remote_addr: ngx.var.remote_addr
-      referer: ngx.var.http_referer or "-"
-      scheme: ngx.var.scheme
-      server_addr: ngx.var.server_addr
-      user_agent: ngx.var.http_user_agent
-      url: "#{scheme}://$host$path$is_args$args"
-      sign_url: "#{scheme}://$host:$port$path$is_args$args"
-      cb: queryStringParameters.cb
-      cookies: ngx.var.http_cookie
-      language: ngx.var.http_accept_language
-      authorization: ngx.var.http_authorization
-    }
 
   -- handle page rendering
   handlePage: (req, rst, proxyPath='/proxy') =>
