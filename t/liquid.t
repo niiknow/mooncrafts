@@ -31,7 +31,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: 'liquid include remote file' tag.
+=== TEST: 'liquid include remote file' tag.
 --- http_config eval: $::HttpConfig
 --- config
 	location /t {
@@ -65,6 +65,31 @@ __DATA__
 GET /t
 --- response_body
 abc-----defg 12345======6789  123456789 bar
+--- no_error_log
+[error]
+
+
+
+=== TEST: 'headers experimental' tag.
+--- http_config eval: $::HttpConfig
+--- config
+	location /t {
+		content_by_lua_block {
+		  local util   = require("mooncrafts.util")
+			ngx.say(util.to_json(ngx.req.get_headers()))
+		}
+	}
+
+--- raw_request eval
+"GET /t  HTTP/1.0
+Authorization: Basic asdf:basdf
+X-Token: testxyz
+
+
+
+"
+--- response_body
+{"x-token":"testxyz","authorization":"Basic asdf:basdf"}
 --- no_error_log
 [error]
 

@@ -32,6 +32,9 @@ compile_list = function(opts)
     end
     r.dest = trim(r.dest or "")
     r.headers = r.headers or { }
+    if not r.http_methods then
+      r.http_methods = "*"
+    end
     if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
       r.status = 302
     end
@@ -52,8 +55,8 @@ do
       }
       local bauth = self.conf.basic_auth
       if strlen(bauth) > 0 then
-        local authorization = req.headers.authorization
-        if not authorization then
+        req.headers['authorization'] = nil
+        if not req.authorization then
           rst.code = 401
           rst.headers = {
             ["Content-Type"] = "text/plain",
@@ -62,7 +65,7 @@ do
           rst.body = "Please auth!"
           return rst
         end
-        local userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
+        local userpass_b64 = string_match(trim(req.authorization), "Basic%s+(.*)")
         if not (userpass_b64) then
           rst.code = 401
           rst.headers = {
@@ -177,7 +180,8 @@ do
         sign_url = tostring(scheme) .. "://$host:$port$path$is_args$args",
         cb = queryStringParameters.cb,
         cookies = ngx.var.http_cookie,
-        language = req_headers["Accept-Language"]
+        language = ngx.var.http_accept_language,
+        authorization = ngx.var.http_authorization
       }
     end,
     handlePage = function(self, req, rst, proxyPath)

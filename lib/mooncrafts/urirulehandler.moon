@@ -7,22 +7,18 @@
 --
 -- rules: {
 --   for: '/path/regex'
---   method: 'POST,GET,NULL_IS_ALL'
+--   http_methods: ['POST', 'GET'] -- array of http methods, empty for all
 --   type: 'request/response'
 --   dest: 'destination path or url'
---   status: 'status code to use'
---   template: 'use this template instead of page template'
---   template_data: 'this template provide its own data'
+--   status: 'response status code to use'
 --   headers: {} -- pass custom or override existing headers to request/response
---   explicit_headers: "Content-Type,OPTIONS" -- csv format to clear all client headers and pass only these to proxy
+--   template: 'use this template instead of default template'
+--   template_data: 'this template provide its own data, empty to use contents folder'
 --
 -- // these are future headers
+--   explicit_headers: "Content-Type,OPTIONS" -- csv format to clear all client headers and pass only these to proxy
 --   handler: 'lua compiled function'
---   handler_meta: {
---      url: 'the source url'
---      local: 'the local path'
---      modify_at: 'last time it was modified'
---   }
+--   handler_url: 'url to the handler source file'
 --}
 --
 -- common status:
@@ -37,7 +33,6 @@
 -- '/user/:id' - capture id params
 -- '/do/*' - capture splat param
 -- '/something/else?weird=:p' -- capture url param
--- 'POST,GET /simple' - match only specific HTTP method instead of all
 --
 -- syntax dest:
 -- '/relative/path/' - for redirect
@@ -89,6 +84,7 @@ compile_list = (opts) ->
 
     r.dest = trim(r.dest or "")
     r.headers or={}
+    r.http_methods = "*" if not r.http_methods
 
     -- make sure status is correct for relative path
     r.status = 302 if (r.status <= 300 or r.status >= 400) and r.dest\find("/") == 1
@@ -110,15 +106,16 @@ class UriRuleHandler
     bauth = @conf.basic_auth
 
     if strlen(bauth) > 0
-      authorization = req.headers.authorization
+      -- prevent auth header from reaching downstream requests
+      req.headers['authorization'] = nil
 
-      if not authorization
+      if not req.authorization
         rst.code    = 401
         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
         rst.body    = "Please auth!"
         return rst
 
-      userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
+      userpass_b64 = string_match(trim(req.authorization), "Basic%s+(.*)")
       unless userpass_b64
         rst.code    = 401
         rst.headers =  {["Content-Type"]: "text/plain"}
@@ -237,7 +234,8 @@ class UriRuleHandler
       sign_url: "#{scheme}://$host:$port$path$is_args$args"
       cb: queryStringParameters.cb
       cookies: ngx.var.http_cookie
-      language: req_headers["Accept-Language"]
+      language: ngx.var.http_accept_language
+      authorization: ngx.var.http_authorization
     }
 
   -- handle page rendering
@@ -290,7 +288,7 @@ class UriRuleHandler
     -- redirect
     return ngx.redirect(rst.target, rst.code) if rst.isRedir
 
-    -- handle request headers
+    -- append headers added from rule
     rules = rst.rules
     for i=1, #rules
       r = rules[i]
