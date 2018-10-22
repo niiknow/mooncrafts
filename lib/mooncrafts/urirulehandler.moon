@@ -11,6 +11,8 @@
 --   type: 'request/response'
 --   dest: 'destination path or url'
 --   status: 'status code to use'
+--   template: 'use this template instead of page template'
+--   template_data: 'this template provide its own data'
 --   headers: {} -- pass custom or override existing headers to request/response
 --   explicit_headers: "Content-Type,OPTIONS" -- csv format to clear all client headers and pass only these to proxy
 --
@@ -167,9 +169,12 @@ class UriRuleHandler
           rst.target  = url.build_with_splats(r.dest, params)
 
         -- a redirect if status is greater than 300
-        rst.isRedir = status > 300
-        rst.params  = params
-        rst.code    = status
+        rst.isRedir  = status > 300
+        rst.params   = params
+        rst.code     = status
+        rst.template = r.template if r.template
+
+        rst.template_data = r.template_data if r.template_data
 
         -- stop rule processing for valid status
         return rst if (rst.code > 0)
@@ -240,32 +245,20 @@ class UriRuleHandler
     -- only handle pages: no file extension
     parts = table_clone(rst.path_parts)
     path = trim(req.path, "/")
+    rst.template = "page" if not (rst.template)
+
     urls = {
-      {"#{base}/templates/index.liquid"}
-      {"#{base}/templates/page.liquid"}
+      {"#{base}/templates/#{rst.template}.liquid"}
       {"#{base}/contents/#{path}.json"}
     }
 
-    -- attempt to get extra template
-    if (#parts > 1)
-      extra   = parts[1]
-      urls[4] = {"#{base}/templates/#{extra}.liquid"}
+    page, data = ngx.location.capture_multi(urls)
 
-    home, page, data, extra = ngx.location.capture_multi(urls)
-
-    if (data and data.status == ngx.HTTP_NOT_FOUND)
+    if (data and data.status == ngx.HTTP_NOT_FOUND and not rst.template_data)
       return data
 
-    -- extra template found, use the extra template to render
-    if (extra and extra.status == ngx.HTTP_OK)
-      page = extra
-
-    -- use home template if path is home
-    if (req.path == "/" and home and home.status == ngx.HTTP_OK)
-      page = home
-
     -- prepare local variables
-    req.page = {}
+    req.page = if rst.template_data then rst.template_data else {}
     if (data and data.status == ngx.HTTP_OK)
       req.page = util.from_json(data.body)
 
@@ -290,6 +283,9 @@ class UriRuleHandler
     -- preprocess rule
     req = @parseRequest(ngx)
     rst = @parseRedirects(req)
+
+    rst.template = "index" if req.path == "/"
+    rst.template = "page" if not (rst.template)
 
     -- redirect
     return ngx.redirect(rst.target, rst.code) if rst.isRedir

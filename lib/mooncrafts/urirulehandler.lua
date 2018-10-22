@@ -113,6 +113,12 @@ do
           rst.isRedir = status > 300
           rst.params = params
           rst.code = status
+          if r.template then
+            rst.template = r.template
+          end
+          if r.template_data then
+            rst.template_data = r.template_data
+          end
           if (rst.code > 0) then
             return rst
           end
@@ -180,34 +186,26 @@ do
       end
       local parts = table_clone(rst.path_parts)
       local path = trim(req.path, "/")
+      if not (rst.template) then
+        rst.template = "page"
+      end
       local urls = {
         {
-          tostring(base) .. "/templates/index.liquid"
-        },
-        {
-          tostring(base) .. "/templates/page.liquid"
+          tostring(base) .. "/templates/" .. tostring(rst.template) .. ".liquid"
         },
         {
           tostring(base) .. "/contents/" .. tostring(path) .. ".json"
         }
       }
-      if (#parts > 1) then
-        local extra = parts[1]
-        urls[4] = {
-          tostring(base) .. "/templates/" .. tostring(extra) .. ".liquid"
-        }
-      end
-      local home, page, data, extra = ngx.location.capture_multi(urls)
-      if (data and data.status == ngx.HTTP_NOT_FOUND) then
+      local page, data = ngx.location.capture_multi(urls)
+      if (data and data.status == ngx.HTTP_NOT_FOUND and not rst.template_data) then
         return data
       end
-      if (extra and extra.status == ngx.HTTP_OK) then
-        page = extra
+      if rst.template_data then
+        req.page = rst.template_data
+      else
+        req.page = { }
       end
-      if (req.path == "/" and home and home.status == ngx.HTTP_OK) then
-        page = home
-      end
-      req.page = { }
       if (data and data.status == ngx.HTTP_OK) then
         req.page = util.from_json(data.body)
       end
@@ -236,6 +234,12 @@ do
       end
       local req = self:parseRequest(ngx)
       local rst = self:parseRedirects(req)
+      if req.path == "/" then
+        rst.template = "index"
+      end
+      if not (rst.template) then
+        rst.template = "page"
+      end
       if rst.isRedir then
         return ngx.redirect(rst.target, rst.code)
       end
