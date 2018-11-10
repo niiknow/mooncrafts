@@ -124,7 +124,7 @@ class Router
       host: host
       http_method: ngx.var.request_method
       path: path
-      path_parts: split
+      path_parts: path_parts
       port: server_port
       args: args
       is_args: is_args
