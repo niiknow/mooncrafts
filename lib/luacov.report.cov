@@ -193,10 +193,10 @@
 
    2 getHeader = (headers, name, additionalHeaders={}) -> headers[name] or additionalHeaders[name] or ""
 
-   4 sharedkeylite = (opts={ :account_name, :account_key, :table_name }) ->
+   5 sharedkeylite = (opts={ :account_name, :account_key, :table_name }) ->
 ***0   opts.time = opts.time or os.time()
 ***0   opts.date = opts.date or date_utc(opts.time)
-   4   opts.sig  = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
+   5   opts.sig  = hmacauth.sign(base64_decode(opts.account_key), "#{opts.date}\n/#{opts.account_name}/#{opts.table_name}")
    2   opts
 
 ***0 canonicalizedResource = (opts) ->
@@ -205,17 +205,17 @@
 ***0   qs        = query_string_encode(query, "\n", "", (v) -> v)
    2   params    = {
          "/#{opts.account_name}#{parsedUrl.path}",
-   4     qs
+   5     qs
        }
 
 ***0   concat(params, "\n")
 
 ***0 canonicalizedHeaders = (headers) ->
 ***0   rst  = {}
-   4   keys = {}
+   5   keys = {}
 
        -- sort
-   4   for k in pairs(headers) do keys[#keys+1] = tostring(k)
+   5   for k in pairs(headers) do keys[#keys+1] = tostring(k)
    2   sort(keys)
 
 ***0   for i=1, #keys
@@ -310,31 +310,31 @@
 ***0     assert(opts.account_key, "opts.account_key parameter is required")
 
 ***0     if (opts.prefix == nil)
-   4         opts.prefix = ""
+   5         opts.prefix = ""
 
          -- only set if has not set
-   4     if (opts.table == nil)
-   4       opts.table      = string.lower(opts.table_name)
+   5     if (opts.table == nil)
+   5       opts.table      = string.lower(opts.table_name)
 ***0       opts.table_name = "#{opts.prefix}#{opts.table}"
 
-   8 item_headers = (opts, method="GET") ->
-   4   opts_name(opts)
+  10 item_headers = (opts, method="GET") ->
+   5   opts_name(opts)
 ***0   sharedkeylite(opts)
-   6   hdrs = {
+   7   hdrs = {
 ***0     ["Authorization"]: "SharedKeyLite #{opts.account_name}:#{opts.sig}",
-   4     ["x-ms-date"]: opts.date,
+   5     ["x-ms-date"]: opts.date,
 ***0     ["Accept"]: "application/json;odata=nometadata",
 ***0     ["x-ms-version"]: "2018-03-28"
-   4   }
+   5   }
 
-   4   hdrs["Content-Type"] = "application/json" if method == "PUT" or method == "POST" or method == "MERGE"
-   4   hdrs["If-Match"]     = "*" if (method == "DELETE")
+   5   hdrs["Content-Type"] = "application/json" if method == "PUT" or method == "POST" or method == "MERGE"
+   5   hdrs["If-Match"]     = "*" if (method == "DELETE")
 
        hdrs
 
      -- get table header to create or delete table
-   4 table_opts = (opts={ :table_name, :pk, :rk }, method="GET") ->
-   2   headers = item_headers(opts, method)
+   5 table_opts = (opts={ :table_name, :pk, :rk }, method="GET") ->
+   3   headers = item_headers(opts, method)
 ***0   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
 
        -- remove item headers
@@ -342,7 +342,7 @@
 
    2   {
 ***0     method: method,
-   2     url: url,
+   3     url: url,
 ***0     headers: headers,
 ***0     table_name: opts.table_name,
 ***0     account_key: opts.account_key,
@@ -352,19 +352,19 @@
      -- list items
 ***0 item_list = (opts={ :table_name }, query={ :filter, :top, :select }) ->
 ***0   headers = item_headers(opts, "GET")
-   2   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
-   2   qs = ""
-   2   qs = "#{qs}&$filter=#{query.filter}" if query.filter
+   3   url = "https://#{opts.account_name}.table.core.windows.net/#{opts.table_name}"
+   3   qs = ""
+   3   qs = "#{qs}&$filter=#{query.filter}" if query.filter
    1   qs = "#{qs}&$top=#{query.top}" if query.top
 ***0   qs = "#{qs}&$select=#{query.select}" if query.select
-   2   qs = trim(qs, "&")
-   2   full_path = url
-   2   full_path = "#{url}?#{qs}" if qs
+   3   qs = trim(qs, "&")
+   3   full_path = url
+   3   full_path = "#{url}?#{qs}" if qs
 
-   2   {
-   2     method: 'GET',
-   2     url: full_path,
-   2     headers: headers,
+   3   {
+   3     method: 'GET',
+   3     url: full_path,
+   3     headers: headers,
    2     table_name: opts.table_name,
 ***0     account_key: opts.account_key,
    1     account_name: opts.account_name
@@ -512,14 +512,14 @@
   10 hmac_wrapper = (key, str, algo) ->
    9   {
 ***0     digest: () -> crypto_hmac.digest(algo, str, key, true)
-  16     hex: () -> crypto_hmac.digest(algo, str, key, false)
+  17     hex: () -> crypto_hmac.digest(algo, str, key, false)
        }
 
-  16 md5 = (str) -> crypto_wrapper("md5", str)
+  17 md5 = (str) -> crypto_wrapper("md5", str)
 ***0 sha1 = (str) -> crypto_wrapper("sha1", str)
    4 sha256 = (str) -> crypto_wrapper("sha256", str)
-  16 hmac = (key, str, algo) ->
-  16   return hmac_wrapper(key, str, "md5") if algo == md5
+  17 hmac = (key, str, algo) ->
+  17   return hmac_wrapper(key, str, "md5") if algo == md5
    9   return hmac_wrapper(key, str, "sha1") if algo == sha1
 ***0   return hmac_wrapper(key, str, "sha256") if algo == sha256
    3   return hmac_wrapper(key, str, algo) if type(algo) == "string"
@@ -576,8 +576,8 @@
    2 import unpack from table
 
 ***0 local *
-   4 sign = (key, data, algo=crypto.sha256) -> base64_encode(crypto.hmac(key, data, algo).digest())
-   4 verify = (key, data, algo=crypto.sha256) -> data == sign(key, data, algo)
+   5 sign = (key, data, algo=crypto.sha256) -> base64_encode(crypto.hmac(key, data, algo).digest())
+   5 verify = (key, data, algo=crypto.sha256) -> data == sign(key, data, algo)
 ***0 sign_custom = (key, data="", ttl=600, ts=os.time(), algo=crypto.sha256) -> "#{ts}:#{ttl}:#{data}:" .. sign("#{ts}:#{ttl}:#{data}")
 
      -- reverse the logic above to hmac verify
@@ -633,19 +633,19 @@
 ***0   opts["headers"]               = headers
 
        -- auto add content length
-   9   body = opts["body"]
-   9   if body
-   9     body = (type(body) == "table") and query_string_encode(body) or body
-   2     opts.body = body
-   2     opts.headers["content-length"] = #body
+  11   body = opts["body"]
+  11   if body
+  11     body = (type(body) == "table") and query_string_encode(body) or body
+   4     opts.body = body
+   4     opts.headers["content-length"] = #body
 
 ***0   if (headers.auth_basic)
-   9     basic_auth = encode_base64(headers.auth_basic)
+  11     basic_auth = encode_base64(headers.auth_basic)
 ***0     opts.headers["Authorization"] = "Basic #{basic_auth}"
 ***0     headers["auth_basic"] = nil
 
 ***0   if (headers.auth_oauth1)
-   9     auth_oauth1 = string_connection_parse(headers.auth_oauth1)
+  11     auth_oauth1 = string_connection_parse(headers.auth_oauth1)
 ***0     opts.headers["Authorization"] = oauth1.create_signature opts, oauth1
 ***0     headers["auth_oauth1"] = nil
 
@@ -663,13 +663,13 @@
 
    5 local *
 
-   9 stringsource = ltn12.source.string
-   9 tablesink    = ltn12.sink.table
+  11 stringsource = ltn12.source.string
+  11 tablesink    = ltn12.sink.table
 
 ***0 make_request = (opts) ->
    5   return https.request(opts) if opts.url\find "https:"
 
-   9   http.request(opts)
+  11   http.request(opts)
 
      --request {
      --  method = string,
@@ -690,10 +690,10 @@
 ***0   result      = {}
 ***0   opts.sink   = tablesink(result)
 
-   9   one, code, headers, status = make_request opts
+  11   one, code, headers, status = make_request opts
 
-   9   body    = table.concat(result)
-   9   message = #body > 0 and body or "unknown error"
+  11   body    = table.concat(result)
+  11   message = #body > 0 and body or "unknown error"
 
    5   return {:code, :headers, :status, err: message} unless one
 
@@ -1606,31 +1606,31 @@
 
 ***0 from_json = (obj) -> cjson_safe.decode obj
 
-   6 to_json = (obj) -> cjson_safe.encode json_encodable obj
+   7 to_json = (obj) -> cjson_safe.encode json_encodable obj
 
-  28 query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
-  28   query = {}
-   6   keys = {}
+  30 query_string_encode = (t, sep="&", quote="", escape=url_escape) ->
+  30   query = {}
+   7   keys = {}
 
-   6   for k in pairs(t) do keys[#keys+1] = tostring(k)
+   7   for k in pairs(t) do keys[#keys+1] = tostring(k)
 
-  22   sort(keys)
-  44   for i=1, #keys
+  23   sort(keys)
+  46   for i=1, #keys
 ***0     k = keys[i]
 ***0     v = t[k]
 
 ***0     switch type v
-  22       when "table"
+  23       when "table"
    1         unless seen[v]
 ***0           seen[v] = true
-  21           tv = query_string_encode(v, sep, quote, seen)
+  22           tv = query_string_encode(v, sep, quote, seen)
 ***0           v = tv
   12       when "function", "userdata", "thread"
              nil
            else
   12         v = escape(tostring(v))
 
-  12     k = escape(tostring(k))
+  14     k = escape(tostring(k))
 
 ***0     query[#query+1] = if v == "" then name else string.format('%s=%s', k, quote .. v .. quote)
 

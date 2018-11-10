@@ -10,18 +10,22 @@ do
         ngx.req.read_body()
         local req_headers = ngx.req.get_headers()
         local scheme = ngx.var.scheme
-        local path = ngx.var.request_uri
-        local port = ngx.var.server_port
-        local is_args = ngx.var.is_args
-        local args = ngx.var.args
+        local path = trim(ngx.var.request_uri)
+        local port = ngx.var.server_port or 80
+        local is_args = ngx.var.is_args or ""
+        local args = ngx.var.args or ""
         local queryStringParameters = ngx.req.get_uri_args()
-        req = {
+        local host = ngx.var.host or "127.0.0.1"
+        local url = tostring(scheme) .. "://" .. tostring(host) .. tostring(path) .. tostring(is_args) .. tostring(args)
+        local path_parts = string_split(trim(path, "/"))
+        local _ = {
           body = ngx.req.get_body_data(),
           form = ngx.req.get_post_args(),
           headers = req_headers,
           host = host,
-          http_method = ngx.req.get_method(),
+          http_method = ngx.var.request_method,
           path = path,
+          path_parts = split,
           port = server_port,
           args = args,
           is_args = is_args,
@@ -30,11 +34,13 @@ do
           referer = ngx.var.http_referer or "-",
           scheme = ngx.var.scheme,
           server_addr = ngx.var.server_addr,
-          user_agent = req_headers["User-Agent"],
-          full_uri = tostring(scheme) .. "://$host$path$is_args$args",
-          sign_uri = tostring(scheme) .. "://$host:$port$path$is_args$args",
+          user_agent = ngx.var.http_user_agent,
+          url = url,
+          sign_url = tostring(scheme) .. "://" .. tostring(host) .. ":" .. tostring(port) .. tostring(path) .. tostring(is_args) .. tostring(args),
           cb = queryStringParameters.cb,
-          language = req_headers["Accept-Language"]
+          cookies = ngx.var.http_cookie,
+          language = ngx.var.http_accept_language,
+          authorization = ngx.var.http_authorization
         }
         self.req = req
       end
