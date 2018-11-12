@@ -143,6 +143,13 @@ tests = {
 
     "show_me=true"
   }
+
+  {
+    ->
+      util.string_split "this.is.some.host.com", "."
+
+    {"this", "is", "some", "host", "com"}
+  }
 }
 
 describe "mooncrafts.util", ->

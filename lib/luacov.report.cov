@@ -1595,14 +1595,14 @@
 
   12 json_encodable = (obj, seen={}) ->
 ***0   switch type obj
-  47     when "table"
-  46       unless seen[obj]
+  48     when "table"
+  47       unless seen[obj]
 ***0         seen[obj] = true
-  47         { k, json_encodable(v, seen) for k, v in pairs(obj) when type(k) == "string" or type(k) == "number" }
- 115     when "function", "userdata", "thread"
-  68       nil
+  48         { k, json_encodable(v, seen) for k, v in pairs(obj) when type(k) == "string" or type(k) == "number" }
+ 121     when "function", "userdata", "thread"
+  73       nil
          else
-  47       obj
+  48       obj
 
 ***0 from_json = (obj) -> cjson_safe.decode obj
 
