@@ -596,18 +596,18 @@
 ./mooncrafts/http.moon
 ==============================================================================
 
-   5 util         = require "mooncrafts.util"
-   5 oauth1       = require "mooncrafts.oauth1"
-   5 log          = require "mooncrafts.log"
-   5 http_socket  = require "mooncrafts.httpsocket"
-   5 http_ngx     = require "mooncrafts.resty.http" if ngx
+   6 util         = require "mooncrafts.util"
+   6 oauth1       = require "mooncrafts.oauth1"
+   6 log          = require "mooncrafts.log"
+   6 http_socket  = require "mooncrafts.httpsocket"
+   6 http_ngx     = require "mooncrafts.resty.http" if ngx
 
 ***0 import concat from table
-   5 import query_string_encode, string_connection_parse from util
+   6 import query_string_encode, string_connection_parse from util
 
-   5 string_upper = string.upper
-   5 doRequest    = (opts) ->
-   5   return http_ngx.request(opts) if ngx and not opts.useSocket
+   6 string_upper = string.upper
+   6 doRequest    = (opts) ->
+   6   return http_ngx.request(opts) if ngx and not opts.useSocket
 
 ***0   http_socket.request(opts)
 
@@ -651,23 +651,23 @@
 
 ***0   doRequest(opts)
 
-   5 { :request }
+   6 { :request }
 
 ==============================================================================
 ./mooncrafts/httpsocket.moon
 ==============================================================================
 
-   5 ltn12        = require "ltn12"
-   5 http         = require "socket.http"
-   5 https        = require "ssl.https"
+   6 ltn12        = require "ltn12"
+   6 http         = require "socket.http"
+   6 https        = require "ssl.https"
 
-   5 local *
+   6 local *
 
    9 stringsource = ltn12.source.string
    9 tablesink    = ltn12.sink.table
 
 ***0 make_request = (opts) ->
-   5   return https.request(opts) if opts.url\find "https:"
+   6   return https.request(opts) if opts.url\find "https:"
 
    9   http.request(opts)
 
@@ -695,9 +695,9 @@
    9   body    = table.concat(result)
    9   message = #body > 0 and body or "unknown error"
 
-   5   return {:code, :headers, :status, err: message} unless one
+   6   return {:code, :headers, :status, err: message} unless one
 
-   5   { :code, :headers, :status, :body }
+   6   { :code, :headers, :status, :body }
 
 ***0 { :request }
 
@@ -736,29 +736,29 @@
 ==============================================================================
 ./mooncrafts/oauth1.moon
 ==============================================================================
-   6 log       = require "mooncrafts.log"
-   6 util      = require "mooncrafts.util"
-   6 crypto    = require "mooncrafts.crypto"
-   6 url       = require "mooncrafts.url"
+   7 log       = require "mooncrafts.log"
+   7 util      = require "mooncrafts.util"
+   7 crypto    = require "mooncrafts.crypto"
+   7 url       = require "mooncrafts.url"
 
-   6 import string_split, url_escape, query_string_encode, table_sort_keys, url_build from util
-   6 import sort, concat from table
+   7 import string_split, url_escape, query_string_encode, table_sort_keys, url_build from util
+   7 import sort, concat from table
 
-   6 url_parse         = url.parse
-   6 url_default_port  = url.default_port
+   7 url_parse         = url.parse
+   7 url_default_port  = url.default_port
 ***0 escape_uri        = url_escape
-   6 unescape_uri      = ngx and ngx.unescape_uri or util.url_unescape
-   6 encode_base64     = ngx and ngx.encode_base64 or crypto.base64_encode
-   6 digest_hmac_sha1  = ngx and ngx.hmac_sha1 or (key, str) -> crypto.hmac(key, str, crypto.sha1).digest()
-   6 digest_md5        = ngx and ngx.md5 or (str) -> crypto.md5(str).hex()
+   7 unescape_uri      = ngx and ngx.unescape_uri or util.url_unescape
+   7 encode_base64     = ngx and ngx.encode_base64 or crypto.base64_encode
+   7 digest_hmac_sha1  = ngx and ngx.hmac_sha1 or (key, str) -> crypto.hmac(key, str, crypto.sha1).digest()
+   7 digest_md5        = ngx and ngx.md5 or (str) -> crypto.md5(str).hex()
 
-   6 normalizeParameters = (parameters, body, query) ->
+   7 normalizeParameters = (parameters, body, query) ->
    2   items = { query_string_encode(parameters, "&") }
 
-   6   string_split(body, "&", items) if body
+   7   string_split(body, "&", items) if body
    2   string_split(query, "&", items) if query
 
-   6   sort(items)
+   7   sort(items)
 ***0   concat(items, "&")
 
    2 calculateBaseString = (body, method, query, base_uri, parameters) ->
@@ -775,17 +775,17 @@
        -- parse url for query string
 ***0   parts      = url_parse(opts.url)
    5   parts.port = nil if (url_default_port(parts.scheme) == parts.port)
-   6   base_uri   = url_build(parts, false)
+   7   base_uri   = url_build(parts, false)
 
 
        -- allow for unit testing by passing in timestamp
-   6   timestamp = oauth['timestamp'] or os.time()
-   6   parameters = {
+   7   timestamp = oauth['timestamp'] or os.time()
+   7   parameters = {
 ***0     oauth_consumer_key: oauth["consumerkey"],
    2     oauth_signature_method: "HMAC-SHA1",
    3     oauth_timestamp: timestamp,
-   6     oauth_nonce: digest_md5(timestamp .. ""),
-   6     oauth_version: oauth["version"] or "1.0"
+   7     oauth_nonce: digest_md5(timestamp .. ""),
+   7     oauth_version: oauth["version"] or "1.0"
        }
 
    1   parameters["oauth_token"]     = oauth["accesstoken"] if oauth["accesstoken"]
@@ -891,8 +891,8 @@
      --
 
 ***0 util      = require "mooncrafts.util"
-   1 httpc     = require "mooncrafts.http"
-   1 url       = require "mooncrafts.url"
+   2 httpc     = require "mooncrafts.http"
+   2 url       = require "mooncrafts.url"
 
    3 import trim, path_sanitize from util
 
@@ -917,16 +917,16 @@
    2     url = @conf.base .. "/" .. trim(path_sanitize(location), "%/*") if location\find(":") == nil
          -- ngx.log(ngx.ERR, 'remotefs retrieving: ' .. url)
 ***0     req = { url: url, method: "GET", capture_url: @conf.ngx_path, headers: {} }
-   1     httpc.request(req)
+   2     httpc.request(req)
 
 ***0   read: (location, default="") =>
-   3     rst = @readRaw(location)
+   7     rst = @readRaw(location)
 
 ***0     return default if (rst.err or rst.code < 200 or rst.code > 299)
 
-   3     rst.body
+   7     rst.body
 
-   3 Remotefs
+   7 Remotefs
 
 ==============================================================================
 ./mooncrafts/remoteresolver.moon
@@ -1013,6 +1013,411 @@
    1   rst
 
 ***0 { :resolve, :resolve_github, :resolve_remote, :loadcode }
+
+==============================================================================
+./mooncrafts/resty/liquid.moon
+==============================================================================
+   1 liquid  = require "mooncrafts.vendor.liquid"
+   1 util    = require "mooncrafts.util"
+
+   1 import trim, ends_with from util
+   1 import Lexer, Parser, Interpreter, FileSystem, InterpreterContext from liquid
+
+
+     class Liquid
+***0   new: (fs, ext=".liquid") =>
+         -- ngx.log(ngx.ERR, 'yo yo yo1 ' .. util.to_json(fs.conf))
+***0     @fs  = fs
+***0     @ext = ext
+
+***0   render: (str, data={}) =>
+***0     lexer       = Lexer\new(str)
+***0     parser      = Parser\new(lexer)
+***0     interpreter = Interpreter\new(parser)
+***0     myfs        = @fs
+***0     ext         = @ext
+
+         -- ngx.log(ngx.ERR, '1 ' .. str)
+***0     getHandler = (view) ->
+***0       view ..= ext if not ends_with(view, ext)
+           -- ngx.log(ngx.ERR, '2 ' .. view)
+***0       rst = trim(myfs\read(view))
+           -- ngx.log(ngx.ERR, '3 ' .. rst)
+           rst
+
+   1     interpreter\interpret( InterpreterContext\new(data), nil, nil, FileSystem\new(getHandler) )
+
+***0   renderView: (view, data={}) =>
+***0     myfs = @fs
+         -- ngx.log(ngx.ERR, 'yo yo yo2 ' .. util.to_json(myfs.conf))
+***0     view ..= ext if not ends_with(view, @ext)
+
+***0     rst = myfs\read(view .. ".liquid")
+***0     file = myfs\read(view)
+***0     @render(file, data)
+
+     Liquid
+
+==============================================================================
+./mooncrafts/resty/router.moon
+==============================================================================
+     -- router with support of dynamic code execution
+     -- this router is built for use with openresty
+     --
+     -- bucket: 'bucket-name'
+     -- name: 'the-site-name'
+     -- base: 'https://<bucket-name>.s3-website-<AWS-region>.amazonaws.com/the-site-name'
+     --
+     -- rules: {
+     --   for: '/path/regex'
+     --   http_methods: "GET,POST" -- array of http methods, * or empty for all
+     --   type: 'request/response'
+     --   dest: 'destination path or url'
+     --   status: 'response status code to use'
+     --   headers: {} -- pass custom or override existing headers to request/response
+     --   template: 'use this template instead of default template'
+     --   template_data: 'this template provide its own data, empty to use contents folder'
+     --
+     -- // these are future headers
+     --   explicit_headers: "Content-Type,OPTIONS" -- csv format to clear all client headers and pass only these to proxy
+     --   handler: 'lua compiled function'
+     --   handler_url: 'url to the handler source file'
+     --}
+     --
+     -- common status:
+     -- 0/empty - continue processing next rule
+     -- 200 - return immediately
+     -- 301,302 - redirect
+     -- 4xx - client errors
+     -- 5xx - server error
+     --
+     -- syntax for:
+     -- '/simple' - simple path
+     -- '/user/:id' - capture id params
+     -- '/do/*' - capture splat param
+     -- '/something/else?weird=:p' -- capture url param
+     --
+     -- syntax dest:
+     -- '/relative/path/' - for redirect
+     -- 'https://yourapi.com/user/:id' - use id in request to proxy
+     --
+     -- syntax headers auth:
+     -- 'auth_basic': 'user:pass' - provide basic auth to proxy server
+     -- // use oauth1 in the case of twitter
+     -- 'auth_oauth1': 'consumerkey=aaa;consumersecret=bbb;accesstoken=ccc;tokensecret=ddd;version=1.0;callback=callbackurl'
+     -- // use other methods for cloud storage
+     -- 'auth_azure': 'connection-string'
+     -- 'auth_aws': 'access_key_id=bbb;secret_access_key=aaa;region=ddd'
+     -- // other simple headers
+     -- 'X-Token': 'your api token' - best way to authenticate
+     --
+
+  12 crypto   = require "mooncrafts.crypto"
+***0 util     = require "mooncrafts.util"
+  12 log      = require "mooncrafts.log"
+   4 url      = require "mooncrafts.url"
+***0 Liquid   = require "mooncrafts.resty.liquid"
+***0 Remotefs = require "mooncrafts.remotefs"
+
+   4 local *
+
+   4 url_parse       = url.parse
+   1 compile_pattern = url.compile_pattern
+***0 match_pattern   = url.match_pattern
+   1 build_with_splats = url.build_with_splats
+   1 base64_decode   = crypto.base64_decode
+***0 strlen          = string.len
+***0 string_upper    = string.upper
+***0 string_match    = string.match
+***0 trim            = util.trim
+***0 string_split    = util.string_split
+***0 table_extend    = util.table_extend
+***0 table_clone     = util.table_clone
+***0 table_remove    = table.remove
+***0 join            = table.concat
+***0 table_insert    = table.insert
+
+***0 compile_rules = (opts) ->
+***0   req_rules = {}
+***0   res_rules = {}
+
+       -- expect list to already been sorted
+***0   if (opts.rules)
+***0     for k, rr in pairs(opts.rules)
+***0       r         = table_clone(rr, true)
+***0       r.pattern = compile_pattern(r.for)
+***0       r.status  = 0 if not r.status
+***0       r.type    = 'request' if not r.type
+
+***0       if (r.type == 'response')
+***0         table_insert(res_rules, r)
+           else
+***0         table_insert(req_rules, r)
+
+***0       r.dest = if r.dest then trim(r.dest) else ""
+***0       r.headers = {} if not r.headers
+***0       r.http_methods = if r.http_methods then string_upper(r.http_methods) else "*"
+
+           -- make sure status is correct for relative path
+***0       r.status = 302 if (r.status <= 300 or r.status >= 400) and r.dest\find("/") == 1
+
+***0   opts.req_rules = req_rules
+***0   opts.res_rules = res_rules
+       opts
+
+   1 class Router
+***0   new: (opts) =>
+   4     conf = compile_rules(opts)
+   4     fs   = Remotefs({base: conf.base})
+   4     @viewEngine = Liquid(fs)
+***0     @conf = conf
+
+       -- normalize the nginx request object
+***0   parseNginxRequest: (ngx) =>
+   4     return {} if not ngx
+
+***0     ngx.req.read_body!
+***0     req_headers = ngx.req.get_headers!
+***0     scheme = ngx.var.scheme
+***0     path = trim(ngx.var.request_uri)
+***0     port = ngx.var.server_port or 80
+***0     is_args = ngx.var.is_args or ""
+***0     args = ngx.var.args or ""
+***0     queryStringParameters = ngx.req.get_uri_args!
+***0     host = ngx.var.host or "127.0.0.1"
+***0     url = "#{scheme}://#{host}#{path}#{is_args}#{args}"
+***0     path_parts = string_split(trim(path, "/"))
+         {
+***0       body: ngx.req.get_body_data!
+***0       form: ngx.req.get_post_args!
+***0       headers: req_headers
+***0       host: host
+***0       http_method: ngx.var.request_method
+***0       path: path
+***0       path_parts: path_parts
+***0       port: server_port
+***0       args: args
+***0       is_args: is_args
+***0       query_string_parameters: queryStringParameters
+***0       remote_addr: ngx.var.remote_addr
+***0       referer: ngx.var.http_referer or "-"
+***0       scheme: ngx.var.scheme
+***0       server_addr: ngx.var.server_addr
+***0       user_agent: ngx.var.http_user_agent
+***0       url: url
+***0       sign_url: "#{scheme}://#{host}:#{port}#{path}#{is_args}#{args}"
+***0       cb: queryStringParameters.cb
+***0       cookies: ngx.var.http_cookie
+***0       language: ngx.var.http_accept_language
+***0       authorization: ngx.var.http_authorization
+         }
+
+       -- this is a before-request/access level event
+***0   parseBasicAuth: (req) =>
+   4     assert(req, "request object is required")
+   1     assert(req.headers, "request headers parameter is required")
+
+   4     rst   = {code: 0, headers: {}, rules: {}}
+   4     bauth = @conf.basic_auth or ""
+
+   4     if strlen(bauth) > 0
+           -- prevent auth header from reaching downstream requests
+***0       req.headers['authorization'] = nil
+
+   4       if not req.authorization
+   4         rst.code    = 401
+   9         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
+   8         rst.body    = "Please auth!"
+   8         return rst
+
+   8       userpass_b64 = string_match(trim(req.authorization), "Basic%s+(.*)")
+   3       unless userpass_b64
+   3         rst.code    = 401
+   3         rst.headers =  {["Content-Type"]: "text/plain"}
+   3         rst.body    = "Your browser sent a bad Authorization HTTP header!"
+***0         return rst
+
+   6       userpass = base64_decode(userpass_b64)
+   3       unless userpass
+   3         rst.code    = 401
+***0         rst.headers = {["Content-Type"]: "text/plain"}
+***0         rst.body    = "Your browser sent a bad Authorization HTTP header!"
+***0         return rst
+
+   3       unless bauth == userpass
+   3         rst.code    = 403
+***0         rst.headers =  {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
+***0         rst.body    = "Auth failed!"
+   3         return rst
+
+         rst
+
+       -- parse request and return result
+       -- this is a before-request event
+   1   parseRedirects: (req) =>
+   1     assert(req, "request object is required")
+***0     assert(req.url, "request url is required")
+
+***0     rst = @parseBasicAuth(req)
+
+         -- exit if invalid auth
+***0     return rst if (rst.code > 0)
+
+***0     myRules     = @conf.req_rules
+***0     reqUrl      = req.url
+***0     rst.isRedir = false
+
+***0     for i=1, #myRules
+***0       r = myRules[i]
+
+           -- parse by specific method
+***0       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
+             -- ngx.log(ngx.ERR, util.to_json(r))
+             -- then match by path
+***0         match, params = match_pattern(reqUrl, r.pattern)
+
+             -- ngx.log(ngx.ERR, util.to_json(params))
+             -- parse dest
+***0         if match
+***0           status = r.status or 0
+***0           table_insert(rst.rules, r)
+***0           rst.template_data  = r.template_data
+***0           rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
+
+               -- set target if valid dest
+***0           if (strlen(r.dest) > 0)
+***0             rst.target = r.dest
+***0             rst.target = build_with_splats(r.dest, params) if rst.pathParameters
+
+               -- a redirect if status is greater than 300
+***0           rst.isRedir  = status > 300
+***0           rst.code     = status
+***0           rst.template = r.template if r.template
+
+               -- stop rule processing for valid status
+***0           return rst if (rst.code > 0)
+
+         rst
+
+       -- parse header and return result
+       -- this is an after-request event
+***0   parseHeaders: (req) =>
+         -- print util.to_json(req)
+***0     assert(req, "request object is required")
+***0     assert(req.url, "request url is required")
+
+***0     rst = { rules: {}, headers: {} }
+         -- rst.headers = table_clone(req.headers) if req.headers
+***0     myRules = @conf.res_rules
+***0     reqUrl  = req.url
+
+***0     for i=1, #myRules
+***0       r = myRules[i]
+
+           -- parse by specific method
+***0       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
+
+***0         match = match_pattern(reqUrl, r.pattern)
+             -- print util.to_json(params)
+
+***0         if match
+***0           table_insert(rst.rules, r)
+               -- print util.to_json(rst.headers)
+               -- print util.to_json(r.headers)
+***0           table_extend(rst.headers, r.headers)
+
+         rst
+
+       -- handle page rendering
+***0   handlePage: (ngx, req, rst, proxyPath='/__proxy') =>
+         -- only handle pages: no file extension
+***0     path = req.path
+***0     path = "/index" if req.path == "/"
+***0     base = @conf.base
+***0     rst.template = "page" if path != "/index"
+***0     rst.ext = "liquid" if not rst.ext
+
+***0     urls = {
+***0       {proxyPath, {args: {target: "#{base}/templates/#{rst.template}.#{rst.ext}"}}}
+***0       {proxyPath, {args: {target: "#{base}/contents#{path}.json"}}}
+   1     }
+
+         -- ngx.log(ngx.ERR, util.to_json(urls))
+
+***0     page, data = ngx.location.capture_multi(urls)
+
+***0     if (data and data.status == ngx.HTTP_NOT_FOUND and not rst.template_data)
+***0       return data
+
+         -- prepare local variables
+***0     req.page = if rst.template_data then rst.template_data else {}
+
+***0     if (data and data.status < 300)
+***0       req.page = util.from_json(data.body)
+
+         -- push in request
+         {
+***0       code: 200
+***0       headers: {}
+***0       body: trim(@viewEngine\render(page.body, req.page))
+         }
+
+***0   handleProxy: (req, rst, proxyPath='/__proxy') =>
+***0     req = {
+***0       url: rst.target,
+***0       method: "GET",
+***0       capture_url: proxyPath,
+***0       headers: rst.headers,
+***0       body: rst.body
+         }
+***0     httpc.request(req)
+
+***0   handleRequest: (ngx, proxyPath='/__proxy') =>
+         -- preprocess rule
+***0     req = @parseNginxRequest(ngx)
+***0     rst = @parseRedirects(req)
+
+***0     rst.template = "index" if req.path == "/"
+***0     rst.template = "page" if not rst.template
+***0     rst.ext      = "liquid" if not rst.ext
+
+         -- redirect
+***0     return ngx.redirect(rst.target, rst.code) if rst.isRedir
+
+         -- append headers based on matching rules
+***0     rules = rst.rules
+***0     for i=1, #rules
+***0       r = rules[i]
+***0       for k, v in pairs(r.headers)
+***0         rst.headers[k] = v unless k == 'content-length'
+
+***0     page_rst = nil
+
+         -- proxy pass if target
+   1     if (rst.target)
+   2       page_rst = @handleProxy(req, rst, proxyPath)
+         else -- handle the current page
+   4       page_rst = @handlePage(ngx, req, rst, proxyPath)
+
+
+         -- set response headers for valid response
+   8     if (page_rst.code >= 200 or page_rst.code < 300)
+   4       headers     = page_rst.headers
+   5       new_headers = @parseHeaders(req)
+
+           -- override existing response headers
+   1       for k, v in pairs(new_headers)
+   1         headers[k] = v unless k == 'content-length'
+
+           -- now set the response header
+   4       for k, v in pairs(headers) do ngx.header[k] = v
+
+         -- allow template to handle it's own error
+         -- and response with appropriate error body
+   1     ngx.say(page_rst.body) if (page_rst.body)
+   1     ngx.exit(page_rst.code) if (page_rst.code)
+
+   1 Router
 
 ==============================================================================
 ./mooncrafts/sandbox.moon
@@ -1157,138 +1562,6 @@
    1 { :build_env, :whitelist, :loadstring, :loadstring_safe, :loadfile, :loadfile_safe, :exec, :exec_code, :compile_moon }
 
 ==============================================================================
-./mooncrafts/simplerouter.moon
-==============================================================================
-     -- this is a simple router similar to netlify logic to
-     -- handle _redirects and _headers configuration table
-
-   1 crypto = require "mooncrafts.crypto"
-   1 util   = require "mooncrafts.util"
-   1 log    = require "mooncrafts.log"
-   1 url    = require "mooncrafts.url"
-
-   1 compile_pattern = url.compile_pattern
-   1 base64_decode   = crypto.base64_decode
-   1 trim            = util.trim
-   1 strlen          = string.len
-***0 table_insert    = table.insert
-  40 table_extend    = util.table_extend
-  36 string_match    = string.match
-
-   9 compile_list = (myList) ->
-       -- expect list to already been sorted
-***0   for k, r in pairs(myList)
-  22     r.pattern = compile_pattern(r.source)
-   1     r.status  = 0 if r.status == nil
-
-       myList
-
-   1 class SimpleRouter
-***0   new: (conf) =>
-   8     assert(conf, "config object is required")
-   8     myConf = {}
-   8     myConf.redirects  = compile_list(conf.redirects or {})
-   8     myConf.headers    = compile_list(conf.headers or {})
-***0     myConf.basic_auth = trim(conf.basic_auth or "")
-         -- print util.to_json(myConf)
-  16     @conf = myConf
-
-       -- this is a before-request/access level event
-   1   parseBasicAuth: (req) =>
-   1     assert(req, "request object is required")
-***0     assert(req.headers, "request headers parameter is required")
-
-   1     rst   = {headers: {}}
-   1     bauth = @conf.basic_auth
-
-***0     if strlen(bauth) > 0
-   6       authorization = req.headers.authorization
-
-   1       if not authorization
-   1         rst.code    = 401
-***0         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
-   1         rst.body    = "Please auth!"
-   1         return rst
-
-***0       userpass_b64 = string_match(trim(authorization), "Basic%s+(.*)")
-   2       unless userpass_b64
-   2         rst.code    = 401
-***0         rst.headers =  {["Content-Type"]: "text/plain"}
-***0         rst.body    = "Your browser sent a bad Authorization HTTP header!"
-***0         return rst
-
-***0       userpass = base64_decode(userpass_b64)
-           unless userpass
-***0         rst.code    = 401
-   2         rst.headers =  {["Content-Type"]: "text/plain"}
-   1         rst.body    = "Your browser sent a bad Authorization HTTP header!"
-   1         return rst
-
-***0       unless bauth == userpass
-   1         rst.code    = 403
-   1         rst.headers =  {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
-   1         rst.body    = "Auth failed!"
-***0         return rst
-
-   5     rst
-
-
-       -- parse request and return result
-       -- this is a before-request event
-   3   parseRedirects: (req) =>
-   3     assert(req, "request object is required")
-   3     assert(req.url, "request url is required")
-
-   5     rst = @parseBasicAuth(req)
-
-   5     myRules = @conf.redirects
-   3     reqUrl  = req.url
-
-   6     for i=1, #myRules
-   3       r             = myRules[i]
-   3       match, params = url.match_pattern(reqUrl, r.pattern)
-
-           -- parse dest
-***0       if match
-***0         rst.rules   = rst.rules or {}
-   1         table_insert(rst.rules, r)
-***0         rst.target  = url.build_with_splats(r.dest, params)
-             -- a redirect if status is greater than 300
-   3         rst.isRedir = r.status > 300
-   3         rst.params  = params
-
-             -- otherwise, it could be a rewrite or proxy
-***0         return rst
-
-   3     rst
-
-       -- parse header and return result
-       -- this is an after-request event
-   9   parseHeaders: (req) =>
-         -- print util.to_json(req)
-   4     assert(req, "request object is required")
-***0     assert(req.url, "request url is required")
-
-   3     rst = { rules: {}, headers: {} }
-   1     myRules = @conf.headers
-***0     reqUrl  = req.url
-
-   2     for i=1, #myRules
-***0       r     = myRules[i]
-  11       match = url.match_pattern(reqUrl, r.pattern)
-           -- print util.to_json(params)
-
-  22       if match
-  22         table_insert(rst.rules, r)
-             -- print util.to_json(rst.headers)
-             -- print util.to_json(r.headers)
-   1         table_extend(rst.headers, r.headers)
-
-   1     rst
-
-     SimpleRouter
-
-==============================================================================
 ./mooncrafts/url.moon
 ==============================================================================
      -- custom url parsing implementation
@@ -1340,25 +1613,25 @@
 ***0   vemmi: 575,
 ***0   afs: 1483,
 ***0   jms: 5673,
-  30   rsync: 873,
-  30   prospero: 191,
+  26   rsync: 873,
+  26   prospero: 191,
 ***0   videotex: 516
    8 }
 
-  41 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
+  33 default_port = (scheme) -> tostring(ports[scheme]) if ports[scheme]
 
 ***0 split = (url, pathOnly=false) ->
-  41   assert(url, "url parameter is required")
-  82   url = trim(url)
+  33   assert(url, "url parameter is required")
+  66   url = trim(url)
 
-  41   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
-  41   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, ""
+  33   scheme, hostp, path, queryp = string.match(url, "(%a*)://([^/]*)([^?#]*)?*(.*)")
+  33   user, pass, port, query, authority, host, fragment = nil, nil, nil, nil, nil, nil, ""
 
 ***0   if scheme == nil and pathOnly
-  16     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
+  12     assert(string_sub(url, 1, 1) == "/", "path must starts with /")
        else
 ***0     assert(scheme, "parsing of url must have scheme")
-  41     assert(hostp, "parsing of url must have host and/or authority")
+  33     assert(hostp, "parsing of url must have host and/or authority")
 
        -- parse user pass
    1   if hostp
@@ -1366,14 +1639,14 @@
    1     if m[2]
    1       n = string_split(m[1], ":")
 ***0       user = n[1]
-  16       pass = n[2]
-  32       hostp = m[2]
+  12       pass = n[2]
+  24       hostp = m[2]
 
          -- parse port
 ***0     authority = hostp
-  25     m = string_split(hostp, ":")
+  21     m = string_split(hostp, ":")
 ***0     host = m[1]
-  41     port = m[2]
+  33     port = m[2]
        else
   11     path, queryp = string.match(url, "([^?#]*)?*(.*)")
 
@@ -1385,64 +1658,64 @@
   11     fragment = if m[2] then "#" .. m[2] else ""
 ***0     pathAndQuery = path .. "?" .. queryp
 
-  29   port      = default_port(scheme or "https") if port == nil or port == ""
+  25   port      = default_port(scheme or "https") if port == nil or port == ""
 ***0   authority = "#{host}:#{port}" if (host and port)
 
-  16   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment, authority or nil, pathAndQuery }
+  12   return { scheme, user or false, pass or false, host, port, path or nil, query or nil, fragment, authority or nil, pathAndQuery }
 
-  41 parse = (url, pathOnly=false) ->
-  41   parts, err = split(url, pathOnly)
+  33 parse = (url, pathOnly=false) ->
+  33   parts, err = split(url, pathOnly)
 
-  41   return parts, err if err
+  33   return parts, err if err
 
-  41   rst = {
-  41     scheme: parts[1] or nil,
-  41     user: parts[2] or nil,
-  41     password: parts[3] or nil,
-  41     host: parts[4] or nil,
+  33   rst = {
+  33     scheme: parts[1] or nil,
+  33     user: parts[2] or nil,
+  33     password: parts[3] or nil,
+  33     host: parts[4] or nil,
 ***0     port: parts[5] or nil,
-  41     path: parts[6] or nil,
+  33     path: parts[6] or nil,
    8     query: parts[7] or nil,
 ***0     fragment: parts[8],
-  41     authority: parts[9] or nil,
+  33     authority: parts[9] or nil,
    5     path_and_query: parts[10]
        }
 
-  41   rst.original = url
+  33   rst.original = url
 
 ***0   if (rst.scheme and rst.authority)
-  41     rst.sign_url = "#{rst.scheme}://#{rst.authority}#{rst.path_and_query}"
-  41     rst.full_url = "#{rst.scheme}://#{rst.host}#{rst.path_and_query}"
+  33     rst.sign_url = "#{rst.scheme}://#{rst.authority}#{rst.path_and_query}"
+  33     rst.full_url = "#{rst.scheme}://#{rst.host}#{rst.path_and_query}"
 
-  41   rst
+  33   rst
 
-  41 compile_pattern = (pattern) ->
-  41   uri     = parse(pattern, true)
+  33 compile_pattern = (pattern) ->
+  33   uri     = parse(pattern, true)
 
-  41   compiled_pattern = {
-  41     original: pattern,
-  41     params: { }
+  33   compiled_pattern = {
+  33     original: pattern,
+  33     params: { }
        }
 
-  41   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
-  16     return "%" .. char unless char == "*"
-  16     ":*"
+  33   pattern = pattern\gsub("[%(%)%.%%%+%-%%?%[%^%$%*]", (char) ->
+  12     return "%" .. char unless char == "*"
+  12     ":*"
        )
 
    8   pattern = pattern\gsub(':([a-z_%*]+)(/?)', (param, slash) ->
 ***0     if param == "*"
-  31       table_insert(compiled_pattern.params, "splat")
-  31       return "(.*)" .. slash
+  25       table_insert(compiled_pattern.params, "splat")
+  25       return "(.*)" .. slash
 
-  31     table_insert(compiled_pattern.params, param)
+  25     table_insert(compiled_pattern.params, param)
 ***0     "([^/?&#]+)" .. slash
-  62   )
+  50   )
 
-  17   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
+  15   if pattern\sub(-1) ~= "/" do pattern = pattern .. "/"
 
        -- if original url does not ends with forward slash, remove
-  62   if compiled_pattern.original\sub(-1) ~= "/"
-  62     pattern = pattern\sub(1, -2)
+  50   if compiled_pattern.original\sub(-1) ~= "/"
+  50     pattern = pattern\sub(1, -2)
 
    4   if compiled_pattern.original\sub(-1) ~= "*"
    4     pattern = pattern .. "$"
@@ -1450,23 +1723,23 @@
   19   compiled_pattern.pattern = pattern
   19   compiled_pattern
 
-  62 extract_parameters = (pat, matches) ->
+  50 extract_parameters = (pat, matches) ->
 ***0   params = { }
-  30   t = pat.params
+  24   t = pat.params
        -- ngx.log(ngx.ERR, "xx " .. util.to_json(matches))
 ***0   for i=1, #t
-  62     k = t[i]
-  60     params[k] = url_unescape(matches[i])
+  50     k = t[i]
+  48     params[k] = url_unescape(matches[i])
 
-  62   params
+  50   params
 
 ***0 match_pattern = (reqUrl, pat) ->
 
        -- if pattern is not full url
    8   if pat.original\find('https?') == nil
          -- and path is full, then just use path and query
-  11     if reqUrl\find('https?') ~= nil
-  11       reqUrl = parse(reqUrl, true).path_and_query
+   7     if reqUrl\find('https?') ~= nil
+   7       reqUrl = parse(reqUrl, true).path_and_query
 
    9   matches = { re_match(reqUrl, pat.pattern) }
        -- ngx.log(ngx.ERR, reqUrl .. " matches " .. util.to_json(matches))
@@ -1474,24 +1747,24 @@
 
    8   false, nil
 
-  18 build_with_splats = (dest, splats) ->
-  14   assert(dest, "dest url is required")
-   8   assert(splats, "splats are required")
+  12 build_with_splats = (dest, splats) ->
+  10   assert(dest, "dest url is required")
+   4   assert(splats, "splats are required")
 
        -- add spaces so we can do split and join
-  18   url = dest
+  12   url = dest
 
        -- split url by each params
        -- ngx.log(ngx.ERR, dest .. "--" .. util.to_json(splats))
-  22   for k, v in pairs(splats)
+  14   for k, v in pairs(splats)
 ***0     vv = if type(v) == "table" then v[1] else v
-   7     url = string_gsub(url, ":" .. k, v)
+   5     url = string_gsub(url, ":" .. k, v)
 
        url
 
-   4 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
-   4   :extract_parameters, :build_with_splats
-   6 }
+   1 { :split, :parse, :default_port, :compile_pattern, :match_pattern,
+   1   :extract_parameters, :build_with_splats
+   3 }
 
 ==============================================================================
 ./mooncrafts/util.moon
@@ -1532,13 +1805,13 @@
      -- @param str the string
      -- @param pattern trim pattern
      -- @return trimed string
-  61 trim = (str, pattern="%s*") ->
+  51 trim = (str, pattern="%s*") ->
 ***0   str = tostring str
 
-  70   if #str > 200
+  64   if #str > 200
    2     str\gsub("^#{pattern}", "")\reverse()\gsub("^#{pattern}", "")\reverse()
        else
-  69     str\match "^#{pattern}(.-)#{pattern}$"
+  63     str\match "^#{pattern}(.-)#{pattern}$"
 
   12 starts_with = (str, start) ->
 ***0   string_sub(str, 1, #start) == start
@@ -1596,14 +1869,14 @@
 
   12 json_encodable = (obj, seen={}) ->
 ***0   switch type obj
-  48     when "table"
-  47       unless seen[obj]
+  40     when "table"
+  39       unless seen[obj]
 ***0         seen[obj] = true
-  48         { k, json_encodable(v, seen) for k, v in pairs(obj) when type(k) == "string" or type(k) == "number" }
- 121     when "function", "userdata", "thread"
-  73       nil
+  40         { k, json_encodable(v, seen) for k, v in pairs(obj) when type(k) == "string" or type(k) == "number" }
+ 101     when "function", "userdata", "thread"
+  61       nil
          else
-  48       obj
+  40       obj
 
 ***0 from_json = (obj) -> cjson_safe.decode obj
 
@@ -1684,41 +1957,3151 @@
      -- naive is_ip method, don't use this for strict ip detection
   12 is_ip = (host) ->
 ***0   return false if host == nil
-   8   return true if host\find(':') != nil
+***0   return true if host\find(':') != nil
        -- if it ends with a period and number
 ***0   re_match(host, "%.%d+$") != nil
 
-   4 { :url_escape, :url_unescape, :url_build,
+***0 { :url_escape, :url_unescape, :url_build,
 ***0   :trim, :path_sanitize, :slugify, :table_sort_keys,
 ***0   :json_encodable, :from_json, :to_json, :table_clone,
-   4   :table_extend, :query_string_encode, :applyDefaults,
+***0   :table_extend, :query_string_encode, :applyDefaults,
   12   :string_split, :string_connection_parse, :string_random,
 ***0   :starts_with, :ends_with, :is_ip
-  10 }
+  22 }
+
+==============================================================================
+/usr/local/opt/openresty/luajit/share/lua/5.1/mooncrafts/vendor/liquid.lua
+==============================================================================
+     -- liquid templating engine by https://github.com/chenxianyu2015/liquid-lua
+     -- base on version: https://github.com/3scale/liquid-lua/blob/dcf3a4a9cf2654b5e0b9569a7e45e79ff5ab092e/lib/liquid.lua
+
+   1 local cjson = require 'cjson'
+   1 local Liquid = {}
+   1 local Lexer = {}
+   1 local Parser = {}
+   1 local Interpreter = {}
+   1 local InterpreterContext = {}
+   1 local ParserContext = {}
+   1 local FileSystem = {}
+   1 local FilterSet = {}
+   1 local Lazy = {}
+   1 local ResourceLimit = {}
+   1 local Nodetab = {}
+
+   1 Liquid._VERSION = "0.0.1"
+
+     --Truthy and falsy
+   1 local TRUE = "TRUE"    -- "true"
+   1 local FALSE = "FALSE"  -- "false"
+   1 local NIL = "NIL"      -- "nil"
+   1 local EMPTY = "EMPTY"  -- "empty"
+     -- Basic operators
+   1 local EQ = "EQ"        -- "=="
+   1 local NE = "NE"        -- "!="
+   1 local GT = "GT"        -- ">"
+   1 local LT = "LT"        -- "<"
+   1 local GE = "GE"        -- ">="
+   1 local LE = "LE"        -- "<="
+   1 local OR = "OR"        -- "or"
+   1 local AND = "AND"      -- "and"
+   1 local CONTAINS = "CONTAINS"    -- "contains"
+     --Objects token
+   1 local VARSTART = "VARSTART"    -- "{{"
+   1 local VAREND = "VAREND"        -- "{{"
+     --Tag
+   1 local TAGSTART = "TAGSTART"    -- "{%"
+   1 local TAGEND = "TAGEND"        -- "%}"
+     --Whitespace control
+   1 local TAGSTARTWC = "TAGSTARTWC" --"{%-"
+   1 local TAGENDWC = "TAGENDWC"     --"-%}"
+   1 local VARSTARTWC = "VARSTARTWC" --"{{-"
+   1 local VARENDWC = "VARENDWC"     --"-}}"
+     --Range
+   1 local LPAREN = "LPAREN"         --"("
+   1 local RPAREN = "RPAREN"         --")"
+   1 local DOTDOT = "DOTDOT"         --".."
+     --Object field
+   1 local DOT = "DOT"               --"."
+   1 local LSBRACKET= "LSBRACKET"    --"["
+   1 local RSBRACKET = "RSBRACKET"   --"]"
+     -- filter
+   1 local PIPE = "PIPE"             --"|"
+   1 local COLON = "COLON"           --":"
+   1 local COMMA = "COMMA"           --","
+   1 local ASSIGNMENT = "ASSIGNMENT" --"="
+     -- condition
+   1 local IF = "IF"                 --"if"
+   1 local ELSE = "ELSE"             --"else"
+   1 local ELSIF = "ELSIF"           --"elsif"
+   1 local ENDIF = "ENDIF"           --"endif"
+   1 local UNLESS = "UNLESS"         --"unless"
+   1 local ENDUNLESS = "ENDUNLESS"   --"endunless"
+   1 local CASE = "CASE"             --"case"
+   1 local WHEN = "WHEN"             --"when"
+   1 local ENDCASE = "ENDCASE"       --"endcase"
+     --Iteration
+   1 local FOR = "FOR"               --"for"
+   1 local ENDFOR = "ENDFOR"         --"endfor"
+   1 local IN = "IN"                 --"in"
+   1 local LIMIT = "LIMIT"           --"limit"
+   1 local OFFSET = "OFFSET"         --"offset"
+   1 local REVERSED = "REVERSED"     --"reversed"
+   1 local CYCLE = "CYCLE"           --"cycle"
+   1 local TABLEROW = "TABLEROW"     --"tablerow"
+   1 local ENDTABLEROW = "ENDTABLEROW"  --"endtablerow"
+   1 local COLS = "COLS"             --"cols"
+   1 local BREAK = "BREAK"           --"break"
+   1 local CONTINUE = "CONTINUE"     --"continue"
+     --Variable
+   1 local ASSIGN = "ASSIGN"         --"assign"
+   1 local CAPTURE = "CAPTURE"       --"capture"
+   1 local ENDCAPTURE = "ENDCAPTURE" --"endcapture"
+   1 local INCREMENT = "INCREMENT"   --"increment"
+   1 local DECREMENT = "DECREMENT"   --"decrement"
+     -- Generic token
+   1 local NUM = "NUM"
+   1 local STRING = "STRING"
+   1 local ID = "ID"
+   1 local RAWSTRING = "RAWSTRING"
+     --Template reuse
+   1 local INCLUDE = "INCLUDE"
+   1 local WITH = "WITH"
+     --Comment
+   1 local COMMENT = "COMMENT"
+   1 local ENDCOMMENT = "ENDCOMMENT"
+     --Raw
+   1 local RAW = "RAW"
+   1 local ENDRAW = "ENDRAW"
+     --EOF
+   1 local EOF = 'EOF'
+     --
+     -- Token
+   1 local Token = {}
+     --
+   1 function Token:new( token_type, value )
+         -- body
+  39     local instance = {}
+  39     setmetatable(instance, {__index = Token})
+  39     instance.token_type = token_type
+  39     instance.value = value
+  39     return instance
+     end
+     --
+   1 function Token:to_s( ... )
+         -- body
+***0     if self.value then
+***0       return ("Token(" .. self.token_type .."," ..self.value..")")
+         else
+***0       return ("Token(" .. self.token_type ..",nil )")
+         end
+     end
+     --
+     --
+   1 local KEYWORDS = {
+     --Truthy and falsy
+   2   ["true"] = Token:new(TRUE, "true")
+   2  ,["false"] = Token:new(FALSE, "false")
+   2  ,["nil"] = Token:new(NIL, "nil")
+   2  ,["empty"] = Token:new(EMPTY, "empty")
+     --Basic operators
+   2  ,["or"] = Token:new(OR, "or")
+   2  ,["and"] = Token:new(AND, "and")
+   2  ,["contains"] = Token:new(CONTAINS, "contains")
+     --Condition
+   2  ,["if"] = Token:new(IF, "if")
+   2  ,["else"] = Token:new(ELSE, "else")
+   2  ,["elsif"] = Token:new(ELSIF, "elsif")
+   2  ,["endif"] = Token:new(ENDIF, "endif")
+   2  ,["unless"] = Token:new(UNLESS, "unless")
+   2  ,["endunless"] = Token:new(ENDUNLESS, "endunless")
+   2  ,["case"] = Token:new(CASE, "case")
+   2  ,["when"] = Token:new(WHEN, "when")
+   2  ,["endcase"] = Token:new(ENDCASE, "endcase")
+     --Iteration
+   2  ,["for"] = Token:new(FOR, "for")
+   2  ,["endfor"] = Token:new(ENDFOR, "endfor")
+   2  ,["in"] = Token:new(IN, "in")
+   2  ,["limit"] = Token:new(LIMIT, "limit")
+   2  ,["offset"] = Token:new(OFFSET, "offset")
+   2  ,["reversed"] = Token:new(REVERSED, "reversed")
+   2  ,["cycle"] = Token:new(CYCLE, "cycle")
+   2  ,["tablerow"] = Token:new(TABLEROW, "tablerow")
+   2  ,["endtablerow"] = Token:new(ENDTABLEROW, "endtablerow")
+   2  ,["cols"] = Token:new(COLS, "cols")
+   2  ,["break"] = Token:new(BREAK, "break")
+   2  ,["continue"] = Token:new(CONTINUE, "continue")
+     --Variable
+   2  ,["assign"] = Token:new(ASSIGN, "assign")
+   2  ,["capture"] = Token:new(CAPTURE, "capture")
+   2  ,["endcapture"] = Token:new(ENDCAPTURE, "endcapture")
+   2  ,["increment"] = Token:new(INCREMENT, "increment")
+   2  ,["decrement"] = Token:new(DECREMENT, "decrement")
+     --Template reuse
+   2  ,["include"] = Token:new(INCLUDE, "include")
+   2  ,["with"] = Token:new(WITH, "with")
+      --Comment
+   2  ,["comment"] = Token:new(COMMENT, "comment")
+   2  ,["endcomment"] = Token:new(ENDCOMMENT, "endcomment")
+      --
+   2  ,["raw"] = Token:new(RAW, "raw")
+   2  ,["endraw"] = Token:new(ENDRAW, "endraw")
+     }
+
+     --Raw string mode 0;  liquid code mode 1
+   1 local RMODE = 0
+   1 local CMODE = 1
+     -- Lexer
+     -- local Lexer = {}
+     --
+   1 function Lexer:new( text )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Lexer})
+***0     instance.text = text
+***0     instance.pos = 1
+***0     instance.current_token = nil
+***0     instance.current_char = text:sub(1, 1)
+***0     instance.text_length = #(text)
+         -- 0 for raw string; 1 for liquid code
+***0     instance.token_mode = RMODE
+***0     return instance
+     end
+     --
+   1 function Lexer:line_cols_pos( position )
+         -- body
+***0     local line_num = 1
+***0     local pre_pos = 1
+***0     local pos = position or self.pos
+***0     local str = string.sub(self.text, 1, pos)
+***0     local index = 1
+         repeat
+***0         local from, to = str:find("\n", index)
+***0         if to then
+***0             index = to + 1
+***0             line_num = line_num + 1
+***0             pre_pos = to
+             end
+***0     until from == nil
+***0     local cols_pos = pos - pre_pos
+***0     return line_num, cols_pos
+     end
+     --
+   1 function Lexer:raise_error( info )
+         -- todo:  detail error info
+***0     local line_num, cols_pos = self:line_cols_pos()
+***0     local str = "Error parsing input; Stop position is at: line " .. line_num .. " cols: " .. cols_pos
+***0     if info and type(info) == "string" then
+***0         str = str .. ".\n info:" .. info
+         end
+***0     error(str)
+     end
+     --
+   1 function Lexer:advance( ... )
+         -- body
+***0     self.pos = self.pos + 1
+***0     if self.pos > self.text_length then
+***0         self.current_char = nil
+         else
+***0         self.current_char = self.text:sub(self.pos, self.pos)
+         end
+     end
+     --
+   1 function Lexer:rawstring( ... )
+         -- num -> {'-'}(\d)*
+***0     local i = self.pos
+***0     while self.current_char do
+***0         if self.current_char == '{' then
+***0             local t = self:peek(1)
+***0             if (t == '{') or (t == '%') then
+                    break
+                 end
+             end
+***0         if self.current_char == '%' or self.current_char == '}' then
+***0             local t = self:peek(1)
+***0             if t == '}' then
+***0                self:raise_error("unexpect escape tag_end \'%}\' or var_end \'}}\' in raw string ")
+                 end
+             end
+***0         self:advance()
+         end
+         --find tag/var start, so change token mode
+***0     self.token_mode = CMODE
+         local result = nil
+         -- deal with situation of document start with '{{' or '{%'
+***0     if self.pos > i then
+***0       local result = self.text:sub(i, self.pos - 1)
+***0       return result
+         else
+***0       return result
+         end
+     end
+     --
+   1 function Lexer:tag_start_wc( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '{' then
+***0         local t = self:peek(1)
+***0         if t == '%' then
+***0             local c = self:peek(2)
+***0             if c == '-' then
+***0                 self:advance()
+***0                 self:advance()
+***0                 self:advance()
+***0                 return  self.text:sub(i, self.pos -1)
+                 end
+             end
+         end
+     end
+     --
+   1 function Lexer:var_start_wc( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '{' then
+***0         local t = self:peek(1)
+***0         if t == '{' then
+***0             local c = self:peek(2)
+***0             if c == '-' then
+***0                 self:advance()
+***0                 self:advance()
+***0                 self:advance()
+***0                 return self.text:sub(i, self.pos -1)
+                 end
+             end
+         end
+     end
+     --
+   1 function Lexer:tag_end_wc( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '-' then
+***0         local t = self:peek(1)
+***0         if t == '%' then
+***0             local c = self:peek(2)
+***0             if c == '}' then
+***0                 self:advance()
+***0                 self:advance()
+***0                 self:advance()
+***0                 return  self.text:sub(i, self.pos -1)
+                 end
+             end
+         end
+     end
+     --
+   1 function Lexer:var_end_wc( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '-' then
+***0         local t = self:peek(1)
+***0         if t == '}' then
+***0             local c = self:peek(2)
+***0             if c == '}' then
+***0                 self:advance()
+***0                 self:advance()
+***0                 self:advance()
+***0                 return self.text:sub(i, self.pos -1)
+                 end
+             end
+         end
+     end
+     --
+   1 function Lexer:tag_end( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '%' then
+***0         local t = self:peek(1)
+***0         if t == '}' then
+***0             self:advance()
+***0             self:advance()
+***0             return  self.text:sub(i, self.pos -1)
+             end
+         end
+     end
+     --
+   1 function Lexer:var_end( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '}' then
+***0         local t = self:peek(1)
+***0         if t == '}' then
+***0             self:advance()
+***0             self:advance()
+***0             return self.text:sub(i, self.pos -1)
+             end
+         end
+     end
+     --
+   1 function Lexer:tag_start( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '{' then
+***0         local t = self:peek(1)
+***0         if t == '%' then
+***0             local c = self:peek(2)
+***0             if c ~= '-' then
+***0                 self:advance()
+***0                 self:advance()
+***0                 return self.text:sub(i, self.pos -1)
+                 end
+             end
+         end
+     end
+     --
+   1 function Lexer:var_start( ... )
+         -- body
+***0     local i = self.pos
+***0     if self.current_char == '{' then
+***0         local t = self:peek(1)
+***0         if t == '{' then
+***0             local c = self:peek(2)
+***0             if c ~= '-' then
+***0                 self:advance()
+***0                 self:advance()
+***0                 return  self.text:sub(i, self.pos -1)
+                 end
+             end
+         end
+     end
+     --
+   1 function Lexer:num( ... )
+***0     local i = self.pos
+***0     if self.current_char and self.current_char:find('-') then
+***0         self:advance()
+***0         while self.current_char and self.current_char:find('%d') do
+***0             self:advance()
+             end
+***0         if (self.pos - 1) == i then
+***0             return nil
+             end
+         end
+***0     while self.current_char and self.current_char:find('%d') do
+***0         self:advance()
+         end
+***0     if self.current_char then
+***0         if  self.current_char:find('%.') then
+***0             local t = self:peek(1)
+***0             if t == "." then
+***0                 return self.text:sub(i, self.pos - 1)  -- may be a num in Range type
+***0             elseif t:find('%d') then
+***0                 self:advance()
+***0                 while self.current_char and self.current_char:find('%d') do  -- float number
+***0                     self:advance()
+                     end
+                 end
+             end
+***0         if self.current_char then
+***0             if self.current_char:find('%a') then -- keep this condition ? ID token already be handled
+***0                 self:raise_error("expect a number, but got letter!")
+                 else
+***0                 return self.text:sub(i, self.pos - 1)
+                 end
+             else
+***0             return self.text:sub(i, self.pos - 1)
+             end
+         else
+***0         return self.text:sub(i, self.pos - 1)
+         end
+     end
+     --
+   1 function Lexer:string( ... )
+         -- num -> "{a-zA-Z...}*"
+***0     local result = ''
+***0     if self.current_char and self.current_char:find('\'') then
+***0         self:advance()
+***0         while self.current_char do
+***0             if self.current_char:find('\\') then
+***0                 local t = self:peek(1)
+***0                 if t then
+***0                     if t == 'a' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\a"
+***0                     elseif t == 'b' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\b"
+***0                     elseif t == 'f' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\f"
+***0                     elseif t == 'n' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\n"
+***0                     elseif t == 'r' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\r"
+***0                     elseif t == 'v' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\v"
+***0                     elseif t == '\\' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\\"
+***0                     elseif t == '\"' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\""
+***0                     elseif t == '\'' then
+***0                         self:advance()
+***0                         self:advance()
+***0                         result = result .. "\'"
+***0                     elseif t == '\n' then
+***0                         self:advance()  -- line num debug info
+***0                         self:advance()
+***0                     elseif t == '\r' then
+***0                         self:advance()  -- line num debug info
+***0                         self:advance()
+                         else
+***0                         self:advance()  -- NO hex number? so just discard '\'
+                         end
+                     else
+***0                     self:raise_error("unclosed string!")
+                     end
+                 end
+***0             if self.current_char:find('\'') then
+***0                  self:advance()
+                      break
+                 end
+***0             result = result .. self.current_char
+***0             self:advance()
+             end
+***0         return result
+         end
+***0     if self.current_char and self.current_char:find('\"') then
+***0         self:advance()
+***0         while self.current_char do
+***0             if self.current_char:find('\\') then
+***0                 local t = self:peek(1)
+***0                 if t then
+***0                     if t == 'a' then
+***0                         self:advance()
+***0                         result = result .. "\a"
+***0                     elseif t == 'b' then
+***0                         self:advance()
+***0                         result = result .. "\b"
+***0                     elseif t == 'f' then
+***0                         self:advance()
+***0                         result = result .. "\f"
+***0                     elseif t == 'n' then
+***0                         self:advance()
+***0                         result = result .. "\n"
+***0                     elseif t == 'r' then
+***0                         self:advance()
+***0                         result = result .. "\r"
+***0                     elseif t == 'v' then
+***0                         self:advance()
+***0                         result = result .. "\v"
+***0                     elseif t == '\\' then
+***0                         self:advance()
+***0                         result = result .. "\\"
+***0                     elseif t == '\"' then
+***0                         self:advance()
+***0                         result = result .. "\""
+***0                     elseif t == '\'' then
+***0                         self:advance()
+***0                         result = result .. "\'"
+***0                     elseif t == '\n' then
+***0                         self:advance()  -- line num debug info
+***0                     elseif t == '\r' then
+***0                         self:advance()  -- line num debug info
+                         else
+***0                         self:advance()  -- NO hex number? so just discard '\'
+                         end
+                     else
+***0                     self:raise_error("unclosed string!")
+                     end
+                 end
+***0             if self.current_char:find('\"') then
+***0                  self:advance()
+                      break
+                 end
+***0             result = result .. self.current_char
+***0             self:advance()
+             end
+***0         return result
+         end
+     end
+     --
+   1 function Lexer:id( ... )
+***0     local i = self.pos
+***0     if self.current_char and (self.current_char:find('%a')  or self.current_char:find('_')) then
+***0         self:advance()
+***0         while self.current_char do
+***0             if self.current_char:find('%a') then
+***0                 self:advance()
+***0             elseif self.current_char:find('%d') then
+***0                 self:advance()
+***0             elseif self.current_char:find('-') then
+***0                 self:advance()
+***0             elseif self.current_char:find('_') then
+***0                 self:advance()
+                 else
+                     break
+                 end
+             end
+***0         return self.text:sub(i, self.pos -1)
+         end
+     end
+     --
+   1 function Lexer:skip_whitespace( ... )
+         -- body
+***0     while self.current_char and self.current_char:find('%s') do
+***0         self:advance()
+         end
+     end
+     --
+   1 function Lexer:peek( n )
+         -- body
+***0     local p = self.pos + n
+***0     if p <= self.text_length then
+***0         return self.text:sub(p, p)
+         else
+***0         return nil
+         end
+     end
+     --
+   1 function Lexer:get_next_token( ... )
+         -- body
+***0     while self.current_char do
+***0         if self.token_mode == RMODE then
+***0             local result = self:rawstring()
+***0             if result then
+***0                 return Token:new(RAWSTRING, result)
+                 else
+***0                 self.token_mode = CMODE
+                 end
+             else
+***0             if self.current_char:find('%s') then
+***0                self:skip_whitespace()
+***0                goto CONTINUE
+                 end
+***0             if self.current_char == '{' then
+                     local result = nil
+***0                 result = self:tag_start()
+***0                 if result then
+***0                     return Token:new(TAGSTART, result)
+                     end
+***0                 result = self:tag_start_wc()
+***0                 if result then
+***0                     return Token:new(TAGSTARTWC, result)
+                     end
+***0                 result = self:var_start()
+***0                 if result then
+***0                     return Token:new(VARSTART, result)
+                     end
+***0                 result = self:var_start_wc()
+***0                 if result then
+***0                     return Token:new(VARSTARTWC, result)
+                     end
+***0                 self:raise_error("expect tag_start\'{%\' or var_start\'{{\', but got a lonely \'{\'")
+                 end
+***0             if self.current_char == '-' then
+                     local result = nil
+***0                 result = self:tag_end_wc()
+***0                 if result then
+***0                     self.token_mode = RMODE
+***0                     return Token:new(TAGENDWC, result)
+                     end
+***0                 result = self:var_end_wc()
+***0                 if result then
+***0                     self.token_mode = RMODE
+***0                     return Token:new(VARENDWC, result)
+                     end
+***0                 result = self:num()
+***0                 if result then
+***0                     return Token:new(NUM, tonumber(result))
+                     end
+***0                 self:raise_error("expect tag_end\'-%}\' or var_end\'-}}\' or minus number, but got a lonely \'-\'")
+                 end
+***0             if self.current_char == '%' then
+                     local result = nil
+***0                 result = self:tag_end()
+***0                 if result then
+***0                     self.token_mode = RMODE
+***0                     return Token:new(TAGEND, result)
+                     end
+***0                 self:raise_error("expect tag_end\'-%}\', but got a lonely \'%\'")
+                 end
+***0             if self.current_char == '}' then
+                     local result = nil
+***0                 result = self:var_end()
+***0                 if result then
+***0                     self.token_mode = RMODE
+***0                     return Token:new(VAREND, result)
+                     end
+***0                 self:raise_error("expect var_end\'}}\', but got a lonely \'%\'")
+                 end
+***0             if self.current_char:find('%d') then
+                     local result = nil
+***0                 result = self:num()
+***0                 if result then
+***0                     return Token:new(NUM, tonumber(result))
+                     end
+***0                 self:raise_error()
+                 end
+***0             if self.current_char:find('%a') or self.current_char:find('_') then
+***0                 local result = self:id()
+***0                 return (KEYWORDS[result] or Token:new(ID, result))
+                 end
+***0             if self.current_char == '\''  or self.current_char == '\"' then
+***0                 local result = self:string()
+***0                 return Token:new(STRING, result)
+                 end
+***0             if self.current_char == '=' then
+***0                 if self:peek(1) == '=' then
+***0                     self:advance()
+***0                     self:advance()
+***0                     return Token:new(EQ, '==')
+                     else
+***0                     self:advance()
+***0                     return Token:new(ASSIGNMENT, '=')
+                     end
+                 end
+***0             if self.current_char == '>' then
+***0                 if self:peek(1) == '=' then
+***0                     self:advance()
+***0                     self:advance()
+***0                     return Token:new(GE, '>=')
+                     else
+***0                     self:advance()
+***0                     return Token:new(GT, '>')
+                     end
+                 end
+***0             if self.current_char == '<' then
+***0                 if self:peek(1) == '=' then
+***0                     self:advance()
+***0                     self:advance()
+***0                     return Token:new(LE, '<=')
+                     else
+***0                     self:advance()
+***0                     return Token:new(LT, '<')
+                     end
+                 end
+***0             if self.current_char == '.' then
+***0                 if self:peek(1) == '.' then
+***0                     self:advance()
+***0                     self:advance()
+***0                     return Token:new(DOTDOT, '..')
+                     else
+***0                     self:advance()
+***0                     return Token:new(DOT, '.')
+                     end
+                 end
+***0             if self.current_char == '(' then
+***0                 self:advance()
+***0                 return Token:new(LPAREN, '(')
+                 end
+***0             if self.current_char == ')' then
+***0                 self:advance()
+***0                 return Token:new(RPAREN, ')')
+                 end
+***0             if self.current_char == '[' then
+***0                 self:advance()
+***0                 return Token:new(LSBRACKET, '[')
+                 end
+***0             if self.current_char == ']' then
+***0                 self:advance()
+***0                 return Token:new(RSBRACKET, ']')
+                 end
+***0             if self.current_char == '!' then
+***0                 if self:peek(1) == '=' then
+***0                     self:advance()
+***0                     self:advance()
+***0                     return Token:new(NE, '!=')
+                     else
+***0                      self:raise_error("expect \'!=\', but got a lonely \'!\'")
+                     end
+                 end
+***0             if self.current_char == '|' then
+***0                 self:advance()
+***0                 return Token:new(PIPE, '|')
+                 end
+***0             if self.current_char == ':' then
+***0                 self:advance()
+***0                 return Token:new(COLON, ':')
+                 end
+***0             if self.current_char == ',' then
+***0                 self:advance()
+***0                 return Token:new(COMMA, ',')
+                 end
+***0             self:raise_error()
+             end
+***0         ::CONTINUE::
+         end
+***0     if self.pos >= self.text_length then
+***0         return Token:new(EOF, nil)
+         end
+     end
+     --
+     ------------------------------------------------------------AST node begin -----------------------------------------------------------
+   1 local NoOp = {}
+   1 function NoOp:new( ... )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = NoOp})
+***0     return instance
+     end
+   1 function NoOp:_name_( ... )
+         -- body
+***0     return 'NoOp'
+     end
+     --Num
+   1 local Num = {}
+   1 function Num:new( token )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Num})
+***0     instance.token = token
+***0     instance.value = token.value
+***0     return instance
+     end
+   1 function Num:_name_( ... )
+         -- body
+***0     return "Num"
+     end
+     --String
+   1 local Str = {}
+   1 function Str:new( token )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Str})
+***0     instance.token = token
+***0     instance.value = token.value
+***0     return instance
+     end
+   1 function Str:_name_( ... )
+         -- body
+***0     return 'Str'
+     end
+     --
+     --RawStr
+   1 local RawStr = {}
+   1 function RawStr:new( token , parser_context)
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = RawStr})
+***0     instance.token = token
+***0     if parser_context.whitespace_lstrip_flag then
+***0         instance.value = string.lstrip(token.value)
+***0         parser_context.whitespace_lstrip_flag = false
+         else
+***0         instance.value = token.value
+         end
+***0     return instance
+     end
+   1 function RawStr:rstrip( ... )
+        --body
+***0    self.value = string.rstrip(self.value)
+     end
+   1 function RawStr:_name_( ... )
+         -- body
+***0     return 'RawStr'
+     end
+     --
+     --BinOp
+   1 local BinOp = {}
+   1 function BinOp:new( left, op, right )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = BinOp})
+***0     instance.left = left
+***0     instance.op = op
+***0     instance.right = right
+***0     return instance
+     end
+   1 function BinOp:_name_( ... )
+         -- body
+***0     return 'BinOp'
+     end
+     --if/unless control flow
+   1 local Branch = {}
+   1 function Branch:new( exper, truebody, falsebody )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Branch})
+***0     instance.exper = exper
+***0     if truebody then
+***0         instance.truebody = truebody
+         else
+***0         instance.truebody = NoOp:new()
+         end
+***0     if falsebody then
+***0         instance.falsebody = falsebody
+         else
+***0         instance.falsebody = NoOp:new()
+         end
+***0     return instance
+     end
+     --
+   1 function Branch:_name_( ... )
+         -- body
+***0     return 'Branch'
+     end
+     --
+     --Loop -> for xx in xx
+   1 local ForLoop = {}
+   1 function ForLoop:new( element, exp, limit, offset, reversed, nonemptybody, emptybody )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = ForLoop})
+***0     instance.element = element
+***0     instance.exp = exp
+***0     instance.limit = limit
+***0     instance.offset = offset
+***0     instance.reversed = reversed
+***0     instance.nonemptybody = nonemptybody
+***0     instance.emptybody = emptybody
+***0     return instance
+     end
+   1 function ForLoop:_name_( ... )
+         -- body
+***0     return 'ForLoop'
+     end
+     --
+     --Compoud ->statement list
+   1 local Compoud = {}
+   1 function Compoud:new( ... )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Compoud})
+***0     return instance
+     end
+   1 function Compoud:_name_( ... )
+         -- body
+***0     return 'Compoud'
+     end
+     --
+     --Assignment
+   1 local Assignment = {}
+   1 function Assignment:new( id, exp )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Assignment})
+***0     instance.id = id
+***0     instance.exp = exp
+***0     return instance
+     end
+   1 function Assignment:_name_( ... )
+         -- body
+***0     return 'Assignment'
+     end
+     -- Boolean
+   1 local Boolean = {}
+   1 function Boolean:new( token )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Boolean})
+***0     instance.token = token
+***0     if token.token_type == TRUE then
+***0         instance.value = true
+***0     elseif token.token_type == FALSE then
+***0         instance.value = false
+         else
+***0         error("Invalid true or false")
+         end
+***0     return instance
+     end
+   1 function Boolean:_name_( ... )
+         -- body
+***0     return 'Boolean'
+     end
+     --Field
+   1 local Field = {}
+   1 function Field:new( var, field )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Field})
+***0     instance.var = var
+***0     instance.field = field
+***0     return instance
+     end
+   1 function Field:_name_( ... )
+         -- body
+***0     return 'Field'
+     end
+     --Filter
+   1 local Filter = {}
+   1 function Filter:new( filter_name, params )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Filter})
+***0     instance.filter_name = filter_name
+***0     instance.params = params
+***0     return instance
+     end
+   1 function Filter:_name_( ... )
+         -- body
+***0     return 'Filter'
+     end
+     --Empty
+   1 local Empty = {}
+   1 function Empty:new( token )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Empty})
+***0     instance.method_name = token.value
+***0     instance.default_value = ''
+***0     return instance
+     end
+   1 function Empty:_name_( ... )
+         -- body
+***0     return 'Empty'
+     end
+     --Range
+   1 local Range = {}
+   1 function Range:new( start_var, end_var )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Range})
+***0     instance.start_var = start_var
+***0     instance.end_var = end_var
+***0     return instance
+     end
+   1 function Range:_name_( ... )
+         -- body
+***0     return 'Range'
+     end
+     --Nil
+   1 local Nil = {}
+   1 function Nil:new( token )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Nil})
+***0     instance.token = token
+***0     instance.value = nil
+***0     return instance
+     end
+   1 function Nil:_name_( ... )
+         -- body
+***0     return 'Nil'
+     end
+     --
+   1 local Var = {}
+   1 function Var:new( node )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Var})
+***0     instance.value = node
+***0     return instance
+     end
+   1 function Var:_name_( ... )
+         -- body
+***0     return 'Var'
+     end
+     --
+     --
+   1 local Interrupt = {}
+   1 function Interrupt:new( token )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Interrupt})
+***0     instance.token = token
+***0     return instance
+     end
+   1 function Interrupt:_name_( ... )
+         -- body
+***0     return 'Interrupt'
+     end
+     --
+   1 local CycleLoop = {}
+   1 function CycleLoop:new( ... )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = CycleLoop})
+***0     instance.group_name = nil
+***0     instance.elementarray = {}
+***0     return instance
+     end
+   1 function CycleLoop:_name_( ... )
+         -- body
+***0     return 'CycleLoop'
+     end
+     --
+   1 local TableLoop = {}
+   1 function TableLoop:new( element, exp, limit, offset, cols, blockbody )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = TableLoop})
+***0     instance.element = element
+***0     instance.exp = exp
+***0     instance.limit = limit
+***0     instance.offset = offset
+***0     instance.cols = cols
+***0     instance.blockbody = blockbody
+***0     return instance
+     end
+   1 function TableLoop:_name_( ... )
+         -- body
+***0     return 'TableLoop'
+     end
+     --
+   1 local IncDec = {}
+   1 function IncDec:new( id, op_type )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = IncDec})
+***0     instance.id = id
+***0     instance.op_type = op_type
+***0     return instance
+     end
+   1 function IncDec:_name_( ... )
+         -- body
+***0     return 'IncDec'
+     end
+     --
+   1 local Partial = {}
+   1 function Partial:new( location, interpretercontext, parser_context )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Partial})
+***0     instance.location = location
+***0     instance.interpretercontext = interpretercontext
+***0     instance.parser_context = parser_context
+***0     return instance
+     end
+   1 function Partial:_name_( ... )
+         -- body
+***0     return 'Partial'
+     end
+     -------------------------------------------------------------AST node end----------------------------------------------------------------
+
+
+     -------------------------------------------------------------Parser begin----------------------------------------------------------------
+     -- local Parser = {}
+   1 function Parser:new( lexer, parser_context )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Parser})
+***0     instance.lexer = lexer
+***0     instance.parser_context = parser_context or ParserContext:new()
+***0     instance.current_token = lexer:get_next_token()
+***0     instance.pos = lexer.pos
+***0     instance.nodetab = Nodetab:new()
+***0     return instance
+     end
+     --
+   1 function Parser:raise_error( info )
+         -- body
+***0     local line_num, cols_pos = self.lexer:line_cols_pos()
+***0     local str = "Invalid syntax: parsing stoped at: line ".. line_num .. " cols: " .. cols_pos .. " current_token is " .. self.current_token:to_s()
+***0     if info and type(info) then
+***0         str = str .. "\n info: " .. info
+         end
+***0     error(str)
+     end
+     --
+   1 function Parser:eat( token_type )
+         -- body
+***0     if self.current_token.token_type == token_type then
+***0         self.current_token = self.lexer:get_next_token()
+***0         self.pos = self.lexer.pos
+         else
+***0         self:raise_error("expect to get token_type is " .. token_type)
+         end
+     end
+     --
+   1 function Parser:set_whitespace_lstrip_flag( ... )
+***0     self.parser_context.whitespace_lstrip_flag = true
+     end
+     --
+   1 function Parser:set_whitespace_rstrip_flag( ... )
+***0     self.parser_context.whitespace_rstrip_flag = true
+     end
+     --
+   1 function Parser:reset_whitespace_lstrip_flag( ... )
+***0     self.parser_context.whitespace_lstrip_flag = false
+     end
+     --
+   1 function Parser:reset_whitespace_rstrip_flag( ... )
+***0     self.parser_context.whitespace_rstrip_flag = false
+     end
+     --
+   1 function Parser:eat_tagend_or_tagendwc( ... )
+***0     if self.current_token.token_type == TAGEND then
+***0         self:eat(TAGEND)
+***0         self:reset_whitespace_lstrip_flag()
+***0         self:reset_whitespace_rstrip_flag()
+***0         return false
+***0     elseif self.current_token.token_type == TAGENDWC then
+***0         self:eat(TAGENDWC)
+***0         self:set_whitespace_lstrip_flag()    -- lstrip_flag followed by rawstr is  prefix style
+***0         self:reset_whitespace_rstrip_flag()
+***0         return true
+         else
+***0         self:raise_error(" expect tag_end : \'%} or -%}\'")
+         end
+     end
+     --
+   1 local BFWORDS_TEMP = { ELSE, ELSIF, ENDIF, ENDUNLESS, WHEN, ENDCASE, ENDFOR, ENDTABLEROW, ENDCAPTURE, ENDCOMMENT, ENDRAW}
+   1 local BFWORDS = {}
+  12 for i,v in ipairs(BFWORDS_TEMP) do
+  11     BFWORDS[v] = i
+     end
+   1 function Parser:blockfollow( ... )
+***0     local token_type = self.current_token.token_type
+***0     if BFWORDS[token_type] then
+***0         return  false
+         else
+***0         return true
+         end
+     end
+     --
+   1 function Parser:document( ... )
+         -- body
+***0     local node = self:block()
+***0     if self.current_token.token_type ~= EOF then
+***0         self:raise_error()
+         end
+***0     return node
+     end
+     --
+   1 function Parser:block( ... )
+         -- document : (RAWSTRING | state)*
+***0     local node = Compoud:new()
+***0     while self.current_token.token_type ~= EOF do
+***0         if self.current_token.token_type == RAWSTRING then
+***0             local temp = RawStr:new(self.current_token, self.parser_context)
+***0             table.insert(node, temp)
+***0             self:eat(RAWSTRING)
+             else
+***0             if self.current_token.token_type == TAGSTART
+***0                 or self.current_token.token_type == TAGSTARTWC then
+***0                 if self.current_token.token_type == TAGSTARTWC then
+***0                     local temp = node[#node]
+***0                     if temp and type(temp) == "table" and type(temp._name_) == "function" and temp:_name_() == "RawStr" then
+***0                         temp:rstrip()
+                         end
+                     end
+***0                 self:reset_whitespace_lstrip_flag()
+***0                 self:eat(self.current_token.token_type)
+***0                 if not self:blockfollow() then
+***0                     if #node == 0 then
+***0                         return NoOp:new()
+                          end
+***0                      return node
+                     end
+***0                 local temp = self:tag()
+***0                 table.insert(node, temp)
+***0             elseif self.current_token.token_type == VARSTART
+***0                 or self.current_token.token_type == VARSTARTWC then
+***0                 if self.current_token.token_type == VARSTARTWC then
+***0                     local temp = node[#node]
+***0                     if temp and type(temp) == "table" and type(temp._name_) == "function" and temp:_name_() == "RawStr" then
+***0                         temp:rstrip()
+                         end
+                     end
+***0                 self:eat(self.current_token.token_type)
+***0                 local temp = self:var()
+***0                 table.insert(node, temp)
+                 else
+***0                 self:raise_error("expect tag_start: \'{%\' or \'{%-\' ; var_start \'{{ \' or \'{{-\'")
+                 end
+             end
+         end
+***0     return node
+     end
+     --
+   1 function Parser:tag( ... )
+     --[[    state : tag_if
+                   | tag_unless
+                   | tag_case
+                   | tag_for
+                   | tag_cycle
+                   | tag_tablerow
+                   | tag_break
+                   | tag_continue
+                   | tag_assign
+                   | tag_capture
+                   | tag_increment
+                   | tag_decrement
+                   | tag_include
+                   | tag_comment
+                   | tag_raw
+     ]]
+***0     local method = "tag_" .. self.current_token.value
+***0     if self[method] and type(self[method]) == "function" then
+***0         return self[method](self)
+         else
+***0         self:raise_error("undefined tag: " .. self.current_token.value)
+         end
+     end
+     --
+   1 function Parser:tag_if( ... )
+         --[[ tag_if -> TAGSTART IF condexper  TAGEND
+                            block
+                        (TAGSTART ELSIF condexper TAGEND
+                            block)*
+                        {TAGSTART ELSE TAGEND
+                            block}
+                        TAGSTART ENDIF TAGEND]]
+***0     local branch = Branch:new()
+***0     if self.current_token.token_type == IF then
+***0         self:eat(IF)
+***0         branch.exper = self:condexper()
+***0         self:eat_tagend_or_tagendwc()
+***0         branch.truebody = self:block()
+***0         local node = branch
+             -- self:eat(TAGSTART) or self:eat(TAGSTARTWC)  because block eated it
+***0         while self.current_token.token_type == ELSIF do
+***0             local subbranch = Branch:new()
+***0             self:eat(ELSIF)
+***0             subbranch.exper = self:condexper()
+***0             self:eat_tagend_or_tagendwc()
+***0             subbranch.truebody = self:block()
+***0             branch.falsebody = subbranch
+***0             branch = subbranch
+             end
+***0         if self.current_token.token_type == ELSE then
+***0             self:eat(ELSE)
+***0             self:eat_tagend_or_tagendwc()
+***0             branch.falsebody = self:block()
+             end
+***0         if self.current_token.token_type == ENDIF then
+***0             self:eat(ENDIF)
+***0             self:eat_tagend_or_tagendwc()
+             end
+***0         return node
+         end
+     end
+     --
+   1 function Parser:tag_unless( ... )
+         --[[ tag_if -> TAGSTART UNLESS condexper  TAGEND
+                            block
+                        (TAGSTART ELSIF condexper TAGEND
+                            block)*
+                        {TAGSTART ELSE TAGEND
+                            block}
+                        TAGSTART ENDUNLESS TAGEND]]
+***0     local branch = Branch:new()
+***0     if self.current_token.token_type == UNLESS then
+***0         self:eat(UNLESS)
+***0         branch.exper = self:condexper()
+***0          self:eat_tagend_or_tagendwc()
+***0         branch.falsebody = self:block()
+***0         local node = branch
+             -- self:eat(TAGSTART) or self:eat(TAGSTARTWC)  because block eated it
+***0         while self.current_token.token_type == ELSIF do
+***0             local subbranch = Branch:new()
+***0             self:eat(ELSIF)
+***0             subbranch.exper = self:condexper()
+***0             self:eat_tagend_or_tagendwc()
+***0             subbranch.truebody = self:block()
+***0             branch.truebody = subbranch
+***0             branch = subbranch
+             end
+***0         if self.current_token.token_type == ELSE then
+***0             self:eat(ELSE)
+***0             self:eat_tagend_or_tagendwc()
+***0             branch.truebody = self:block()
+             end
+***0         if self.current_token.token_type == ENDUNLESS then
+***0             self:eat(ENDUNLESS)
+***0             self:eat_tagend_or_tagendwc()
+             end
+***0         return node
+         end
+     end
+     --
+   1 function Parser:tag_case( ... )
+         --[[ tag_if -> TAGSTART CASE exper  TAGEND
+                            block
+                        (TAGSTART when exper TAGEND
+                            block)*
+                        {TAGSTART ELSE TAGEND
+                            block}
+                        TAGSTART ENDCASE TAGEND]]
+***0     local branch = Branch:new()
+***0     branch.exper = Boolean:new(Token:new(FALSE, 'false'))
+***0     local node = branch
+***0     if self.current_token.token_type == CASE then
+***0         self:eat(CASE)
+***0         local temp = self:exper()
+***0          self:eat_tagend_or_tagendwc()
+***0         self:block()
+             -- self:eat(TAGSTART) or self:eat(TAGSTARTWC)  because block eated it
+***0         while self.current_token.token_type == WHEN do
+***0             local subbranch = Branch:new()
+***0             self:eat(WHEN)
+***0             local cond2 = self:exper()
+***0             subbranch.exper = BinOp:new(temp, EQ, cond2)
+***0             self:eat_tagend_or_tagendwc()
+***0             subbranch.truebody = self:block()
+***0             branch.falsebody = subbranch
+***0             branch = subbranch
+             end
+***0         if self.current_token.token_type == ELSE then
+***0             self:eat(ELSE)
+***0             self:eat_tagend_or_tagendwc()
+***0             branch.falsebody = self:block()
+             end
+***0         if self.current_token.token_type == ENDCASE then
+***0             self:eat(ENDCASE)
+***0             self:eat_tagend_or_tagendwc()
+             end
+***0         return node
+         end
+     end
+     --
+   1 function Parser:condexper( ... )
+         --[[ condexper : andexper ( OR andexper)*
+         ]]
+***0     local left = self:andexper()
+***0     while self.current_token.token_type == OR do
+***0         self:eat(OR)
+***0         local right = self:andexper()
+***0         left = BinOp:new(left, OR, right)
+         end
+***0     return left
+     end
+   1 function Parser:andexper( ... )
+         --[[ andexper : relexper ( AND relexper)*
+         ]]
+***0     local left = self:relexper()
+***0     while self.current_token.token_type == AND do
+***0         self:eat(AND)
+***0         local right = self:relexper()
+***0         left = BinOp:new(left, AND, right)
+         end
+***0     return left
+     end
+   1 function Parser:relexper( ... )
+         --[[ relexper : exper { EQ exper
+                                                     | NE exper
+                                                     | GE exper
+                                                     | GT exper
+                                                     | LE exper
+                                                     | LT exper
+                                                     | CONTAINS exper}
+         ]]
+***0     local RELATION = {[EQ] = true, [NE] = true, [GE] = true, [GT] = true, [LE] = true, [LT] = true, [CONTAINS] = true}
+***0     local pos_info = {}
+***0     local left = self:exper()
+***0     local token_type = self.current_token.token_type
+***0     if RELATION[token_type] then
+***0         self:eat(token_type)
+***0         pos_info.op = self.pos
+***0         local right = self:exper()
+***0         left = BinOp:new(left, token_type, right)
+         end
+***0     self.nodetab:set_pos(left, pos_info)
+***0     return left
+     end
+
+   1 function Parser:exper( ... )
+         --[[ exper : exp | EMPTY
+         ]]
+         local node = nil
+***0     if self.current_token.token_type == EMPTY then
+***0         self:eat(EMPTY)
+***0         node = Empty:new(self.current_token)
+         else
+***0         node = self:exp()
+         end
+***0     return node
+     end
+
+   1 function Parser:exp( ... )
+         --[[ exp : factor ( PIPE filter)*
+         ]]
+***0     local param = self:factor()
+***0     while self.current_token.token_type == PIPE do
+***0         self:eat(PIPE)
+***0         local filter_node = self:filter()
+***0         table.insert(filter_node.params, 1, param)
+***0         param = filter_node
+         end
+***0     return param
+     end
+
+   1 function Parser:factor( ... )
+         --[[ factor : STRING
+                                 | NUM
+                                 | TRUE
+                                 | FALSE
+                                 | NIL
+                                 | range
+                                 | ID ( lookup )*
+         ]]
+         local node = nil
+***0     if self.current_token.token_type == STRING then
+***0         node = Str:new(self.current_token)
+***0         self:eat(STRING)
+***0     elseif self.current_token.token_type == NUM then
+***0         node = Num:new(self.current_token)
+***0         self:eat(NUM)
+***0     elseif self.current_token.token_type == TRUE then
+***0         node = Boolean:new(self.current_token)
+***0         self:eat(TRUE)
+***0     elseif self.current_token.token_type == FALSE then
+***0         node = Boolean:new(self.current_token)
+***0         self:eat(FALSE)
+***0     elseif self.current_token.token_type == NIL then
+***0         node = Nil:new(self.current_token)
+***0         self:eat(NIL)
+***0     elseif self.current_token.token_type == ID then
+***0         node = Field:new(nil, Str:new(self.current_token))
+***0         self:eat(ID)
+***0         while self.current_token.token_type == DOT
+***0             or self.current_token.token_type == LSBRACKET do
+***0             local field = self:lookup()
+***0             node = Field:new(node, field)
+             end
+***0     elseif self.current_token.token_type == LPAREN then
+***0         node = self:range()
+         else
+***0         self:raise_error()
+         end
+***0     return node
+     end
+     --
+   1 function Parser:lookup( ... )
+         --[[ lookup : ( DOT ID | LSBRACKET factor RSBRACKET)
+         ]]
+***0     if self.current_token.token_type == DOT then
+***0         self:eat(DOT)
+***0         local node = Str:new(self.current_token)
+***0         self:eat(ID)
+***0         return node
+***0     elseif self.current_token.token_type == LSBRACKET then
+***0         self:eat(LSBRACKET)
+***0         local node = self:factor()
+***0         self:eat(RSBRACKET)
+***0         return node
+         else
+***0         self:raise_error("object's field lookup expect dot dot \'..\' style or square \'[]\'  ")
+         end
+     end
+     --
+   1 function Parser:range( ... )
+         --[[ lookup : ( LPAREN factor DOTDOT factor RPAREN)
+         ]]
+***0     local pos_info = {}
+***0     local node = {}
+***0     if self.current_token.token_type == LPAREN then
+***0         self:eat(LPAREN)
+***0         pos_info.left = self.pos
+***0         local start_var = self:factor()
+***0         self:eat(DOTDOT)
+***0         pos_info.right = self.pos
+***0         local end_var = self:factor()
+***0         self:eat(RPAREN)
+***0         node = Range:new(start_var, end_var)
+         else
+***0         self:raise_error(" expect range type ")
+         end
+***0     self.nodetab:set_pos(node, pos_info)
+***0     return node
+     end
+     --
+   1 function Parser:filter( ... )
+         --[[
+         filter : ID ( COLON paramlist)
+         ]]
+***0     local pos_info = {}
+         local filter_name = nil
+***0     if self.current_token.token_type == ID then
+***0         filter_name = self.current_token.value
+***0         self:eat(ID)
+***0         pos_info.filter_name = self.pos
+         else
+***0         self:raise_error()
+         end
+***0     local params = {}
+***0     if self.current_token.token_type == COLON then
+***0         self:eat(COLON)
+***0         params = self:paramlist()
+         end
+***0     local node = Filter:new(filter_name, params)
+***0     self.nodetab:set_pos(node, pos_info)
+***0     return node
+     end
+     --
+   1 function Parser:paramlist( ... )
+         --[[
+         paramlist : factor (COMMA factor)*
+         ]]
+***0     local params = {}
+***0     local param = self:factor()
+***0     table.insert(params, param)
+***0     while self.current_token.token_type == COMMA do
+***0         self:eat(COMMA)
+***0         param = self:factor()
+***0         table.insert(params, param)
+         end
+***0     return params
+     end
+     --
+   1 function Parser:tag_for( ... )
+         --[[
+         tag_for :  TAGSTART FOR ID IN exp (LIMIT COLON exp | OFFSET COLON exp | REVERSED)* TAGEND
+                    block
+                    {
+                     TAGSTART ELSE TAGEND
+                        block
+                    }
+                     TAGSTART ENDFOR TAGEND
+         ]]
+         local element = nil
+         local exp = nil
+         local limit = nil
+         local offset = nil
+***0     local reversed = false
+***0     local nonemptybody = NoOp:new()
+***0     local emptybody = NoOp:new()
+***0     local pos_info = {}
+***0     if self.current_token.token_type == FOR then
+***0         self:eat(FOR)
+***0         pos_info.for_pos = self.pos
+***0         local temp_token = self.current_token
+***0         self:eat(ID)
+***0         element = temp_token.value
+***0         self:eat(IN)
+***0         exp = self:exp()
+***0         while self.current_token.token_type == LIMIT
+***0             or self.current_token.token_type == OFFSET
+***0             or self.current_token.token_type == REVERSED do
+
+***0             if self.current_token.token_type == LIMIT then
+***0                 self:eat(LIMIT)
+***0                 self:eat(COLON)
+***0                 pos_info.limit_pos = self.pos
+***0                 limit = self:exp()
+                 end
+***0             if self.current_token.token_type == OFFSET then
+***0                 self:eat(OFFSET)
+***0                 self:eat(COLON)
+***0                 pos_info.offset_pos = self.pos
+***0                 offset = self:exp()
+                 end
+***0             if self.current_token.token_type == REVERSED then
+***0                 self:eat(REVERSED)
+***0                 reversed = true
+                 end
+             end
+***0         self:eat_tagend_or_tagendwc()
+***0         nonemptybody = self:block()
+***0         if self.current_token.token_type == ELSE then
+***0             self:eat(ELSE)
+***0             self:eat_tagend_or_tagendwc()
+***0             emptybody = self:block()
+             end
+***0         if self.current_token.token_type == ENDFOR then
+***0             self:eat(ENDFOR)
+***0             self:eat_tagend_or_tagendwc()
+***0             local node = ForLoop:new(element, exp, limit, offset, reversed, nonemptybody, emptybody)
+***0             self.nodetab:set_pos(node, pos_info)
+***0             return node
+             else
+***0             self:raise_error()
+             end
+         end
+     end
+     --
+   1 function Parser:var( ... )
+         -- var : VARSTART exp VAREND
+***0     local pos_info = {}
+***0     pos_info.pos = self.pos
+***0     local node = self:exp()
+***0     local token_type = self.current_token.token_type
+***0     if token_type == VAREND or token_type == VARENDWC then
+***0         if token_type == VARENDWC then
+***0             self:set_whitespace_lstrip_flag()
+             end
+***0         self:reset_whitespace_rstrip_flag()
+***0         self:eat(self.current_token.token_type)
+         else
+***0         self:raise_error("expect var_end \'}}\' or \'-}}\' ")
+         end
+***0     local node = Var:new(node)
+***0     self.nodetab:set_pos(node, pos_info)
+***0     return node
+     end
+     --
+   1 function Parser:tag_break( ... )
+         -- tag_break: TAGSTART BREAK TAGEND
+***0     self:eat(BREAK)
+***0     self:eat_tagend_or_tagendwc()
+***0     return Interrupt:new(KEYWORDS["break"])
+     end
+     --
+   1 function Parser:tag_continue( ... )
+         -- tag_break: TAGSTART CONTINUE TAGEND
+***0     self:eat(CONTINUE)
+***0     self:eat_tagend_or_tagendwc()
+***0     return Interrupt:new(KEYWORDS["continue"])
+     end
+     --
+   1 function Parser:tag_assign( ... )
+         -- assign : TAGSTART ASSIGN ID ASSIGNMENT factor TAGEND
+***0     self:eat(ASSIGN)
+***0     local id = self.current_token.value
+***0     self:eat(ID)
+***0     self:eat(ASSIGNMENT)
+***0     local exp = self:exp()
+***0     self:eat_tagend_or_tagendwc()
+***0     return Assignment:new(id, exp)
+     end
+     --
+   2 function Parser:tag_cycle( ... )
+         -- tag_cycle : TAGSTART CYCLE {factor COLON} factor (COMMA factor)* TAGEND
+***0     local pos_info = {}
+***0     pos_info.pos = self.pos
+***0     self:eat(CYCLE)
+***0     local group_name = self:factor()
+***0     local elementarray = {}
+***0     local group_name_flag = false
+***0     if self.current_token.token_type == COLON then
+***0         group_name_flag = true
+***0         self:eat(COLON)
+***0         table.insert(elementarray, self:factor())
+         end
+***0     while self.current_token.token_type == COMMA do
+***0         self:eat(COMMA)
+***0         table.insert(elementarray, self:factor())
+         end
+***0     self:eat_tagend_or_tagendwc()
+***0     local node = CycleLoop:new()
+***0     if group_name_flag then
+***0         node.group_name = group_name
+***0         node.elementarray = elementarray
+         else
+***0         table.insert(elementarray, 1, group_name)
+***0         node.group_name = nil
+***0         node.elementarray = elementarray
+         end
+***0     self.nodetab:set_pos(node, pos_info)
+***0     return node
+     end
+     --
+   2 function Parser:tag_tablerow( ... )
+         --[[
+         tag_tablerow :  TAGSTART TABLEROW ID IN exp (LIMIT COLON exp | OFFSET COLON exp | COLS COLON exp)* TAGEND
+                      block
+                     TAGSTART ENDTABLEROW TAGEND
+         ]]
+         local element = nil
+         local exp = nil
+         local limit = nil
+         local offset = nil
+         local cols = nil
+***0     local blockbody = NoOp:new()
+***0     local pos_info = {}
+
+***0     self:eat(TABLEROW)
+***0     pos_info.tablerow_pos = self.pos
+***0     local element = self.current_token.value
+***0     self:eat(ID)
+***0     self:eat(IN)
+***0     exp = self:exp()
+***0     while self.current_token.token_type == LIMIT
+***0         or self.current_token.token_type == OFFSET
+***0         or self.current_token.token_type == COLS  do
+
+***0         if self.current_token.token_type == LIMIT then
+***0             self:eat(LIMIT)
+***0             pos_info.limit_pos = self.pos
+***0             self:eat(COLON)
+***0             limit = self:exp()
+             end
+
+***0         if self.current_token.token_type == OFFSET then
+***0             self:eat(OFFSET)
+***0             pos_info.offset_pos = self.pos
+***0             self:eat(COLON)
+***0             offset = self:exp()
+             end
+***0         if self.current_token.token_type == COLS then
+***0             self:eat(COLS)
+***0             pos_info.cols_pos = self.pos
+***0             self:eat(COLON)
+***0             cols = self:exp()
+             end
+         end
+***0     self:eat_tagend_or_tagendwc()
+***0     blockbody = self:block()
+***0     if self.current_token.token_type == ENDTABLEROW then
+***0         self:eat(ENDTABLEROW)
+***0         self:eat_tagend_or_tagendwc()
+         else
+***0         self:raise_error()
+         end
+***0     local node = TableLoop:new(element, exp, limit, offset, cols, blockbody)
+***0     self.nodetab:set_pos(node, pos_info)
+***0     return node
+     end
+     --
+   2 function Parser:tag_capture( ... )
+         --[[ tag_capture : TAGSTART CAPTURE ID TAGEND
+                          {block}
+                          TAGSTART ENDCAPTURE TAGEND
+     ]]
+
+***0     self:eat(CAPTURE)
+***0     local id = self.current_token.value
+***0     self:eat(ID)
+***0     self:eat_tagend_or_tagendwc()
+***0     local block = self:block()
+***0     self:eat(ENDCAPTURE)
+***0     self:eat_tagend_or_tagendwc()
+***0     return Assignment:new(id, block)
+     end
+     --
+   2 function Parser:tag_increment( ... )
+         -- body
+***0     self:eat(INCREMENT)
+***0     local id = self.current_token.value
+***0     self:eat(ID)
+***0     self:eat_tagend_or_tagendwc()
+***0     return IncDec:new(id, INCREMENT)
+     end
+     --
+   2 function Parser:tag_decrement( ... )
+         -- body
+***0     self:eat(DECREMENT)
+***0     local id = self.current_token.value
+***0     self:eat(ID)
+***0     self:eat_tagend_or_tagendwc()
+***0     return IncDec:new(id, DECREMENT)
+     end
+     --
+   2 function Parser:tag_comment( ... )
+         -- body
+***0     self:eat(COMMENT)
+***0     self:eat_tagend_or_tagendwc()
+***0     self:block()
+***0     self:eat(ENDCOMMENT)
+***0     self:eat_tagend_or_tagendwc()
+***0     return NoOp:new()
+     end
+     --
+   2 function Parser:tag_raw( ... )
+         -- tag_raw: TAGSTART RAW TAGEND
+***0     local flag = 1
+***0     local pos = self.lexer.pos
+***0     self:eat(RAW)
+***0     local begin_pos = self.lexer.pos
+         local end_pos = nil
+***0     local end_pos_array = {}
+***0     self:eat_tagend_or_tagendwc()
+***0     local output = {}
+***0     local pre_token_array = {}
+***0     while self.current_token.token_type ~= EOF and flag >= 1 do
+***0         if #pre_token_array >= 2 then -- to keep pre TAGSTART token
+***0             table.remove(pre_token_array)
+             end
+***0         table.insert(pre_token_array, 1, self.current_token)
+***0         if #end_pos_array >= 3 then -- to keep pre TAGSTART position
+***0             table.remove(end_pos_array)
+             end
+***0         table.insert(end_pos_array, 1, self.lexer.pos)
+***0         if self.current_token.token_type == RAW then
+***0             flag = flag + 1
+             end
+***0         if self.current_token.token_type == ENDRAW then
+***0             flag = flag - 1
+             end
+***0         if flag == 0 then
+***0             if pre_token_array[2].token_type == TAGSTART then
+***0                 end_pos = end_pos_array[3] - 1
+                 else
+***0                 self:raise_error("unmatched \'raw\' - \'endraw\' pairs: the start raw tag is found at " .. pos)
+                 end
+             end
+***0         self:eat(self.current_token.token_type)
+         end
+***0     if flag ~= 0 then
+***0           error("unmatched \'raw\' - \'endraw\' pairs: the start raw tag is found at " .. pos)
+         end
+***0     self:eat_tagend_or_tagendwc()
+***0     local result = string.sub(self.lexer.text, begin_pos, end_pos)
+***0     return Str:new(Token:new(STRING, result))
+     end
+     --
+   2 function Parser:tag_include( ... )
+         -- tag_include: TAGSTART INCLUDE exp { WITH exp }  TAGEND | TAGSTART INCLUDE exp { FOR exp } TAGEND
+***0     local pos_info = {}
+***0     self:eat(INCLUDE)
+***0     pos_info.include_pos = self.pos
+***0     local exp = self:exp()
+         local exp2 = nil
+***0     if self.current_token.token_type == WITH or self.current_token.token_type == FOR then
+***0         self:eat(self.current_token.token_type)
+***0         exp2 = self:exp()
+         end
+***0     self:eat_tagend_or_tagendwc()
+***0     local node = Partial:new(exp, exp2, self.parser_context)
+***0     self.nodetab:set_pos(node, pos_info)
+***0     return node
+     end
+     -------------------------------------------------------------Parser end----------------------------------------------------------------
+
+     -------------------------------------------------------------Interpreter begin---------------------------------------------------------
+     -- local Interpreter = {}
+   1 function Interpreter:new( parser )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Interpreter})
+***0     instance.parser = parser
+***0     instance.interrupt_flag = false -- mark unhandled 'break/continue'
+***0     instance.interrupt_type = nil   -- mark unhandled 'break/continue' type(nil/break/conntinue)
+***0     instance.tree = parser:document()
+***0     return instance
+     end
+     --
+   1 function Interpreter:raise_error( info, node, key)
+         -- body
+***0     if node and key then
+***0         local pos_info = self.parser.nodetab:get_pos(node)
+***0         if pos_info then
+***0             local pos = pos_info[key]
+***0             local line_num, cols_pos = self.parser.lexer:line_cols_pos(pos)
+***0             local str = "Liquid runtime error, stoped at line_num: " .. line_num.. " cols:" .. cols_pos
+***0             if info then
+***0                 str = str .. ". INFO: " .. info
+                 end
+***0             error(str)
+***0         elseif info then
+***0             error("Liquid runtime error: ( missing detail location info ) " .. info)
+             else
+***0             error("Liquid runtime error.( missing detail location info )")
+             end
+         else
+***0         if info then
+***0             error("Liquid runtime error( missing detail location info )" .. info)
+             else
+***0             error("Liquid runtime error( missing detail location info )")
+             end
+         end
+     end
+     --
+   2 function Interpreter:visit( node )
+         -- body
+***0     local method = "visit_" .. node:_name_()
+***0     if method == "visit_Interrupt" then
+***0         self.interrupt_flag = true
+***0         self.interrupt_type = node.token.token_type
+***0     elseif self[method] and type(self[method]) == 'function' then
+***0         return self[method](self, node)
+         else
+***0         return self:generic_visit(node)
+         end
+     end
+     --
+   2 function Interpreter:generic_visit( node )
+         -- body
+***0     error('visit_' .. node:_name_() .. ' method not found')
+     end
+     --
+   2 function Interpreter:interpret( context, filterset, resourcelimit, filesystem )
+         -- body
+***0     self.interpretercontext = context or InterpreterContext:new({})
+***0     self.filterset = filterset or FilterSet:new()
+***0     self.resourcelimit = resourcelimit or ResourceLimit:new()
+***0     self.filesystem = filesystem or FileSystem:new()
+***0     return self:visit(self.tree)
+     end
+   2 function Interpreter:visit_Num( node )
+***0     return node.value
+     end
+     --
+   2 function Interpreter:visit_Str( node )
+***0     return node.value
+     end
+     --
+   2 function Interpreter:visit_RawStr( node )
+***0     return node.value
+     end
+     --
+   2 function Interpreter:visit_Boolean( node )
+***0     return node.value
+     end
+     --
+   2 function Interpreter:visit_Nil( node )
+***0     return node.value
+     end
+     --
+   2 function Interpreter:visit_Range( node )
+         -- body
+***0     local from = self:visit(node.start_var)
+***0     local to = self:visit(node.end_var)
+***0     if type(from) == "number" and type(to) == "number" then
+***0         if from == to then
+***0             return({from})
+             else
+***0             local result = {}
+***0             for k = from, to, 1 do
+***0                 self.resourcelimit:check_loopcount()
+***0                 table.insert(result, k)
+                 end
+***0             return(result)
+             end
+         else
+***0         error("Invalid range value, expect number type, but got:" .. "*from:*" .. type(from) .. "*to:*" .. type(to))
+         end
+     end
+     --
+   2 function Interpreter:visit_Compoud( node )
+         -- body
+***0     local output = {}
+***0     for k,v in ipairs(node) do
+***0         if self.interrupt_flag then
+***0             return self:safe_concat(output, '')
+             end
+***0         local result = self:visit(v)
+***0         if result then
+***0             table.insert(output, result)
+             end
+         end
+***0     return self:safe_concat(output, '')
+     end
+     --
+   2 function Interpreter:visit_Branch( node )
+         -- body
+***0     local cond = self:visit(node.exper)
+***0     if cond then
+***0         return self:visit(node.truebody)
+         else
+***0         return self:visit(node.falsebody)
+         end
+     end
+     --
+   2 function Interpreter:visit_NoOp( node )
+         -- body
+     end
+     --
+   2 function Interpreter:visit_Var( node )
+         -- body
+***0     local temp = self:visit(node.value)
+***0     local result = self:obj2str(temp)
+***0     if result == nil then
+***0         self:raise_error("please manually convert table to string", node, 'pos')
+         else
+***0         return temp
+         end
+     end
+     --
+   2 function Interpreter:visit_BinOp( node )
+***0     local left_name = node.left:_name_()
+***0     local right_name = node.right:_name_()
+***0     local op = node.op
+***0     if left_name == "Empty" or right_name == "Empty" then
+***0         if op == EQ or op == NE then
+***0             if left_name == right_name then
+***0                 if op == EQ then
+***0                     return true
+                     else
+***0                     return false
+                     end
+                 end
+
+***0             if left_name == "Empty" then
+***0                 local right_value = self:visit(node.right)
+***0                 local str = self:obj2str(right_value)
+***0                 if not str or str == '' then
+***0                     if op == EQ then
+***0                         return true
+                         else
+***0                         return false
+                         end
+                     end
+***0                 if type(right_value) == "table" then
+***0                     if next(right_value) or (str and str ~= '') then
+***0                         if op == NE then
+***0                             return true
+                             else
+***0                             return false
+                             end
+                         else
+***0                         if op == EQ then
+***0                             return true
+                             else
+***0                             return false
+                             end
+                         end
+                     end
+***0                 self:raise_error("Invalid empty comparision", node, 'op')
+                 else
+***0                 local left_value = self:visit(node.left)
+***0                 local str = self:obj2str(left_value)
+
+***0                 if not str or str == '' then
+***0                     if op == EQ then
+***0                         return true
+                         else
+***0                         return false
+                         end
+                     end
+
+***0                 if type(left_value) == "table" then
+***0                     if next(left_value) or (str and str ~= '') then
+***0                         if op == NE then
+***0                             return true
+                             else
+***0                             return false
+                             end
+                         else
+***0                         if op == EQ then
+***0                              return true
+                             else
+***0                              return false
+                             end
+                         end
+                     end
+***0                 self:raise_error("Invalid empty comparision", node, 'op')
+                 end
+             else
+***0             self:raise_error("Invalid empty comparision", node, 'op')
+             end
+         end
+
+***0     if op == CONTAINS then
+***0         local left_value = self:visit(node.left)
+***0         local right_value = self:visit(node.right)
+***0         if type(right_value) == "string" then
+***0             if type(left_value) == "string" then
+***0                 return string.find(left_value, left_value)
+***0             elseif type(left_value) == "table" then
+***0                 for i, v in left_value do
+***0                      if type(v) == "string" then
+***0                          if string.find(v, right_value) then
+***0                              return true
+                              end
+                          end
+                     end
+***0                 return false
+                 end
+             else
+***0             self:raise_error("keywords \'contains\' can only be used for string, the right value is not a string ",node, 'op')
+             end
+         end
+
+***0     if op == EQ then
+***0         local left_value = self:visit(node.left)
+***0         local right_value = self:visit(node.right)
+***0         if type(left_value) == "table" and type(right_value) == "table" then
+***0             local t1 = cjson.encode(left_value)
+***0             local t2 = cjson.encode(right_value)
+***0             return (t1 == t2)
+             end
+***0         return (left_value == right_value)
+         end
+
+***0     if op == NE then
+***0         local left_value = self:visit(node.left)
+***0         local right_value = self:visit(node.right)
+***0         if type(left_value) == "table" and type(right_value) == "table" then
+***0             local t1 = cjson.encode(left_value)
+***0             local t2 = cjson.encode(right_value)
+***0             return (t1 ~= t2)
+             end
+***0         return (left_value ~= right_value)
+         end
+
+***0     if op == AND then -- for shortcut feature
+***0         local left_value = self:visit(node.left)
+***0         if not left_value then
+***0             return left_value
+             end
+***0         local right_value = self:visit(node.right)
+***0         return right_value
+         end
+
+***0     if op == OR then -- for shortcut feature
+***0         local left_value = self:visit(node.left)
+***0         if left_value then
+***0             return left_value
+             end
+***0         local right_value = self:visit(node.right)
+***0         return right_value
+         end
+
+***0     if (op == GT) or (op == GE) or (op == LT) or (op == LE)  then
+***0         local left_value = self:visit(node.left)
+***0         local right_value = self:visit(node.right)
+***0         if type(left_value) == type(right_value) then
+***0             if type(left_value) == "string" or type(left_value) == 'number' then
+***0                 if op == GT then
+***0                     return (left_value > right_value)
+***0                 elseif op == GE then
+***0                     return (left_value >= right_value)
+***0                 elseif op == LT then
+***0                     return (left_value < right_value)
+***0                 elseif op == LE then
+***0                     return (left_value <= right_value)
+                     end
+                 else
+***0                 self:raise_error("Invalid \'>\' comparision on this value type, expect string type or number type", node, 'op')
+                 end
+             else
+***0             self:raise_error("Invalid comparision between different type", node, 'op')
+             end
+         end
+     end
+     --
+   2 function Interpreter:visit_ForLoop( node )
+         -- body
+***0     local element = node.element
+***0     local exp = node.exp
+***0     local limit = node.limit
+***0     local offset = node.offset
+***0     local reversed = node.reversed
+
+***0     exp = self:visit(exp) -- add validation
+***0     if type(exp) ~= "table" then
+***0         exp = {}
+         end
+***0     local exp_length = #exp
+
+***0     local from = 1
+***0     if offset then
+***0         local temp = self:visit(offset)
+***0         local result = tonumber(temp)
+***0         if result == nil or (result % 1 ~= 0)  then
+***0             self:raise_error("in ForLoop, param offset value need to be an int type or int litral string ", node, 'offset_pos')
+             end
+***0         from = result + 1
+***0         if from > exp_length then
+***0             from = exp_length
+             end
+         end
+
+***0     local to = exp_length
+***0     if limit then
+***0         local temp = self:visit(limit)
+***0         local result = tonumber(temp)
+***0         if result == nil or (result % 1 ~= 0)  then
+***0             self:raise_error("in ForLoop, param limit value need to be an int type or int litral string ", node, 'limit_pos')
+             end
+***0         to = from + result - 1
+***0         if to > exp_length then
+***0             to = exp_length
+             end
+         end
+
+***0     local output = {}
+***0     if (to - from) >= 0 then
+***0         self.interpretercontext:newframe()
+***0         local step = 1
+***0         if reversed then
+***0             step = -1
+***0             from, to = to, from
+             end
+***0         for k = from, to, step do
+***0             self.resourcelimit:check_loopcount()
+***0             self.interpretercontext:define_var(element, exp[k])
+***0             if self.interrupt_flag == true then
+***0                 self.interrupt_flag = false
+***0                 if self.interrupt_type == BREAK then
+***0                     self.interpretercontext:destroyframe()
+***0                     self.interrupt_type = nil
+                         break
+                     end
+***0                 self.interrupt_type = nil
+                 end
+***0             local result = self:visit(node.nonemptybody)
+***0             if result then
+***0                 table.insert(output, result)
+                 end
+             end
+***0         self.interpretercontext:destroyframe()
+         else
+***0         local result = self:visit(node.emptybody)
+***0         if result then
+***0             table.insert(output, result)
+             end
+         end
+***0     if self.interrupt_flag == true then  -- last loop may have 'break/continue'
+***0         self.interrupt_type = nil
+***0         self.interrupt_flag = false
+         end
+***0     local result = self:safe_concat(output, '')
+***0     self.resourcelimit:check_length(#result)
+***0     return result
+     end
+     --
+   2 function Interpreter:visit_TableLoop( node )
+         -- body
+***0     local element = node.element
+***0     local exp = node.exp
+***0     local limit = node.limit
+***0     local offset = node.offset
+***0     local cols = node.cols
+
+***0     exp = self:visit(exp)
+***0     if type(exp) ~= "table" then
+***0         exp = {}
+         end
+***0     local exp_length = #exp
+
+***0     local from = 1
+***0     if offset then
+***0         local temp = self:visit(offset)
+***0         local result = tonumber(temp)
+***0         if result == nil or (result % 1 ~= 0)  then
+***0             self:raise_error("in TablerowLoop, param offset value need to be an int type or int litral string ", node, 'offset_pos')
+             end
+***0         from = result + 1
+***0         if from > exp_length then
+***0             from = exp_length
+             end
+         end
+
+***0     local to = exp_length
+***0     if limit then
+***0         local temp = self:visit(limit)
+***0         local result = tonumber(temp)
+***0         if result == nil or (result % 1 ~= 0)  then
+***0             self:raise_error("in TablerowLoop, param limit value need to be an int type or int litral string ", node, 'offset_pos')
+             end
+***0         to = from + result - 1
+***0         if to > exp_length then
+***0             to = exp_length
+             end
+         end
+
+***0     if cols then
+***0         cols = self:visit(cols)
+***0         if ( cols == 0) or (cols % 1 ~= 0) then
+***0             self:raise_error("in TablerowLoop, param limit cols, expect an int type or int litral string:", node, 'cols_pos')
+             end
+         else
+***0         cols = exp_length
+         end
+
+***0     local output = {}
+***0     if (to - from) >= 1 then
+***0         self.interpretercontext:newframe()
+***0         local step = 1
+***0         for k = from, to, step do
+***0             self.resourcelimit:check_loopcount()
+***0             self.interpretercontext:define_var(element, exp[k])
+***0             if self.interrupt_flag == true then
+***0                 self.interrupt_type = nil
+***0                 self.interrupt_flag = false
+***0                 if self.interrupt_type == BREAK then
+***0                     self.interpretercontext:destroyframe()
+                         break
+                     end
+                 end
+***0             local index = k - from + 1
+***0             local temp_cols_num = index % cols
+***0             local temp_row_num = (index - temp_cols_num) / cols + 1
+                 local tr_str = nil
+***0             if temp_cols_num == 1 then
+***0                 local tr_str = "<tr class=\"row" .. temp_row_num .. "\">"
+***0                 table.insert(output, tr_str)
+                 end
+***0             if temp_cols_num == 0 then
+***0                 temp_cols_num = cols
+                 end
+***0             local td_str = "<td class=\"col".. temp_cols_num .."\">"
+***0             table.insert(output, td_str)
+***0             local result = self:visit(node.blockbody)
+***0             if result then
+***0                 table.insert(output, result)
+                 end
+***0             table.insert(output, "</td>")
+***0             if temp_cols_num == cols or k == to then
+***0                 table.insert(output, "</tr>")
+                 end
+             end
+***0         self.interpretercontext:destroyframe()
+         else
+***0         local result = self:visit(node.emptybody)
+***0         if result then
+***0             table.insert(output, result)
+             end
+         end
+***0     if self.interrupt_flag == true then  -- last loop may have 'break/continue'
+***0         self.interrupt_type = nil
+***0         self.interrupt_flag = false
+         end
+***0     local result = self:safe_concat(output, '\n')
+***0     self.resourcelimit:check_length(#result)
+***0     return result
+     end
+     --
+   2 function Interpreter:visit_Field( node )
+         -- body
+***0     if node.var == nil then
+***0         return self.interpretercontext:find_var(self:visit(node.field))
+         else
+***0         local var = self:visit(node.var)
+***0         local field = self:visit(node.field)
+***0         if type(var) == "table" and ( field ~= nil )then
+***0             if type(field) == "number" then
+***0                 return var[(field + 1)]
+                 else
+***0                 return var[field]
+                 end
+             else
+***0             return nil
+             end
+         end
+     end
+     --
+   2 function Interpreter:visit_Filter( node)
+         -- body
+***0     local filter_name = node.filter_name
+***0     local filter = self.filterset:find_filter(filter_name)
+***0     if filter == nil then
+***0         self:raise_error("cannot find filter: " .. node.filter_name, node, 'filter_name')
+         end
+
+***0     local params = {}
+***0     for i,v in ipairs(node.params) do
+***0         table.insert(params, self:visit(v))
+         end
+***0     local status, err = pcall(filter, table.unpack(params))
+***0     if status then
+***0         return err
+         else
+***0         self:raise_error("filter invoke fails", node, 'filter_name')
+         end
+     end
+     --
+   2 function Interpreter:visit_Partial( node )
+         -- body
+***0     self.resourcelimit:check_subtemplate_num()
+***0     local filesystem = self.filesystem
+***0     local t = node.parser_context
+***0     local location = self:visit(node.location)
+***0     local file = filesystem:generic_get(location)
+***0     local lexer = Lexer:new(file)
+***0     local parser = Parser:new(lexer, node.parser_context)
+***0     local context = self.interpretercontext
+***0     context:newframe()
+***0     if node.interpretercontext then
+***0         local temp = self:visit(node.interpretercontext)
+***0         if type(temp) == "table" then
+***0             for k,v in pairs(temp) do
+***0                 context:define_var(k, v)
+                 end
+             else
+***0             self:raise_error("Invalid Interpreter Context in INCLUDE tag", node, 'include_pos')
+             end
+         end
+***0     local interpreter = Interpreter:new(parser)
+***0     local result = interpreter:interpret(context, self.filterset, self.resourcelimit, self.filesystem)
+***0     context:destroyframe()
+***0     self.resourcelimit:check_length(#result)
+***0     return result
+     end
+     --
+   2 function Interpreter:visit_CycleLoop( node )
+         -- body
+***0     local group_name = node.group_name
+***0     if group_name then
+***0         group_name = self:visit(group_name)
+         end
+***0     local length = #(node.elementarray)
+***0     local cycle_value = {}
+***0     for i,v in ipairs(node.elementarray) do
+***0         table.insert(cycle_value, self:visit(v))
+         end
+***0     local obj = {["_group_name"] = group_name, ["_cycle_value"] = cycle_value}
+         -- get json string as index
+***0     local index = cjson.encode(obj)
+***0     local result = self.interpretercontext:find_var(index) -- array(table) index
+***0     if result and type(result) == "number" then
+***0         result = (result + 1) % length
+***0         if result == 0 then
+***0             result = result + 1
+             end
+***0         self.interpretercontext:define_var(index, result, 1)
+***0         local t = self:obj2str(cycle_value[result])
+***0         if t then
+***0             return t
+             else
+***0             self:raise_error(" CycleLoop please manually convert table to string, index:" .. result, node, 'pos')
+             end
+***0     elseif result == nil then
+***0         result = 1
+***0         self.interpretercontext:define_var(index, result, 1)
+***0         local t = self:obj2str(cycle_value[result])
+***0         if t then
+***0             return t
+             else
+***0             self:raise_error(" CycleLoop please manually convert table to string, index:" .. result, node, 'pos')
+             end
+         end
+     end
+     --
+   2 function Interpreter:visit_Assignment( node )
+         -- body
+***0     local id = node.id
+***0     local value = self:visit(node.exp)
+***0     self.interpretercontext:define_var(id, value, 1)
+     end
+     --
+   2 function Interpreter:visit_IncDec( node)
+***0     local inc_dec_context = self.interpretercontext:find_var(IncDec)  --is this buggy if using IncDec as key?
+***0     if inc_dec_context then
+***0         local result = inc_dec_context:find_var(node.id)
+***0         if not result then
+***0             result = 0
+             else
+***0             if node.op_type == INCREMENT then
+***0                 result = result + 1
+***0             elseif node.op_type == DECREMENT then
+***0                 result = result - 1
+                 end
+             end
+***0         inc_dec_context:define_var(node.id, result, 1)
+***0         return result
+         else
+***0         local result = 0
+***0         inc_dec_context = InterpreterContext:new({})
+***0         inc_dec_context:define_var(node.id, result, 1)
+***0         self.interpretercontext:define_var(IncDec, inc_dec_context, 1)
+***0         return result
+         end
+     end
+     -------------------------------------------------------------Interpreter end---------------------------------------------------------
+
+     -------------------------------------------------------------InterpreterContext begin ---------------------------------------------------------
+     -- local InterpreterContext = {}
+   1 function InterpreterContext:new( context )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = InterpreterContext})
+***0     instance.stackframe = {}
+***0     if type(context) ~= "table" then
+***0         error("Initilied fail! context should be a table type ")
+         end
+***0     table.insert(instance.stackframe, context)
+***0     return instance
+     end
+     --
+   2 function InterpreterContext:define_var( name, value, stack_level)
+         -- body
+***0     if not stack_level then
+***0         stack_level = #(self.stackframe)
+***0     elseif not type(stack_level) == "number" then
+***0         error(" stack_level should be a number type")
+         end
+***0     local context = self.stackframe[stack_level]
+***0     if type(context) ~= "table" then
+***0         error("Invalid stackframe! ")
+         end
+***0     context[name] = value
+     end
+     --
+   2 function InterpreterContext:find_var( name )
+         -- body
+***0     if name == nil then
+***0         error("Invalid var name")
+         end
+         local value = nil
+***0     local length = #(self.stackframe)
+***0     local step = -1
+***0     for i = length, 1, step do
+***0         value = self.stackframe[i][name]
+***0         if value then break end
+         end
+***0     return value
+     end
+     --
+   2 function InterpreterContext:newframe( ... )
+         -- body
+***0     table.insert(self.stackframe, {})
+     end
+     --
+   2 function InterpreterContext:destroyframe( ... )
+         -- body
+***0     local length = #(self.stackframe)
+***0     if length == 0 then
+***0         error("Invalid stackframe")
+***0     elseif length > 1 then
+***0         table.remove(self.stackframe)
+         end
+     end
+     -------------------------------------------------------------InterpreterContext end ---------------------------------------------------------
+     -------------------------------------------------------------ParserContext begin ---------------------------------------------------------
+     -- local ParserContext = {}
+   1 function ParserContext:new( ... )
+***0     local instance = {}
+***0     setmetatable(instance, {__index = ParserContext})
+***0     instance.whitespace_lstrip_flag = false
+***0     instance.whitespace_rstrip_flag = false
+***0     return instance
+     end
+     -------------------------------------------------------------ParserContext end ---------------------------------------------------------
+     -------------------------------------------------------------FileSystem begin ---------------------------------------------------------
+     -- local FileSystem = {}
+   1 function FileSystem:new( get, error_handler )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = FileSystem})
+***0     instance.get = get
+***0     instance.text = nil
+***0     instance.error_handler = error_handler
+***0     return instance
+     end
+     --
+   2 function FileSystem:generic_get( location )
+***0     local error_handler = self.error_handler
+         -- body
+***0     if self.get and type(self.get) == "function" then
+***0         local ok, ret = pcall(self.get, location)
+
+***0         if ok and ret then
+***0             return tostring(ret)
+***0         elseif ok then
+***0             return error_handler(location, "cannot render empty template" )
+             else
+***0             return error_handler(location, ret)
+             end
+         else
+***0         return error_handler(location, "method to get template file is not defined !!")
+         end
+     end
+     --
+   2 function FileSystem.error_handler(location, err)
+***0     return error(string.format("error when getting template %q: %s", location, err))
+     end
+     -------------------------------------------------------------FileSystem end ---------------------------------------------------------
+     -------------------------------------------------------------Lazy begin ---------------------------------------------------------
+     -- local Lazy = {}
+   1 function Lazy:new( obj, fields )
+         -- body
+***0     local instance = {}
+***0     instance.obj = obj
+***0     instance.fields = fields or {}
+***0     instance.flags = {}
+***0     setmetatable(instance, {
+             __index = function ( t, k )
+                 -- body
+***0             local temp = t.obj[k]
+***0             if type(temp) == "function" then
+***0                 if t.fields[k] == true then
+***0                     if t.flags[k] then
+***0                         return temp
+                         else
+***0                         t.flags[k] = true
+***0                         local result = temp()
+***0                         t.obj[k] = result
+***0                         return result
+                         end
+***0                 elseif t.fields[k] == false then
+***0                     return temp()
+                     else
+***0                     return nil
+                     end
+                 else
+***0                 return temp
+                 end
+             end
+             }
+         )
+***0     return instance
+     end
+     --
+     -- local ResourceLimit = {}
+   1 function ResourceLimit:new( length_limit, subtemplate_num, loopcount )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance,{ __index = ResourceLimit})
+***0     instance.length_limit = length_limit or 100000
+***0     instance.subtemplate_num_limit = subtemplate_num or 10
+***0     instance.loopcount_limit = loopcount or 50000
+***0     instance.length = 0
+***0     instance.subtemplate_num = 0
+***0     instance.loopcount = 0
+***0     return instance
+     end
+     --
+   2 function ResourceLimit:check_length( num )
+         -- body
+***0     self.length = self.length + num
+***0     if self.length + num > self.length_limit then
+***0         error("document fails length limit. length limit:" .. self.length_limit)
+         end
+     end
+     --
+   2 function ResourceLimit:check_subtemplate_num( )
+         -- body
+***0     self.subtemplate_num = self.subtemplate_num  + 1
+***0     if self.subtemplate_num > self.subtemplate_num_limit then
+***0         error("too many sub template. limit num:" .. self.subtemplate_num_limit)
+         end
+     end
+     --
+   2 function ResourceLimit:check_loopcount( ) -- inline this function  for better performance?
+         -- body
+***0     self.loopcount = self.loopcount  + 1
+***0     if self.loopcount > self.loopcount_limit then
+***0         error("too many loopcount. limit num:" .. self.loopcount_limit)
+         end
+     end
+     -------------------------------------------------------------Lazy end ---------------------------------------------------------
+     -------------------------------------------------------------Nodetab end ---------------------------------------------------------
+     -- local Nodetab = {}
+   1 function Nodetab:new( ... )
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Nodetab})
+***0     instance.locations ={}
+***0     return instance
+     end
+   2 function Nodetab:set_pos( k, v )
+         -- body
+***0     self.locations[k] = v
+     end
+   2 function Nodetab:get_pos( k )
+         -- body
+***0     return self.locations[k]
+     end
+     -------------------------------------------------------------Nodetab end ---------------------------------------------------------
+     ------------------------------------------------------------- friendly interface begin ---------------------------------------------------------
+   1 local Template = {}
+   2 function Template:parse( text , parser_context)
+         -- body
+***0     local instance = {}
+***0     setmetatable(instance, {__index = Template})
+***0     instance.lexer = Lexer:new(text)
+***0     instance.parser = Parser:new(instance.lexer, parser_context)
+***0     instance.interpreter = Interpreter:new(instance.parser)
+***0     return instance
+     end
+   2 function Template:render( context, filterset, resourcelimit, filesystem )
+         -- body
+***0     local t_interpretercontext = context or InterpreterContext:new({})
+***0     local t_filterset = filterset or FilterSet:new()
+***0     local t_resourcelimit = resourcelimit or ResourceLimit:new()
+***0     local t_filesystem = filesystem or FileSystem:new()
+
+***0     return self.interpreter:interpret( t_interpretercontext, t_filterset, t_resourcelimit, t_filesystem )
+     end
+     ------------------------------------------------------------- friendly interface end ---------------------------------------------------------
+     ------------------------------------------------------------- helper methods begin ---------------------------------------------------------
+   2 function string:lstrip( ... )
+***0     local ws = [[(\A\s*)]]
+***0     return ngx.re.sub(self, ws, '')
+     end
+     --
+   2 function string:rstrip( ... )
+***0     local ws = [[(\s*\z)]]
+***0     return ngx.re.sub(self, ws, '')
+     end
+
+     do
+   1     local empty_t = {}
+         local function mt__tostring(obj)
+***0         return (getmetatable(obj) or empty_t).__tostring
+         end
+
+   2     function Interpreter:obj2str( obj )
+             -- body
+***0         local obj_type = type(obj)
+***0         if obj_type == "nil" then
+***0             return ''
+***0         elseif obj_type == "number" then
+***0             return tostring(obj)
+***0         elseif obj_type == "string" then
+***0             return obj
+***0         elseif obj_type == "Boolean" then
+***0             return tostring(obj)
+***0         elseif type(mt__tostring(obj)) == 'function' then
+***0             return tostring(obj) or ''
+             end
+         end
+
+   2     function Interpreter:safe_concat(t, d)
+***0         local tmp = {}
+
+             -- string keys are ignored by concat anyway
+***0         for i,v in ipairs(t) do
+***0             tmp[i] = Interpreter:obj2str(v)
+             end
+
+***0         return table.concat(tmp, d)
+         end
+     end
+     ------------------------------------------------------------- helper methods end ---------------------------------------------------------
+     -------------------------------------------------------------FilterSet begin ---------------------------------------------------------
+     -- local FilterSet = {}
+   1 FilterSet.filterset = {}
+     --
+   1 function FilterSet:new( ... )
+***0     local instance = {}
+***0     setmetatable(instance, {__index = FilterSet})
+***0     instance.filterset = {}
+***0     for k,v in pairs(self.filterset) do
+***0         instance.filterset[k] = v
+         end
+***0     return instance
+     end
+     --
+   2 function FilterSet:add_filter( filter_name, filter_function )
+  39     if type(filter_name) == 'string' and type(filter_function) == 'function' then
+  39         self.filterset[filter_name] = filter_function
+         end
+     end
+     --
+
+     --
+   2 function FilterSet:remove_filter( filter_name )
+***0     if type(filter_name) == 'string' then
+***0         self.filterset[filter_name] = nil
+         end
+     end
+     --
+   2 function FilterSet:find_filter( filter_name )
+***0     if type(filter_name) == 'string' then
+***0        return self.filterset[filter_name]
+         end
+     end
+
+     local function is_iterator(o)
+***0     local mt = getmetatable(o)
+
+***0     return mt and mt.__ipairs
+     end
+
+     local function iterator(o)
+***0     if type(o) == 'table' or is_iterator(o) then
+***0         return o
+         else
+***0         return { o }
+         end
+     end
+
+     --=== array filter begin
+     local function join( a, b)
+         -- body
+***0     return Interpreter:safe_concat(iterator(a), b or ' ')
+     end
+     local function first( a )
+         -- body
+***0     return iterator(a)[1]
+     end
+     local function size( a )
+         -- body
+***0     return(#iterator(a))
+     end
+     local function last( a )
+         -- body
+***0     return iterator(a)[size(a)]
+     end
+     local function concat( a, b)
+         -- body
+***0     local temp = {}
+***0     for i,v in ipairs(iterator(a)) do
+***0         table.insert(temp, v)
+         end
+***0     for i,v in ipairs(iterator(b)) do
+***0         table.insert(temp, v)
+         end
+***0     return temp
+     end
+     local function index( a, b)
+         -- body
+***0     return iterator(a)[(b + 1)]
+     end
+     local function map( a, map_field)
+         -- body
+***0     local temp = {}
+***0     for i,v in ipairs(a) do
+***0         table.insert(temp, v[map_field])
+         end
+***0     return join(temp, '')
+     end
+     local function reverse( a )
+         -- body
+***0     local temp = {}
+***0     local it = iterator(a)
+***0     local num = size(a)
+***0     for k = num, 1, -1 do
+***0         table.insert(temp, it[k])
+         end
+***0     return temp
+     end
+
+     local function sort( a, sort_field)
+         -- body
+***0     local t = {}
+***0     for i,v in ipairs(iterator(a)) do
+***0         table.insert(t, v)
+         end
+***0     if not sort_field then
+***0         table.sort(t)
+***0         return t
+         else
+***0         table.sort( t,
+***0             function ( e1, e2 ) return (e1[sort_field] < e2[sort_field]) end )
+***0         return t
+         end
+     end
+     local function uniq( a )
+         -- body
+***0     local t = {}
+***0     local result = {}
+***0     for i,v in ipairs(iterator(a)) do
+***0         local k = cjson.encode(v)
+***0         if not t[k] then
+***0             t[k] = true
+***0             table.insert(result, v)
+             end
+         end
+***0     return result
+     end
+     --=== array filter end
+     --=== math filter begin
+   1 local abs = math.abs
+   1 local ceil = math.ceil
+     local function divided_by( a, b )
+***0     if tonumber(b) == 0 then
+***0         error(" cannot dived by zero")
+         end
+***0     return( a / b )
+     end
+   1 local floor = math.floor
+     local function minus( a, b )
+***0     return( a - b)
+     end
+     local function plus( a, b )
+***0     return( a + b)
+     end
+     local function round( a, b )
+***0     local mult = 10^(b or 0)
+***0     return math.floor(a*mult + 0.5 ) / mult
+     end
+     local function times( a, b )
+         -- body
+***0     return (a * b)
+     end
+     local function modulo( a, b )
+         -- body
+***0     return (a % b)
+     end
+     --=== math filter end
+
+     --=== String filter begin
+     local function append( str1, str2 )
+         -- body
+***0     return (str1 .. str2)
+     end
+     local function capitalize( str )
+         -- body
+***0     return string.gsub(str,"^%l", string.upper)
+     end
+     local function downcase( str )
+         -- body
+***0     return string.lower(str)
+     end
+     local function escape( str )
+         -- body
+***0     local html = {
+             ["<"] = "&lt;",
+             [">"] = "&gt;",
+             ["&"] = "&amp;",
+             ["\'"] = "&#039;",
+***0         ["\""] = "&quot;"
+         }
+***0     return string.gsub(tostring(str), "[\'\"<>&]", function(char)
+***0         return html[char] or char
+         end)
+     end
+     local function newline_to_br( str )
+         -- body
+***0     return string.gsub(str, '\n', '<br />')
+     end
+     local function prepend( str, str_prepend )
+         -- body
+***0     return (str_prepend .. str)
+     end
+     local function remove( str , pattern)
+         -- body
+***0     return string.gsub(str, pattern, '')
+     end
+     local function remove_first( str, pattern)
+         -- body
+***0     return string.gsub(str, pattern,'', 1)
+     end
+     local function replace( str, pattern, str_replace )
+         -- body
+***0     return string.gsub(str, pattern, str_replace)
+     end
+     local function replace_first( str, pattern, str_replace  )
+         -- body
+***0     return string.gsub(str, pattern, str_replace, 1)
+     end
+     local function slice( str, from, to )
+         -- body
+***0     return string.sub(str,from + 1, to +1)
+     end
+     local function split( str, pattern )
+         -- body
+***0     local result = {}
+***0     local index = 1
+         repeat
+***0         local from, to = string.find( str, pattern, index)
+***0         if from then
+***0             if from > index then
+***0                 table.insert(result, string.sub(str, index, from-1))
+                 else
+***0                 table.insert(result, string.sub(str, index, index))
+                 end
+***0             if to > from then
+***0                 index = to + 1
+                 else
+***0                 index = from + 1
+                 end
+             end
+***0     until from == nil
+***0     if index < #str then
+***0         table.insert(result, string.sub(str, index))
+         end
+***0     return result
+     end
+     local function strip( str )
+         -- body
+***0     return str:lstrip():rstrip()
+     end
+     local function lstrip( str )
+         -- body
+***0     return str:lstrip()
+     end
+     local function rstrip( str )
+         -- body
+***0     return str:rstrip()
+     end
+     local function strip_newlines( str )
+         -- body
+***0     return string.gsub(str, '\n', '')
+     end
+     local function upcase( str )
+         -- body
+***0     return string.upper(str)
+     end
+     local function url_encode( str )
+         -- body
+***0     local str1 = string.gsub (str, "\n", "\r\n")
+***0     local str2 = string.gsub (str1, "([^%w ])",
+             function (c)
+***0             local except = {['$'] = true,['-'] = true,['_'] = true,['.'] = true,['+'] = true,['!'] = true,
+***0                             ['*'] = true,['\''] = true,['('] = true,[')'] = true,[','] = true }
+***0             if except[c] then
+***0                 return c
+                 else
+***0                 return string.format ("%%%02X", string.byte(c))
+                 end
+             end)
+***0     local str3 = string.gsub (str2, " ", "+")
+***0     return str3
+     end
+     local function url_decode( str )
+         -- body
+***0     local str1 = string.gsub (str, "%%(%x%x)",
+***0         function (c) return string. char(tonumber(c, 16)) end)
+***0     return str1
+     end
+     local function str_reverse( str )
+         -- body
+***0     return string.reverse(str)
+     end
+     --=== String filter end
+     --=== Additional filter begin
+     local function json( obj )
+         -- body
+***0     return cjson.encode(obj)
+     end
+     --=== Additional filter end
+
+     --========================================================== add filers to FilterSet instance================================
+     --Array filter
+   1 FilterSet:add_filter("join", join )
+   1 FilterSet:add_filter("first", first )
+   1 FilterSet:add_filter("last", last )
+   1 FilterSet:add_filter("concat", concat )
+   1 FilterSet:add_filter("index", index )
+   1 FilterSet:add_filter("map", map )
+   1 FilterSet:add_filter("reverse", reverse )
+   1 FilterSet:add_filter("size", size )
+   1 FilterSet:add_filter("sort", sort )
+   1 FilterSet:add_filter("uniq", uniq )
+     --Math filter
+   1 FilterSet:add_filter("abs", abs )
+   1 FilterSet:add_filter("ceil", ceil )
+   1 FilterSet:add_filter("divided_by", divided_by )
+   1 FilterSet:add_filter("floor", floor )
+   1 FilterSet:add_filter("minus", minus )
+   1 FilterSet:add_filter("plus", plus )
+   1 FilterSet:add_filter("round", round )
+   1 FilterSet:add_filter("times", times )
+   1 FilterSet:add_filter("modulo", modulo )
+     --String filter
+   1 FilterSet:add_filter("append", append )
+   1 FilterSet:add_filter("capitalize", capitalize )
+   1 FilterSet:add_filter("downcase", downcase )
+   1 FilterSet:add_filter("escape", escape )
+   1 FilterSet:add_filter("prepend", prepend )
+   1 FilterSet:add_filter("remove", remove )
+   1 FilterSet:add_filter("remove_first", remove_first )
+   1 FilterSet:add_filter("replace", replace )
+   1 FilterSet:add_filter("replace_first", replace_first )
+   1 FilterSet:add_filter("slice", slice )
+   1 FilterSet:add_filter("split", split )
+   1 FilterSet:add_filter("strip", strip )
+   1 FilterSet:add_filter("lstrip", lstrip )
+   1 FilterSet:add_filter("rstrip", rstrip )
+   1 FilterSet:add_filter("strip_newlines", strip_newlines )
+   1 FilterSet:add_filter("upcase", upcase )
+   1 FilterSet:add_filter("url_encode", url_encode )
+   1 FilterSet:add_filter("url_decode", url_decode )
+   1 FilterSet:add_filter("str_reverse", str_reverse )
+
+     --Additinal filter
+   1 FilterSet:add_filter("json", json )
+
+
+
+
+
+
+
+     -------------------------------------------------------------Filter end ---------------------------------------------------------
+     -- local Liquid = {}
+   1 Liquid.Lexer = Lexer
+   1 Liquid.Parser = Parser
+   1 Liquid.Interpreter = Interpreter
+   1 Liquid.InterpreterContext = InterpreterContext
+   1 Liquid.FilterSet = FilterSet
+   1 Liquid.ResourceLimit = ResourceLimit
+   1 Liquid.FileSystem = FileSystem
+   1 Liquid.ParserContext = ParserContext
+   1 Liquid.Lazy = Lazy
+   1 Liquid.Template = Template
+   1 return Liquid
 
 ==============================================================================
 Summary
 ==============================================================================
 
-File                             Hits Missed Coverage
------------------------------------------------------
-./mooncrafts/asynclogger.moon    45   14     76.27%
-./mooncrafts/awsauth.moon        37   18     67.27%
-./mooncrafts/azauth.moon         23   56     29.11%
-./mooncrafts/aztable.moon        64   71     47.41%
-./mooncrafts/crypto.moon         18   7      72.00%
-./mooncrafts/date.moon           5    14     26.32%
-./mooncrafts/hmacauth.moon       7    7      50.00%
-./mooncrafts/http.moon           17   17     50.00%
-./mooncrafts/httpsocket.moon     13   7      65.00%
-./mooncrafts/log.moon            4    12     25.00%
-./mooncrafts/oauth1.moon         33   8      80.49%
-./mooncrafts/parallel.moon       31   14     68.89%
-./mooncrafts/remotefs.moon       14   8      63.64%
-./mooncrafts/remoteresolver.moon 31   19     62.00%
-./mooncrafts/sandbox.moon        36   31     53.73%
-./mooncrafts/simplerouter.moon   60   22     73.17%
-./mooncrafts/url.moon            91   51     64.08%
-./mooncrafts/util.moon           78   38     67.24%
------------------------------------------------------
-Total                            607  414    59.45%
+File                                                                       Hits Missed Coverage
+-----------------------------------------------------------------------------------------------
+./mooncrafts/asynclogger.moon                                              45   14     76.27%
+./mooncrafts/awsauth.moon                                                  37   18     67.27%
+./mooncrafts/azauth.moon                                                   23   56     29.11%
+./mooncrafts/aztable.moon                                                  64   71     47.41%
+./mooncrafts/crypto.moon                                                   18   7      72.00%
+./mooncrafts/date.moon                                                     5    14     26.32%
+./mooncrafts/hmacauth.moon                                                 7    7      50.00%
+./mooncrafts/http.moon                                                     17   17     50.00%
+./mooncrafts/httpsocket.moon                                               13   7      65.00%
+./mooncrafts/log.moon                                                      4    12     25.00%
+./mooncrafts/oauth1.moon                                                   33   8      80.49%
+./mooncrafts/parallel.moon                                                 31   14     68.89%
+./mooncrafts/remotefs.moon                                                 14   8      63.64%
+./mooncrafts/remoteresolver.moon                                           31   19     62.00%
+./mooncrafts/resty/liquid.moon                                             5    18     21.74%
+./mooncrafts/resty/router.moon                                             49   150    24.62%
+./mooncrafts/sandbox.moon                                                  36   31     53.73%
+./mooncrafts/url.moon                                                      91   51     64.08%
+./mooncrafts/util.moon                                                     75   41     64.66%
+/usr/local/opt/openresty/luajit/share/lua/5.1/mooncrafts/vendor/liquid.lua 365  1577   18.80%
+-----------------------------------------------------------------------------------------------
+Total                                                                      963  2140   31.03%

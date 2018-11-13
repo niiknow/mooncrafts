@@ -54,7 +54,7 @@ util     = require "mooncrafts.util"
 log      = require "mooncrafts.log"
 url      = require "mooncrafts.url"
 Liquid   = require "mooncrafts.resty.liquid"
-Remotefs = require("mooncrafts.remotefs")
+Remotefs = require "mooncrafts.remotefs"
 
 local *
 
@@ -75,26 +75,31 @@ join            = table.concat
 table_insert    = table.insert
 
 compile_rules = (opts) ->
-  opts.req_rules  = {}
-  opts.res_rules = {}
+  req_rules = {}
+  res_rules = {}
 
   -- expect list to already been sorted
   if (opts.rules)
-    for k, r in pairs(opts.rules)
+    for k, rr in pairs(opts.rules)
+      r         = table_clone(rr, true)
       r.pattern = compile_pattern(r.for)
-      r.status  = 0 if r.status == nil
-      if (r.type == 'response')
-        table_insert(opts.res_rules, r)
-      else
-        table_insert(opts.req_rules, r)
+      r.status  = 0 if not r.status
+      r.type    = 'request' if not r.type
 
-      r.dest = trim(r.dest or "")
-      r.headers or={}
-      r.http_methods = string_upper(r.http_methods or "*")
+      if (r.type == 'response')
+        table_insert(res_rules, r)
+      else
+        table_insert(req_rules, r)
+
+      r.dest = if r.dest then trim(r.dest) else ""
+      r.headers = {} if not r.headers
+      r.http_methods = if r.http_methods then string_upper(r.http_methods) else "*"
 
       -- make sure status is correct for relative path
       r.status = 302 if (r.status <= 300 or r.status >= 400) and r.dest\find("/") == 1
 
+  opts.req_rules = req_rules
+  opts.res_rules = res_rules
   opts
 
 class Router
@@ -195,15 +200,15 @@ class Router
     -- exit if invalid auth
     return rst if (rst.code > 0)
 
-    myRules = @conf.req_rules
-    reqUrl  = req.url
+    myRules     = @conf.req_rules
+    reqUrl      = req.url
+    rst.isRedir = false
 
     for i=1, #myRules
-      r             = myRules[i]
+      r = myRules[i]
 
       -- parse by specific method
       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
-
         -- ngx.log(ngx.ERR, util.to_json(r))
         -- then match by path
         match, params = match_pattern(reqUrl, r.pattern)
@@ -213,11 +218,14 @@ class Router
         if match
           status = r.status or 0
           table_insert(rst.rules, r)
-          rst.template_data  = r.template_data if r.template_data
+          rst.template_data  = r.template_data
           rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
 
           -- set target if valid dest
-          rst.target   = build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
+          if (strlen(r.dest) > 0)
+            rst.target = r.dest
+            rst.target = build_with_splats(r.dest, params) if rst.pathParameters
+
           -- a redirect if status is greater than 300
           rst.isRedir  = status > 300
           rst.code     = status
@@ -236,11 +244,12 @@ class Router
     assert(req.url, "request url is required")
 
     rst = { rules: {}, headers: {} }
+    -- rst.headers = table_clone(req.headers) if req.headers
     myRules = @conf.res_rules
     reqUrl  = req.url
 
     for i=1, #myRules
-      r     = myRules[i]
+      r = myRules[i]
 
       -- parse by specific method
       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
@@ -257,7 +266,7 @@ class Router
     rst
 
   -- handle page rendering
-  handlePage: (req, rst, proxyPath='/__proxy') =>
+  handlePage: (ngx, req, rst, proxyPath='/__proxy') =>
     -- only handle pages: no file extension
     path = req.path
     path = "/index" if req.path == "/"
@@ -325,7 +334,7 @@ class Router
     if (rst.target)
       page_rst = @handleProxy(req, rst, proxyPath)
     else -- handle the current page
-      page_rst = @handlePage(req, rst, proxyPath)
+      page_rst = @handlePage(ngx, req, rst, proxyPath)
 
 
     -- set response headers for valid response

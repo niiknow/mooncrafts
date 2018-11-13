@@ -7,7 +7,7 @@ request_ngx = function(request_uri, opts)
   if opts == nil then
     opts = { }
   end
-  local capture_url = opts.capture_url or "/__capture"
+  local capture_url = opts.capture_url or "/__mooncrafts"
   local capture_variable = opts.capture_variable or "target"
   local method = opts.method
   local new_method = ngx["HTTP_" .. method]
@@ -17,23 +17,13 @@ request_ngx = function(request_uri, opts)
     },
     method = new_method
   }
-  local bh = ngx.req.get_headers()
-  for k, v in pairs(bh) do
-    if k ~= 'content-length' then
-      ngx.req.clear_header(k)
-    end
-  end
-  local h = opts.headers or {
+  local headers = opts.headers or {
     ["Accept"] = "*/*"
   }
-  for k, v in pairs(h) do
-    if not starts_with(k, "auth_") then
-      ngx.req.set_header(k, v)
-    end
-  end
   if opts.body then
     req_t.body = opts.body
   end
+  req_t.headers = headers
   local rsp, err = ngx.location.capture(capture_url, req_t)
   if err then
     return {

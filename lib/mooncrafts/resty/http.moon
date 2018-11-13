@@ -7,7 +7,7 @@ starts_with = util.starts_with
 
 local *
 request_ngx = (request_uri, opts={}) ->
-  capture_url = opts.capture_url or "/__capture"
+  capture_url = opts.capture_url or "/__mooncrafts"
   capture_variable = opts.capture_variable  or "target"
 
   method = opts.method
@@ -18,17 +18,19 @@ request_ngx = (request_uri, opts={}) ->
     method: new_method
   }
 
+  headers = opts.headers or {["Accept"]: "*/*"}
+
   -- clear all browser headers
-  bh = ngx.req.get_headers()
-  for k, v in pairs(bh)
-    ngx.req.clear_header(k) if k ~= 'content-length'
+  -- bh = ngx.req.get_headers()
+  --for k, v in pairs(bh)
+    --ngx.req.clear_header(k) if k ~= 'content-length'
 
-  h = opts.headers or {["Accept"]: "*/*"}
 
-  for k, v in pairs(h)
-    ngx.req.set_header(k, v) if not starts_with(k, "auth_")
+  --for k, v in pairs(h)
+  --  ngx.req.set_header(k, v) if not starts_with(k, "auth_")
 
-  req_t.body = opts.body if opts.body
+  req_t.body    = opts.body if opts.body
+  req_t.headers = headers
 
   -- ngx.log(ngx.INFO, util.to_json(opts))
 

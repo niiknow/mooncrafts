@@ -51,7 +51,6 @@ build = {
 		["mooncrafts.remoteresolver"] = "lib/mooncrafts/remoteresolver.lua",
 		["mooncrafts.requestbuilder"] = "lib/mooncrafts/requestbuilder.lua",
 		["mooncrafts.sandbox"] = "lib/mooncrafts/sandbox.lua",
-		["mooncrafts.simplerouter"] = "lib/mooncrafts/simplerouter.lua",
 		["mooncrafts.url"] = "lib/mooncrafts/url.lua",
 		["mooncrafts.util"] = "lib/mooncrafts/util.lua"
 	}

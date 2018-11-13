@@ -20,8 +20,9 @@ cname_records_and_max_ttl = (answers) ->
       parts = string_split(ans.cname)
       if (#parts == 3)
         ttl = ans.ttl if ans.ttl
-        ans.name = parts[0]
-        ans.base = parts[1] .. "." .. parts[2]
+        parts_count = #parts
+        ans.name = parts[1]
+        ans.base = parts[parts_count - 1] .. "." .. parts[parts_count]
         table.insert(addresses, ans)
 
   addresses, ttl

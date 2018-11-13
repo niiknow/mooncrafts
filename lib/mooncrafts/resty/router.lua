@@ -21,27 +21,43 @@ table_remove = table.remove
 join = table.concat
 table_insert = table.insert
 compile_rules = function(opts)
-  opts.req_rules = { }
-  opts.res_rules = { }
+  local req_rules = { }
+  local res_rules = { }
   if (opts.rules) then
-    for k, r in pairs(opts.rules) do
+    for k, rr in pairs(opts.rules) do
+      local r = table_clone(rr, true)
       r.pattern = compile_pattern(r["for"])
-      if r.status == nil then
+      if not r.status then
         r.status = 0
       end
-      if (r.type == 'response') then
-        table_insert(opts.res_rules, r)
-      else
-        table_insert(opts.req_rules, r)
+      if not r.type then
+        r.type = 'request'
       end
-      r.dest = trim(r.dest or "")
-      r.headers = r.headers or { }
-      r.http_methods = string_upper(r.http_methods or "*")
+      if (r.type == 'response') then
+        table_insert(res_rules, r)
+      else
+        table_insert(req_rules, r)
+      end
+      if r.dest then
+        r.dest = trim(r.dest)
+      else
+        r.dest = ""
+      end
+      if not r.headers then
+        r.headers = { }
+      end
+      if r.http_methods then
+        r.http_methods = string_upper(r.http_methods)
+      else
+        r.http_methods = "*"
+      end
       if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
         r.status = 302
       end
     end
   end
+  opts.req_rules = req_rules
+  opts.res_rules = res_rules
   return opts
 end
 do
@@ -146,6 +162,7 @@ do
       end
       local myRules = self.conf.req_rules
       local reqUrl = req.url
+      rst.isRedir = false
       for i = 1, #myRules do
         local r = myRules[i]
         if (r.http_methods == "*" or r.http_methods:find(req.http_method)) then
@@ -153,14 +170,15 @@ do
           if match then
             local status = r.status or 0
             table_insert(rst.rules, r)
-            if r.template_data then
-              rst.template_data = r.template_data
-            end
+            rst.template_data = r.template_data
             if #params > 0 then
               rst.pathParameters = params
             end
             if (strlen(r.dest) > 0) then
-              rst.target = build_with_splats(r.dest, params)
+              rst.target = r.dest
+              if rst.pathParameters then
+                rst.target = build_with_splats(r.dest, params)
+              end
             end
             rst.isRedir = status > 300
             rst.code = status
@@ -196,7 +214,7 @@ do
       end
       return rst
     end,
-    handlePage = function(self, req, rst, proxyPath)
+    handlePage = function(self, ngx, req, rst, proxyPath)
       if proxyPath == nil then
         proxyPath = '/__proxy'
       end
@@ -291,7 +309,7 @@ do
       if (rst.target) then
         page_rst = self:handleProxy(req, rst, proxyPath)
       else
-        page_rst = self:handlePage(req, rst, proxyPath)
+        page_rst = self:handlePage(ngx, req, rst, proxyPath)
       end
       if (page_rst.code >= 200 or page_rst.code < 300) then
         local headers = page_rst.headers
