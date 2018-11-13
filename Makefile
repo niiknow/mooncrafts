@@ -1,4 +1,4 @@
-VERSION          = 0.3.6
+VERSION          = 0.3.7
 OPENRESTY_PREFIX = /usr/local/openresty
 PREFIX          ?= /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include
@@ -35,6 +35,7 @@ test:
 	cd lib && $(MAKE) test
 
 clean:
+	rm -f *-0.**.rockspec*
 	rm -rf doc/
 	rm -rf t/servroot/
 	cd lib && $(MAKE) clean

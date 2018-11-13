@@ -600,7 +600,7 @@
    5 oauth1       = require "mooncrafts.oauth1"
    5 log          = require "mooncrafts.log"
    5 http_socket  = require "mooncrafts.httpsocket"
-   5 http_ngx     = require "mooncrafts.nginx.http" if ngx
+   5 http_ngx     = require "mooncrafts.resty.http" if ngx
 
 ***0 import concat from table
    5 import query_string_encode, string_connection_parse from util
