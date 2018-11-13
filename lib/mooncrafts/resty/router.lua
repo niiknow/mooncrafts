@@ -4,23 +4,22 @@ local log = require("mooncrafts.log")
 local url = require("mooncrafts.url")
 local Liquid = require("mooncrafts.resty.liquid")
 local Remotefs = require("mooncrafts.remotefs")
-local requestbuilder = require("mooncrafts.requestbuilder")
-local url_parse = url.parse
-local compile_pattern = url.compile_pattern
-local match_pattern = url.match_pattern
-local build_with_splats = url.build_with_splats
-local base64_decode = crypto.base64_decode
-local strlen = string.len
-local string_upper = string.upper
-local string_match = string.match
-local trim = util.trim
-local string_split = util.string_split
-local table_extend = util.table_extend
-local table_clone = util.table_clone
-local table_remove = table.remove
-local join = table.concat
-local table_insert = table.insert
-local compile_rules
+local url_parse, compile_pattern, match_pattern, build_with_splats, base64_decode, strlen, string_upper, string_match, trim, string_split, table_extend, table_clone, table_remove, join, table_insert, compile_rules, Router
+url_parse = url.parse
+compile_pattern = url.compile_pattern
+match_pattern = url.match_pattern
+build_with_splats = url.build_with_splats
+base64_decode = crypto.base64_decode
+strlen = string.len
+string_upper = string.upper
+string_match = string.match
+trim = util.trim
+string_split = util.string_split
+table_extend = util.table_extend
+table_clone = util.table_clone
+table_remove = table.remove
+join = table.concat
+table_insert = table.insert
 compile_rules = function(opts)
   opts.req_rules = { }
   opts.res_rules = { }
@@ -45,7 +44,6 @@ compile_rules = function(opts)
   end
   return opts
 end
-local Router
 do
   local _class_0
   local _base_0 = {

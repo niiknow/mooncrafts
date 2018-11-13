@@ -49,14 +49,15 @@
 -- 'X-Token': 'your api token' - best way to authenticate
 --
 
-crypto = require "mooncrafts.crypto"
-util   = require "mooncrafts.util"
-log    = require "mooncrafts.log"
-url    = require "mooncrafts.url"
-Liquid = require "mooncrafts.resty.liquid"
+crypto   = require "mooncrafts.crypto"
+util     = require "mooncrafts.util"
+log      = require "mooncrafts.log"
+url      = require "mooncrafts.url"
+Liquid   = require "mooncrafts.resty.liquid"
 Remotefs = require("mooncrafts.remotefs")
 
-requestbuilder  = require "mooncrafts.requestbuilder"
+local *
+
 url_parse       = url.parse
 compile_pattern = url.compile_pattern
 match_pattern   = url.match_pattern

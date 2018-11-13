@@ -34,6 +34,7 @@ build = {
 		["mooncrafts.resty.liquid"] = "lib/mooncrafts/resty/liquid.lua",
 		["mooncrafts.resty.router"] = "lib/mooncrafts/resty/router.lua",
 		["mooncrafts.resty.routercache"] = "lib/mooncrafts/resty/routercache.lua",
+		["mooncrafts.vendor.liquid"] = "lib/mooncrafts/vendor/liquid",
 		["mooncrafts.asynclogger"] = "lib/mooncrafts/asynclogger.lua",
 		["mooncrafts.awsauth"] = "lib/mooncrafts/awsauth.lua",
 		["mooncrafts.azauth"] = "lib/mooncrafts/azauth.lua",
