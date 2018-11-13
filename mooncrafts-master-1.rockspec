@@ -12,15 +12,14 @@ description = {
 }
 dependencies = {
 	"busted",
-	"lua-resty-jwt",
 	"lua-resty-http",
 	"moonscript",
-	"luacrypto",
 	"basexx",
 	"lua-log",
 	"lua-cjson",
 	"luasocket",
-	"ltn12"
+	"ltn12",
+	"luaossl"
 }
 build = {
 	type = "builtin",
