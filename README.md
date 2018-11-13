@@ -16,7 +16,7 @@ A set of classes from [moonship](https://github.com/niiknow/moonship) for re-usa
 7. [hmacauth](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/hmacauth.moon) allow for hmac auth
 8. [http](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/http.moon) making http request with added capability such as: auto basic auth and oauth1
 9. [httpsocket](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/httpsocket.moon) making http request with socket
-10. [nginx.http](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/nginx/http.moon) making http request with openresty
+10. [resty.http](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/resty/http.moon) making http request with openresty
 11. [log](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/log.moon) friendly logger
 12. [oauth1](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/oauth1.moon) for oauth1 signature
 13. [remoteresolver](https://github.com/niiknow/mooncrafts/blob/master/lib/mooncrafts/remoteresolver.moon) help resolve code stored on github repository

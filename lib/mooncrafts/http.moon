@@ -3,7 +3,7 @@ util         = require "mooncrafts.util"
 oauth1       = require "mooncrafts.oauth1"
 log          = require "mooncrafts.log"
 http_socket  = require "mooncrafts.httpsocket"
-http_ngx     = require "mooncrafts.nginx.http" if ngx
+http_ngx     = require "mooncrafts.resty.http" if ngx
 
 import concat from table
 import query_string_encode, string_connection_parse from util

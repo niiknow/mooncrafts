@@ -4,7 +4,7 @@ local log = require("mooncrafts.log")
 local http_socket = require("mooncrafts.httpsocket")
 local http_ngx
 if ngx then
-  http_ngx = require("mooncrafts.nginx.http")
+  http_ngx = require("mooncrafts.resty.http")
 end
 local concat
 concat = table.concat
