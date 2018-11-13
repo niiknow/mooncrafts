@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/niiknow/mooncrafts.svg?branch=master)](https://travis-ci.org/niiknow/mooncrafts)
+[![Build Status](https://travis-ci.org/niiknow/mooncrafts.svg)](https://travis-ci.org/niiknow/mooncrafts)
 # mooncrafts
 > Network http utilities (crafts) written in moonscript 
 
