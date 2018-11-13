@@ -1,28 +1,35 @@
-local crypto = require("crypto")
-local crypto_hmac = require("crypto.hmac")
+local crypto_hmac = require("openssl.hmac")
+local crypto_digest = require("openssl.digest")
 local basexx = require("basexx")
 local to_base64, from_base64
 to_base64, from_base64 = basexx.to_base64, basexx.from_base64
-local base64_encode, base64_decode, crypto_wrapper, hmac_wrapper, md5, sha1, sha256, hmac
+local string_format, string_byte, base64_encode, base64_decode, to_hex, crypto_wrapper, hmac_wrapper, md5, sha1, sha256, hmac
+string_format = string.format
+string_byte = string.byte
 base64_encode = ngx and ngx.encode_base64 or to_base64
 base64_decode = ngx and ngx.decode_base64 or from_base64
-crypto_wrapper = function(dtype, str)
+to_hex = function(str)
+  return (str:gsub(".", function(c)
+    return string_format("%02x", string_byte(c))
+  end))
+end
+crypto_wrapper = function(algo, str)
   return {
     digest = function()
-      return crypto.digest(dtype, str, true)
+      return (crypto_digest.new(algo)):final(str)
     end,
     hex = function()
-      return crypto.digest(dtype, str, false)
+      return to_hex((crypto_digest.new(algo)):final(str))
     end
   }
 end
 hmac_wrapper = function(key, str, algo)
   return {
     digest = function()
-      return crypto_hmac.digest(algo, str, key, true)
+      return (crypto_hmac.new(key, algo)):final(str)
     end,
     hex = function()
-      return crypto_hmac.digest(algo, str, key, false)
+      return to_hex((crypto_hmac.new(key, algo)):final(str))
     end
   }
 end

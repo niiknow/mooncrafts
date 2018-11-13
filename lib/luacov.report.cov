@@ -408,38 +408,43 @@
 ==============================================================================
 ./mooncrafts/crypto.moon
 ==============================================================================
-   8 crypto        = require "crypto"
-   8 crypto_hmac   = require "crypto.hmac"
+   8 crypto_hmac   = require "openssl.hmac"
+   8 crypto_digest = require "openssl.digest"
    8 basexx        = require "basexx"
 
    8 { :to_base64, :from_base64 } = basexx
 
    8 local *
 
+   8 string_format = string.format
+   8 string_byte   = string.byte
 ***0 base64_encode = ngx and ngx.encode_base64 or to_base64
-  10 base64_decode = ngx and ngx.decode_base64 or from_base64
-***0 crypto_wrapper = (dtype, str) ->
-   3   {
-  10     digest: () -> crypto.digest(dtype, str, true)
-***0     hex: () -> crypto.digest(dtype, str, false)
-   7   }
+  22 base64_decode = ngx and ngx.decode_base64 or from_base64
+ 280 to_hex        = (str) ->
+  22   (str\gsub ".", (c) -> string_format "%02x", string_byte c)
 
-  10 hmac_wrapper = (key, str, algo) ->
-   8   {
-***0     digest: () -> crypto_hmac.digest(algo, str, key, true)
-  15     hex: () -> crypto_hmac.digest(algo, str, key, false)
+***0 crypto_wrapper = (algo, str) ->
+  10   {
+***0     digest: () -> (crypto_digest.new algo)\final str
+   3     hex: () -> to_hex((crypto_digest.new algo)\final str)
+  10   }
+
+   7 hmac_wrapper = (key, str, algo) ->
+  10   {
+  10     digest: () -> (crypto_hmac.new key, algo)\final str
+   8     hex: () -> to_hex((crypto_hmac.new key, algo)\final str)
        }
 
-  15 md5 = (str) -> crypto_wrapper("md5", str)
-***0 sha1 = (str) -> crypto_wrapper("sha1", str)
-   4 sha256 = (str) -> crypto_wrapper("sha256", str)
-  15 hmac = (key, str, algo) ->
-  15   return hmac_wrapper(key, str, "md5") if algo == md5
-   8   return hmac_wrapper(key, str, "sha1") if algo == sha1
-***0   return hmac_wrapper(key, str, "sha256") if algo == sha256
-   3   return hmac_wrapper(key, str, algo) if type(algo) == "string"
+***0 md5    = (str) -> crypto_wrapper("md5", str)
+  11 sha1   = (str) -> crypto_wrapper("sha1", str)
+  15 sha256 = (str) -> crypto_wrapper("sha256", str)
+***0 hmac   = (key, str, algo) ->
+   4   return hmac_wrapper(key, str, "md5") if algo == md5
+  15   return hmac_wrapper(key, str, "sha1") if algo == sha1
+  15   return hmac_wrapper(key, str, "sha256") if algo == sha256
+   8   return hmac_wrapper(key, str, algo) if type(algo) == "string"
 
-***0 { :base64_encode, :base64_decode, :md5, :sha1, :sha256, :hmac }
+   3 { :base64_encode, :base64_decode, :md5, :sha1, :sha256, :hmac }
 
 ==============================================================================
 ./mooncrafts/date.moon
@@ -4999,7 +5004,7 @@ File                                                                       Hits 
 ./mooncrafts/awsauth.moon                                                  37   18     67.27%
 ./mooncrafts/azauth.moon                                                   23   56     29.11%
 ./mooncrafts/aztable.moon                                                  58   77     42.96%
-./mooncrafts/crypto.moon                                                   18   7      72.00%
+./mooncrafts/crypto.moon                                                   24   5      82.76%
 ./mooncrafts/date.moon                                                     5    14     26.32%
 ./mooncrafts/hmacauth.moon                                                 7    7      50.00%
 ./mooncrafts/http.moon                                                     17   17     50.00%
@@ -5016,4 +5021,4 @@ File                                                                       Hits 
 ./mooncrafts/util.moon                                                     75   41     64.66%
 /usr/local/opt/openresty/luajit/share/lua/5.1/mooncrafts/vendor/liquid.lua 365  1577   18.80%
 -----------------------------------------------------------------------------------------------
-Total                                                                      909  2132   29.89%
+Total                                                                      915  2130   30.05%
