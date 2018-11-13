@@ -11,7 +11,8 @@ $ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_COVERAGE} ||= 0;
 
 our $HttpConfig = qq{
-    lua_package_path "$pwd/lib/?.lua;/usr/local/share/lua/5.1/?.lua;;";
+  	lua_package_path "$pwd/lib/?.lua;/usr/local/opt/openresty/luajit/share/lua/5.1/?.lua;;";
+  	lua_package_cpath "/usr/local/opt/openresty/luajit/lib/lua/5.1/?.so;;";
     error_log logs/error.log debug;
 
     init_by_lua_block {
@@ -38,7 +39,7 @@ __DATA__
 		content_by_lua_block {
 			local Liquid   = require("mooncrafts.resty.liquid")
 			local Remotefs = require("mooncrafts.remotefs")
-			local fs = Remotefs({base = "https://raw.githubusercontent.com/niiknow/mooncrafts/master/data/"})
+			local fs = Remotefs({base = "https://raw.githubusercontent.com/niiknow/mooncrafts/master/data/public/"})
 			local engine = Liquid(fs)
 			-- this is line 47 which is 15 lines too far
       local var = {

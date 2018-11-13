@@ -49,4 +49,5 @@ reindex
 .DS_Store
 dockerfiles/app/codecache/*
 *.out
+*.rockspec
 
