@@ -29,7 +29,7 @@ osx, install lua/luarocks and openssl then:
 ```sh
 sudo luarocks install luaossl CRYPTO_DIR=/usr/local/opt/openssl OPENSSL_DIR=/usr/local/opt/openssl
 sudo luarocks install luasec OPENSSL_DIR=/usr/local/opt/openssl
-sudo make init
+make init
 make test
 ```
 

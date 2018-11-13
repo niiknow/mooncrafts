@@ -1,4 +1,4 @@
-VERSION          = 0.4.3
+VERSION          = 0.4.4
 OPENRESTY_PREFIX = /usr/local/openresty
 PREFIX          ?= /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include

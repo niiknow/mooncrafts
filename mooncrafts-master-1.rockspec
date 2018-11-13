@@ -19,7 +19,8 @@ dependencies = {
 	"lua-cjson",
 	"luasocket",
 	"ltn12",
-	"luaossl"
+	"luaossl",
+	"lua-lru"
 }
 build = {
 	type = "builtin",

@@ -21,6 +21,7 @@ init:
 	sudo luarocks install lua-log
 	sudo luarocks install lua-cjson
 	sudo luarocks install luasocket
+	sudo luarocks install lua-lru
 	sudo luarocks install --server=http://luarocks.org/dev ltn12
 	# sudo luarocks install luaossl CRYPTO_DIR=/usr/local/opt/openssl OPENSSL_DIR=/usr/local/opt/openssl
 	# sudo luarocks install luasec OPENSSL_DIR=/usr/local/opt/openssl
