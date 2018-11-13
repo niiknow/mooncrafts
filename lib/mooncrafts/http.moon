@@ -10,7 +10,8 @@ import query_string_encode, string_connection_parse from util
 
 string_upper = string.upper
 doRequest    = (opts) ->
-  return http_ngx.request(opts) if ngx and not opts.useSocket
+  -- only use ngx capture if capture_url is provided
+  return http_ngx.request(opts) if ngx and opts.capture_url
 
   http_socket.request(opts)
 

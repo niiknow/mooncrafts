@@ -30,7 +30,7 @@ resolve = (name) ->
   full_path = "https://#{aws.options.aws_host}#{opts.aws.request_path}"
   authHeaders = aws\get_auth_headers()
 
-  req = { url: full_path, method: "GET", capture_url: "/__private", headers: {} }
+  req = { url: full_path, method: "GET", headers: {} }
 
   for k, v in pairs(authHeaders) do
     req.headers[k] = v

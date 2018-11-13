@@ -168,7 +168,6 @@ create_table = (opts) ->
   opts.method     = "POST"
   opts.body       = nil
   topts           = table_opts(opts, opts.method)
-  topts.useSocket = opts.useSocket
   topts.body      = to_json({TableName: tableName})
   -- log.error topts
   http.request(topts)

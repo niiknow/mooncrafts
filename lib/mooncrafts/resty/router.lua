@@ -320,11 +320,14 @@ do
           ngx.header[k] = v
         end
       end
+      if (page_rst.code) then
+        ngx.status = page_rst.code
+      end
       if (page_rst.body) then
         ngx.say(page_rst.body)
       end
-      if (page_rst.code) then
-        return ngx.exit(page_rst.code)
+      if ngx.status then
+        return ngx.exit(ngx.status)
       end
     end
   }

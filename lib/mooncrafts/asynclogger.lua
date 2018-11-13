@@ -45,7 +45,6 @@ dolog = function(self, rsp)
     v.logs = to_json(logs)
   end
   opts.body = to_json(v)
-  opts.useSocket = true
   local res = azt.request(opts, true)
   return res
 end

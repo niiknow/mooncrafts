@@ -1,9 +1,10 @@
 local ltn12 = require("ltn12")
 local http = require("socket.http")
 local https = require("ssl.https")
-local stringsource, tablesink, make_request, request
-stringsource = ltn12.source.string
-tablesink = ltn12.sink.table
+local string_source, table_sink, table_concat, make_request, request
+string_source = ltn12.source.string
+table_sink = ltn12.sink.table
+table_concat = table.concat
 make_request = function(opts)
   if opts.url:find("https:") then
     return https.request(opts)
@@ -17,11 +18,11 @@ request = function(opts)
       method = 'GET'
     }
   end
-  opts.source = stringsource(opts.body)
+  opts.source = string_source(opts.body)
   local result = { }
-  opts.sink = tablesink(result)
+  opts.sink = table_sink(result)
   local one, code, headers, status = make_request(opts)
-  local body = table.concat(result)
+  local body = table_concat(result)
   local message = #body > 0 and body or "unknown error"
   if not (one) then
     return {

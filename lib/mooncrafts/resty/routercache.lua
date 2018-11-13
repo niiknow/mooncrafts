@@ -27,7 +27,6 @@ resolve = function(name)
   local req = {
     url = full_path,
     method = "GET",
-    capture_url = "/__private",
     headers = { }
   }
   for k, v in pairs(authHeaders) do

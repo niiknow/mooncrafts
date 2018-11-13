@@ -349,7 +349,8 @@ class Router
 
     -- allow template to handle it's own error
     -- and response with appropriate error body
+    ngx.status = page_rst.code if (page_rst.code)
     ngx.say(page_rst.body) if (page_rst.body)
-    ngx.exit(page_rst.code) if (page_rst.code)
+    ngx.exit(ngx.status) if ngx.status
 
 Router

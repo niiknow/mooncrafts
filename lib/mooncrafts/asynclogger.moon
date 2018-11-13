@@ -58,7 +58,6 @@ dolog  = (rsp) =>
   v.body         = rsp.body
   v.logs         = to_json(logs) if (#logs > 0)
   opts.body      = to_json(v)
-  opts.useSocket = true
   res            = azt.request(opts, true)
   res
 

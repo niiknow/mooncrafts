@@ -373,8 +373,7 @@
 ***0   opts.method     = "POST"
 ***0   opts.body       = nil
 ***0   topts           = table_opts(opts, opts.method)
-***0   topts.useSocket = opts.useSocket
-   1   topts.body      = to_json({TableName: tableName})
+***0   topts.body      = to_json({TableName: tableName})
        -- log.error topts
 ***0   http.request(topts)
 
@@ -401,8 +400,8 @@
 
        res
 
-   1 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
-***0   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
+***0 { :item_create, :item_retrieve, :item_update, :item_delete, :item_list, :table_opts
+   1   :opts_name, :opts_daily, :opts_monthly, :opts_yearly, :request
      }
 
 ==============================================================================
@@ -527,9 +526,10 @@
 
    5 string_upper = string.upper
    5 doRequest    = (opts) ->
-   5   return http_ngx.request(opts) if ngx and not opts.useSocket
+       -- only use ngx capture if capture_url is provided
+   5   return http_ngx.request(opts) if ngx and opts.capture_url
 
-***0   http_socket.request(opts)
+   8   http_socket.request(opts)
 
      --{
      --  body = <response body>,
@@ -542,34 +542,34 @@
 
 ***0 request = (opts) ->
 
-***0   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
+   8   opts = { url: opts, method: 'GET' } if type(opts) == 'string'
 
 ***0   return { err: "url is required" } unless opts.url
 
 ***0   headers                 = opts["headers"] or {["Accept"]: "*/*"}
-***0   headers["User-Agent"] or= "Mozilla/5.0"
+   8   headers["User-Agent"] or= "Mozilla/5.0"
 
 ***0   opts["method"]  = string_upper(opts["method"] or 'GET')
-***0   opts["headers"] = headers
+   8   opts["headers"] = headers
 
        -- auto add content length
    8   body = opts["body"]
    8   if body
-   8     body = (type(body) == "table") and query_string_encode(body) or body
+   1     body = (type(body) == "table") and query_string_encode(body) or body
    1     opts.body = body
    1     opts.headers["content-length"] = #body
 
-***0   if (headers.auth_basic)
-   8     basic_auth = encode_base64(headers.auth_basic)
+   8   if (headers.auth_basic)
+***0     basic_auth = encode_base64(headers.auth_basic)
 ***0     opts.headers["Authorization"] = "Basic #{basic_auth}"
 ***0     headers["auth_basic"] = nil
 
-***0   if (headers.auth_oauth1)
-   8     auth_oauth1 = string_connection_parse(headers.auth_oauth1)
+   8   if (headers.auth_oauth1)
+***0     auth_oauth1 = string_connection_parse(headers.auth_oauth1)
 ***0     opts.headers["Authorization"] = oauth1.create_signature opts, oauth1
 ***0     headers["auth_oauth1"] = nil
 
-***0   doRequest(opts)
+   8   doRequest(opts)
 
    5 { :request }
 
@@ -583,10 +583,11 @@
 
    5 local *
 
-   8 stringsource = ltn12.source.string
-   8 tablesink    = ltn12.sink.table
+***0 string_source = ltn12.source.string
+   8 table_sink    = ltn12.sink.table
+   8 table_concat  = table.concat
 
-***0 make_request = (opts) ->
+***0 make_request  = (opts) ->
    5   return https.request(opts) if opts.url\find "https:"
 
    8   http.request(opts)
@@ -606,13 +607,13 @@
      --}
 ***0 request = (opts) ->
 ***0   opts        = { url: opts, method: 'GET' } if type(opts) == 'string'
-***0   opts.source = stringsource(opts.body)
+***0   opts.source = string_source(opts.body)
 ***0   result      = {}
-***0   opts.sink   = tablesink(result)
+***0   opts.sink   = table_sink(result)
 
    8   one, code, headers, status = make_request opts
 
-   8   body    = table.concat(result)
+   8   body    = table_concat(result)
    8   message = #body > 0 and body or "unknown error"
 
    5   return {:code, :headers, :status, err: message} unless one
@@ -1309,31 +1310,32 @@
 ***0       for k, v in pairs(r.headers)
 ***0         rst.headers[k] = v unless k == 'content-length'
 
-   1     page_rst = nil
+***0     page_rst = nil
 
          -- proxy pass if target
-   2     if (rst.target)
+   1     if (rst.target)
 ***0       page_rst = @handleProxy(req, rst, proxyPath)
          else -- handle the current page
-   8       page_rst = @handlePage(ngx, req, rst, proxyPath)
+   2       page_rst = @handlePage(ngx, req, rst, proxyPath)
 
 
          -- set response headers for valid response
    4     if (page_rst.code >= 200 or page_rst.code < 300)
-   5       headers     = page_rst.headers
-   1       new_headers = @parseHeaders(req)
+***0       headers     = page_rst.headers
+   8       new_headers = @parseHeaders(req)
 
            -- override existing response headers
    1       for k, v in pairs(new_headers)
 ***0         headers[k] = v unless k == 'content-length'
 
            -- now set the response header
-   4       for k, v in pairs(headers) do ngx.header[k] = v
+***0       for k, v in pairs(headers) do ngx.header[k] = v
 
          -- allow template to handle it's own error
          -- and response with appropriate error body
+   1     ngx.status = page_rst.code if (page_rst.code)
    1     ngx.say(page_rst.body) if (page_rst.body)
-***0     ngx.exit(page_rst.code) if (page_rst.code)
+   1     ngx.exit(ngx.status) if ngx.status
 
      Router
 
@@ -5003,22 +5005,22 @@ File                                                                       Hits 
 -----------------------------------------------------------------------------------------------
 ./mooncrafts/awsauth.moon                                                  37   18     67.27%
 ./mooncrafts/azauth.moon                                                   23   56     29.11%
-./mooncrafts/aztable.moon                                                  58   77     42.96%
+./mooncrafts/aztable.moon                                                  57   77     42.54%
 ./mooncrafts/crypto.moon                                                   24   5      82.76%
 ./mooncrafts/date.moon                                                     5    14     26.32%
 ./mooncrafts/hmacauth.moon                                                 7    7      50.00%
-./mooncrafts/http.moon                                                     17   17     50.00%
-./mooncrafts/httpsocket.moon                                               13   7      65.00%
+./mooncrafts/http.moon                                                     22   12     64.71%
+./mooncrafts/httpsocket.moon                                               13   8      61.90%
 ./mooncrafts/log.moon                                                      4    12     25.00%
 ./mooncrafts/oauth1.moon                                                   33   8      80.49%
 ./mooncrafts/parallel.moon                                                 31   14     68.89%
 ./mooncrafts/remotefs.moon                                                 14   8      63.64%
 ./mooncrafts/remoteresolver.moon                                           31   19     62.00%
 ./mooncrafts/resty/liquid.moon                                             5    18     21.74%
-./mooncrafts/resty/router.moon                                             46   150    23.47%
+./mooncrafts/resty/router.moon                                             45   152    22.84%
 ./mooncrafts/sandbox.moon                                                  36   31     53.73%
 ./mooncrafts/url.moon                                                      91   51     64.08%
 ./mooncrafts/util.moon                                                     75   41     64.66%
 /usr/local/opt/openresty/luajit/share/lua/5.1/mooncrafts/vendor/liquid.lua 365  1577   18.80%
 -----------------------------------------------------------------------------------------------
-Total                                                                      915  2130   30.05%
+Total                                                                      918  2128   30.14%

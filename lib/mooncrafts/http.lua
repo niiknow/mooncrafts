@@ -13,7 +13,7 @@ query_string_encode, string_connection_parse = util.query_string_encode, util.st
 local string_upper = string.upper
 local doRequest
 doRequest = function(opts)
-  if ngx and not opts.useSocket then
+  if ngx and opts.capture_url then
     return http_ngx.request(opts)
   end
   return http_socket.request(opts)
