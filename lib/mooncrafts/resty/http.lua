@@ -20,11 +20,26 @@ request_ngx = function(request_uri, opts)
   local headers = opts.headers or {
     ["Accept"] = "*/*"
   }
+  local bh = ngx.req.get_headers()
+  for k, v in pairs(bh) do
+    if k ~= 'content-length' then
+      ngx.req.clear_header(k)
+    end
+  end
+  for k, v in pairs(headers) do
+    if not starts_with(k, "auth_") then
+      ngx.req.set_header(k, v)
+    end
+  end
   if opts.body then
     req_t.body = opts.body
   end
-  req_t.headers = headers
   local rsp, err = ngx.location.capture(capture_url, req_t)
+  for k, v in pairs(headers) do
+    if k ~= 'content-length' then
+      ngx.req.clear_header(k)
+    end
+  end
   if err then
     return {
       err = err

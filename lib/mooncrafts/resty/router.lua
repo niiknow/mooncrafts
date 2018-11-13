@@ -175,10 +175,7 @@ do
               rst.pathParameters = params
             end
             if (strlen(r.dest) > 0) then
-              rst.target = r.dest
-              if rst.pathParameters then
-                rst.target = build_with_splats(r.dest, params)
-              end
+              rst.target = build_with_splats(r.dest, params)
             end
             rst.isRedir = status > 300
             rst.code = status

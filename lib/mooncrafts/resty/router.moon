@@ -222,9 +222,7 @@ class Router
           rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
 
           -- set target if valid dest
-          if (strlen(r.dest) > 0)
-            rst.target = r.dest
-            rst.target = build_with_splats(r.dest, params) if rst.pathParameters
+          rst.target = build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
 
           -- a redirect if status is greater than 300
           rst.isRedir  = status > 300

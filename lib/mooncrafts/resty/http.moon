@@ -20,22 +20,29 @@ request_ngx = (request_uri, opts={}) ->
 
   headers = opts.headers or {["Accept"]: "*/*"}
 
-  -- clear all browser headers
-  -- bh = ngx.req.get_headers()
-  --for k, v in pairs(bh)
-    --ngx.req.clear_header(k) if k ~= 'content-length'
+  -- clear all browser headers, remove after extra_headers
+  bh = ngx.req.get_headers()
+  for k, v in pairs(bh)
+    ngx.req.clear_header(k) if k ~= 'content-length'
 
+  -- apply new headers
+  for k, v in pairs(headers)
+    ngx.req.set_header(k, v) if not starts_with(k, "auth_")
 
-  --for k, v in pairs(h)
-  --  ngx.req.set_header(k, v) if not starts_with(k, "auth_")
+  req_t.body          = opts.body if opts.body
+  -- req_t.extra_headers = headers
 
-  req_t.body    = opts.body if opts.body
-  req_t.headers = headers
-
+  -- ngx.say(util.to_json(headers))
   -- ngx.log(ngx.INFO, util.to_json(opts))
 
   rsp, err = ngx.location.capture(capture_url, req_t)
 
+  -- make sure to clear all remaining
+  for k, v in pairs(headers)
+    ngx.req.clear_header(k) if k ~= 'content-length'
+
+  --ngx.say(request_uri)
+  --ngx.say(util.to_json(rsp))
   return { err: err } if err
 
   { body: rsp.body, status: "#{rsp.status}", code: rsp.status, headers: rsp.headers, err: err }

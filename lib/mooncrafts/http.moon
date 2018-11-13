@@ -32,8 +32,8 @@ request = (opts) ->
   headers                 = opts["headers"] or {["Accept"]: "*/*"}
   headers["User-Agent"] or= "Mozilla/5.0"
 
-  opts["method"]                = string_upper(opts["method"] or 'GET')
-  opts["headers"]               = headers
+  opts["method"]  = string_upper(opts["method"] or 'GET')
+  opts["headers"] = headers
 
   -- auto add content length
   body = opts["body"]
