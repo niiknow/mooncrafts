@@ -21,9 +21,10 @@ end
 for i = 97, 122 do
   insert(charset, char(i))
 end
-local string_sub, string_gmatch, string_random, trim, starts_with, ends_with, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse
+local string_sub, string_gmatch, re_match, string_random, trim, starts_with, ends_with, path_sanitize, url_unescape, url_escape, url_build, slugify, string_split, json_encodable, from_json, to_json, query_string_encode, applyDefaults, table_extend, table_clone, string_connection_parse, is_ip
 string_sub = string.sub
 string_gmatch = string.gmatch
+re_match = string.match
 string_random = function(length)
   randomseed(os.time())
   if length > 0 then
@@ -237,6 +238,15 @@ string_connection_parse = function(str, fieldSep, valSep)
   end
   return rst
 end
+is_ip = function(host)
+  if host == nil then
+    return false
+  end
+  if host:find(':') ~= nil then
+    return true
+  end
+  return re_match(host, "%.%d+$") ~= nil
+end
 return {
   url_escape = url_escape,
   url_unescape = url_unescape,
@@ -256,5 +266,6 @@ return {
   string_connection_parse = string_connection_parse,
   string_random = string_random,
   starts_with = starts_with,
-  ends_with = ends_with
+  ends_with = ends_with,
+  is_ip = is_ip
 }

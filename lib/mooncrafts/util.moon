@@ -21,6 +21,7 @@ for i = 97, 122 do insert(charset, char(i))
 local *
 string_sub    = string.sub
 string_gmatch = string.gmatch
+re_match      = string.match
 
 string_random = (length) ->
   randomseed(os.time())
@@ -182,10 +183,17 @@ string_connection_parse = (str, fieldSep=";", valSep="=") ->
 
   rst
 
+-- naive is_ip method, don't use this for strict ip detection
+is_ip = (host) ->
+  return false if host == nil
+  return true if host\find(':') != nil
+  -- if it ends with a period and number
+  re_match(host, "%.%d+$") != nil
+
 { :url_escape, :url_unescape, :url_build,
   :trim, :path_sanitize, :slugify, :table_sort_keys,
   :json_encodable, :from_json, :to_json, :table_clone,
   :table_extend, :query_string_encode, :applyDefaults,
   :string_split, :string_connection_parse, :string_random,
-  :starts_with, :ends_with
+  :starts_with, :ends_with, :is_ip
 }

@@ -1519,6 +1519,7 @@
  324 local *
  624 string_sub    = string.sub
 ***0 string_gmatch = string.gmatch
+  12 re_match      = string.match
 
   12 string_random = (length) ->
   12   randomseed(os.time())
@@ -1680,13 +1681,20 @@
 
        rst
 
-   1 { :url_escape, :url_unescape, :url_build,
-  12   :trim, :path_sanitize, :slugify, :table_sort_keys,
+     -- naive is_ip method, don't use this for strict ip detection
+  12 is_ip = (host) ->
+***0   return false if host == nil
+   8   return true if host\find(':') != nil
+       -- if it ends with a period and number
+***0   re_match(host, "%.%d+$") != nil
+
+   4 { :url_escape, :url_unescape, :url_build,
+***0   :trim, :path_sanitize, :slugify, :table_sort_keys,
 ***0   :json_encodable, :from_json, :to_json, :table_clone,
-   8   :table_extend, :query_string_encode, :applyDefaults,
-   4   :string_split, :string_connection_parse, :string_random,
-***0   :starts_with, :ends_with
-     }
+   4   :table_extend, :query_string_encode, :applyDefaults,
+  12   :string_split, :string_connection_parse, :string_random,
+***0   :starts_with, :ends_with, :is_ip
+  10 }
 
 ==============================================================================
 Summary
@@ -1711,6 +1719,6 @@ File                             Hits Missed Coverage
 ./mooncrafts/sandbox.moon        36   31     53.73%
 ./mooncrafts/simplerouter.moon   60   22     73.17%
 ./mooncrafts/url.moon            91   51     64.08%
-./mooncrafts/util.moon           75   35     68.18%
+./mooncrafts/util.moon           78   38     67.24%
 -----------------------------------------------------
-Total                            604  411    59.51%
+Total                            607  414    59.45%

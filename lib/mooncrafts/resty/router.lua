@@ -24,21 +24,23 @@ local compile_rules
 compile_rules = function(opts)
   opts.req_rules = { }
   opts.res_rules = { }
-  for k, r in pairs(opts.rules) do
-    r.pattern = compile_pattern(r["for"])
-    if r.status == nil then
-      r.status = 0
-    end
-    if (r.type == 'response') then
-      table_insert(opts.res_rules, r)
-    else
-      table_insert(opts.req_rules, r)
-    end
-    r.dest = trim(r.dest or "")
-    r.headers = r.headers or { }
-    r.http_methods = string_upper(r.http_methods or "*")
-    if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
-      r.status = 302
+  if (opts.rules) then
+    for k, r in pairs(opts.rules) do
+      r.pattern = compile_pattern(r["for"])
+      if r.status == nil then
+        r.status = 0
+      end
+      if (r.type == 'response') then
+        table_insert(opts.res_rules, r)
+      else
+        table_insert(opts.req_rules, r)
+      end
+      r.dest = trim(r.dest or "")
+      r.headers = r.headers or { }
+      r.http_methods = string_upper(r.http_methods or "*")
+      if (r.status <= 300 or r.status >= 400) and r.dest:find("/") == 1 then
+        r.status = 302
+      end
     end
   end
   return opts
@@ -149,9 +151,7 @@ do
       for i = 1, #myRules do
         local r = myRules[i]
         if (r.http_methods == "*" or r.http_methods:find(req.http_method)) then
-          ngx.log(ngx.ERR, util.to_json(r))
           local match, params = match_pattern(reqUrl, r.pattern)
-          ngx.log(ngx.ERR, util.to_json(params))
           if match then
             local status = r.status or 0
             table_insert(rst.rules, r)
@@ -202,19 +202,33 @@ do
       if proxyPath == nil then
         proxyPath = '/__proxy'
       end
-      local path = trim(req.path, "/")
-      if not (rst.template) then
+      local path = req.path
+      if req.path == "/" then
+        path = "/index"
+      end
+      local base = self.conf.base
+      if path ~= "/index" then
         rst.template = "page"
       end
-      if strlen(req.path) <= 0 then
-        path = "-"
+      if not rst.ext then
+        rst.ext = "liquid"
       end
       local urls = {
         {
-          tostring(base) .. "/templates/" .. tostring(rst.template) .. ".liquid"
+          proxyPath,
+          {
+            args = {
+              target = tostring(base) .. "/templates/" .. tostring(rst.template) .. "." .. tostring(rst.ext)
+            }
+          }
         },
         {
-          tostring(base) .. "/contents/" .. tostring(path) .. ".json"
+          proxyPath,
+          {
+            args = {
+              target = tostring(base) .. "/contents" .. tostring(path) .. ".json"
+            }
+          }
         }
       }
       local page, data = ngx.location.capture_multi(urls)
@@ -226,13 +240,13 @@ do
       else
         req.page = { }
       end
-      if (data and data.status == ngx.HTTP_OK) then
+      if (data and data.status < 300) then
         req.page = util.from_json(data.body)
       end
       return {
         code = 200,
         headers = { },
-        body = self.viewEngine:render(page.body, req)
+        body = trim(self.viewEngine:render(page.body, req.page))
       }
     end,
     handleProxy = function(self, req, rst, proxyPath)
@@ -257,8 +271,11 @@ do
       if req.path == "/" then
         rst.template = "index"
       end
-      if not (rst.template) then
+      if not rst.template then
         rst.template = "page"
+      end
+      if not rst.ext then
+        rst.ext = "liquid"
       end
       if rst.isRedir then
         return ngx.redirect(rst.target, rst.code)
@@ -272,10 +289,11 @@ do
           end
         end
       end
+      local page_rst = nil
       if (rst.target) then
-        local page_rst = self:handleProxy(req, rst, proxyPath)
+        page_rst = self:handleProxy(req, rst, proxyPath)
       else
-        local page_rst = self:handlePage(req, rst, proxyPath)
+        page_rst = self:handlePage(req, rst, proxyPath)
       end
       if (page_rst.code >= 200 or page_rst.code < 300) then
         local headers = page_rst.headers
@@ -292,7 +310,7 @@ do
       if (page_rst.body) then
         ngx.say(page_rst.body)
       end
-      if (pagerst.code) then
+      if (page_rst.code) then
         return ngx.exit(page_rst.code)
       end
     end
