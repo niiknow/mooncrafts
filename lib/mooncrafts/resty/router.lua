@@ -170,7 +170,6 @@ do
           if match then
             local status = r.status or 0
             table_insert(rst.rules, r)
-            rst.template_data = r.template_data
             if #params > 0 then
               rst.pathParameters = params
             end
@@ -179,8 +178,8 @@ do
             end
             rst.isRedir = status > 300
             rst.code = status
-            if r.template then
-              rst.template = r.template
+            if r.template_url then
+              rst.template_url = r.template_url
             end
             if (rst.code > 0) then
               return rst
@@ -245,21 +244,30 @@ do
         }
       }
       local page, data = ngx.location.capture_multi(urls)
-      if (data and data.status == ngx.HTTP_NOT_FOUND and not rst.template_data) then
-        return data
+      req.page = {
+        content = { }
+      }
+      if page.status < 300 and page.status > 199 then
+        req.template = page.body
       end
-      if rst.template_data then
-        req.page = rst.template_data
-      else
-        req.page = { }
-      end
-      if (data and data.status < 300) then
+      if (data and data.status < 300 and data.body and data.body:find("{") ~= nil) then
         req.page = util.from_json(data.body)
+      end
+      if (data and data.status == 404) then
+        return {
+          code = 404,
+          headers = { },
+          body = "Page not found: " .. tostring(path)
+        }
+      end
+      req.page.site = table_clone(self.conf.site, true)
+      if req.page.template then
+        req.template = req.page.template
       end
       return {
         code = 200,
         headers = { },
-        body = trim(self.viewEngine:render(page.body, req.page))
+        body = trim(self.viewEngine:render(req.template, req.page))
       }
     end,
     handleProxy = function(self, req, rst, proxyPath)
@@ -335,6 +343,16 @@ do
   _class_0 = setmetatable({
     __init = function(self, opts)
       local conf = compile_rules(opts)
+      local site
+      if opts.site then
+        site = opts.site
+      else
+        site = { }
+      end
+      conf.site = table_clone(site, true)
+      if site.base_url then
+        conf.base = site.base_url
+      end
       local fs = Remotefs({
         base = conf.base
       })

@@ -12,11 +12,9 @@
 --   dest: 'destination path or url'
 --   status: 'response status code to use'
 --   headers: {} -- pass custom or override existing headers to request/response
---   template: 'use this template instead of default template'
---   template_data: 'this template provide its own data, empty to use contents folder'
+--   template_url: 'use this template instead of default template'
 --
 -- // these are future headers
---   explicit_headers: "Content-Type,OPTIONS" -- csv format to clear all client headers and pass only these to proxy
 --   handler: 'lua compiled function'
 --   handler_url: 'url to the handler source file'
 --}
@@ -104,7 +102,13 @@ compile_rules = (opts) ->
 
 class Router
   new: (opts) =>
-    conf = compile_rules(opts)
+    conf      = compile_rules(opts)
+
+    -- set site info
+    site      = if opts.site then opts.site else {}
+    conf.site = table_clone(site, true)
+    conf.base = site.base_url if site.base_url
+
     fs   = Remotefs({base: conf.base})
     @viewEngine = Liquid(fs)
     @conf = conf
@@ -218,16 +222,15 @@ class Router
         if match
           status = r.status or 0
           table_insert(rst.rules, r)
-          rst.template_data  = r.template_data
           rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
 
           -- set target if valid dest
           rst.target = build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
 
           -- a redirect if status is greater than 300
-          rst.isRedir  = status > 300
-          rst.code     = status
-          rst.template = r.template if r.template
+          rst.isRedir      = status > 300
+          rst.code         = status
+          rst.template_url = r.template_url if r.template_url
 
           -- stop rule processing for valid status
           return rst if (rst.code > 0)
@@ -281,20 +284,26 @@ class Router
 
     page, data = ngx.location.capture_multi(urls)
 
-    if (data and data.status == ngx.HTTP_NOT_FOUND and not rst.template_data)
-      return data
+    req.page     = { content: {} }
+    req.template = page.body if page.status < 300 and page.status > 199
 
-    -- prepare local variables
-    req.page = if rst.template_data then rst.template_data else {}
+    if (data and data.status < 300 and data.body and data.body\find("{") != nil)
+      req.page      = util.from_json(data.body) -- parse page json
 
-    if (data and data.status < 300)
-      req.page = util.from_json(data.body)
+    if (data and data.status == 404)
+      -- TODO: handle redirect outside of this function
+      return { code: 404, headers: {}, body: "Page not found: #{path}" }
+
+    req.page.site = table_clone(@conf.site, true)
+
+    -- page can override it's own template
+    req.template  = req.page.template if req.page.template
 
     -- push in request
     {
       code: 200
       headers: {}
-      body: trim(@viewEngine\render(page.body, req.page))
+      body: trim(@viewEngine\render(req.template, req.page))
     }
 
   handleProxy: (req, rst, proxyPath='/__proxy') =>

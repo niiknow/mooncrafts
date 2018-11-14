@@ -996,11 +996,9 @@
      --   dest: 'destination path or url'
      --   status: 'response status code to use'
      --   headers: {} -- pass custom or override existing headers to request/response
-     --   template: 'use this template instead of default template'
-     --   template_data: 'this template provide its own data, empty to use contents folder'
+     --   template_url: 'use this template instead of default template'
      --
      -- // these are future headers
-     --   explicit_headers: "Content-Type,OPTIONS" -- csv format to clear all client headers and pass only these to proxy
      --   handler: 'lua compiled function'
      --   handler_url: 'url to the handler source file'
      --}
@@ -1033,22 +1031,22 @@
      -- 'X-Token': 'your api token' - best way to authenticate
      --
 
-  12 crypto   = require "mooncrafts.crypto"
+***0 crypto   = require "mooncrafts.crypto"
 ***0 util     = require "mooncrafts.util"
   12 log      = require "mooncrafts.log"
-   4 url      = require "mooncrafts.url"
-***0 Liquid   = require "mooncrafts.resty.liquid"
-***0 Remotefs = require "mooncrafts.remotefs"
+***0 url      = require "mooncrafts.url"
+  12 Liquid   = require "mooncrafts.resty.liquid"
+   4 Remotefs = require "mooncrafts.remotefs"
 
-   4 local *
+***0 local *
 
    4 url_parse       = url.parse
-   1 compile_pattern = url.compile_pattern
-***0 match_pattern   = url.match_pattern
+   4 compile_pattern = url.compile_pattern
+   4 match_pattern   = url.match_pattern
    1 build_with_splats = url.build_with_splats
-   1 base64_decode   = crypto.base64_decode
-***0 strlen          = string.len
-***0 string_upper    = string.upper
+***0 base64_decode   = crypto.base64_decode
+   1 strlen          = string.len
+   1 string_upper    = string.upper
 ***0 string_match    = string.match
 ***0 trim            = util.trim
 ***0 string_split    = util.string_split
@@ -1086,16 +1084,22 @@
 ***0   opts.res_rules = res_rules
        opts
 
-   1 class Router
+     class Router
 ***0   new: (opts) =>
-   4     conf = compile_rules(opts)
+   1     conf      = compile_rules(opts)
+
+         -- set site info
+   4     site      = if opts.site then opts.site else {}
+   4     conf.site = table_clone(site, true)
+***0     conf.base = site.base_url if site.base_url
+
    4     fs   = Remotefs({base: conf.base})
-   4     @viewEngine = Liquid(fs)
-***0     @conf = conf
+***0     @viewEngine = Liquid(fs)
+   4     @conf = conf
 
        -- normalize the nginx request object
 ***0   parseNginxRequest: (ngx) =>
-   4     return {} if not ngx
+***0     return {} if not ngx
 
 ***0     ngx.req.read_body!
 ***0     req_headers = ngx.req.get_headers!
@@ -1131,44 +1135,44 @@
 ***0       cookies: ngx.var.http_cookie
 ***0       language: ngx.var.http_accept_language
 ***0       authorization: ngx.var.http_authorization
-         }
+   4     }
 
        -- this is a before-request/access level event
-***0   parseBasicAuth: (req) =>
+   4   parseBasicAuth: (req) =>
    4     assert(req, "request object is required")
-   1     assert(req.headers, "request headers parameter is required")
+   4     assert(req.headers, "request headers parameter is required")
 
-   4     rst   = {code: 0, headers: {}, rules: {}}
-   4     bauth = @conf.basic_auth or ""
+***0     rst   = {code: 0, headers: {}, rules: {}}
+***0     bauth = @conf.basic_auth or ""
 
    4     if strlen(bauth) > 0
            -- prevent auth header from reaching downstream requests
-***0       req.headers['authorization'] = nil
+   9       req.headers['authorization'] = nil
 
-   4       if not req.authorization
-   4         rst.code    = 401
-   9         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
-   8         rst.body    = "Please auth!"
-   8         return rst
+   8       if not req.authorization
+   8         rst.code    = 401
+   8         rst.headers = {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
+   3         rst.body    = "Please auth!"
+   3         return rst
 
-   8       userpass_b64 = string_match(trim(req.authorization), "Basic%s+(.*)")
-   3       unless userpass_b64
-   3         rst.code    = 401
-   3         rst.headers =  {["Content-Type"]: "text/plain"}
-   3         rst.body    = "Your browser sent a bad Authorization HTTP header!"
-***0         return rst
+***0       userpass_b64 = string_match(trim(req.authorization), "Basic%s+(.*)")
+           unless userpass_b64
+   6         rst.code    = 401
+   6         rst.headers =  {["Content-Type"]: "text/plain"}
+***0         rst.body    = "Your browser sent a bad Authorization HTTP header!"
+   3         return rst
 
-   6       userpass = base64_decode(userpass_b64)
-   6       unless userpass
+   3       userpass = base64_decode(userpass_b64)
+           unless userpass
 ***0         rst.code    = 401
    3         rst.headers = {["Content-Type"]: "text/plain"}
    3         rst.body    = "Your browser sent a bad Authorization HTTP header!"
-   3         return rst
+***0         return rst
 
 ***0       unless bauth == userpass
-   3         rst.code    = 403
-   3         rst.headers =  {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
-***0         rst.body    = "Auth failed!"
+***0         rst.code    = 403
+   1         rst.headers =  {["Content-Type"]: "text/plain", ["WWW-Authenticate"]: 'realm="Access to site.", charset="UTF-8"'}
+   1         rst.body    = "Auth failed!"
 ***0         return rst
 
          rst
@@ -1189,7 +1193,7 @@
 ***0     rst.isRedir = false
 
 ***0     for i=1, #myRules
-***0       r = myRules[i]
+   1       r = myRules[i]
 
            -- parse by specific method
 ***0       if (r.http_methods == "*" or r.http_methods\find(req.http_method))
@@ -1202,16 +1206,15 @@
 ***0         if match
 ***0           status = r.status or 0
 ***0           table_insert(rst.rules, r)
-***0           rst.template_data  = r.template_data
 ***0           rst.pathParameters = params if #params > 0 -- provide downstream with pathParameters
 
                -- set target if valid dest
 ***0           rst.target = build_with_splats(r.dest, params) if (strlen(r.dest) > 0)
 
                -- a redirect if status is greater than 300
-***0           rst.isRedir  = status > 300
-***0           rst.code     = status
-***0           rst.template = r.template if r.template
+***0           rst.isRedir      = status > 300
+***0           rst.code         = status
+***0           rst.template_url = r.template_url if r.template_url
 
                -- stop rule processing for valid status
 ***0           return rst if (rst.code > 0)
@@ -1243,9 +1246,9 @@
 ***0           table_insert(rst.rules, r)
                -- print util.to_json(rst.headers)
                -- print util.to_json(r.headers)
-***0           table_extend(rst.headers, r.headers)
+   1           table_extend(rst.headers, r.headers)
 
-   1     rst
+         rst
 
        -- handle page rendering
 ***0   handlePage: (ngx, req, rst, proxyPath='/__proxy') =>
@@ -1256,29 +1259,29 @@
 ***0     rst.template = "page" if path != "/index"
 ***0     rst.ext = "liquid" if not rst.ext
 
-***0     urls = {
+   1     urls = {
 ***0       {proxyPath, {args: {target: "#{base}/templates/#{rst.template}.#{rst.ext}"}}}
-   1       {proxyPath, {args: {target: "#{base}/contents#{path}.json"}}}
+***0       {proxyPath, {args: {target: "#{base}/contents#{path}.json"}}}
          }
 
          -- ngx.log(ngx.ERR, util.to_json(urls))
 
 ***0     page, data = ngx.location.capture_multi(urls)
 
-***0     if (data and data.status == ngx.HTTP_NOT_FOUND and not rst.template_data)
-***0       return data
+***0     req.page     = { content: {} }
+***0     req.template = page.body if page.status < 300 and page.status > 199
 
-         -- prepare local variables
-***0     req.page = if rst.template_data then rst.template_data else {}
-
-***0     if (data and data.status < 300)
-***0       req.page = util.from_json(data.body)
+***0     if (data and data.status < 300 and data\find("{") != nil)
+***0       req.page      = util.from_json(data.body) -- parse page json
+***0       req.page.site = table_clone(@conf.site, true)
+           -- page can override it's own template
+***0       req.template  = req.page.template if req.page.template
 
          -- push in request
          {
 ***0       code: 200
 ***0       headers: {}
-***0       body: trim(@viewEngine\render(page.body, req.page))
+***0       body: trim(@viewEngine\render(req.template, req.page))
          }
 
 ***0   handleProxy: (req, rst, proxyPath='/__proxy') =>
@@ -1314,18 +1317,18 @@
 
          -- proxy pass if target
    1     if (rst.target)
-***0       page_rst = @handleProxy(req, rst, proxyPath)
+   2       page_rst = @handleProxy(req, rst, proxyPath)
          else -- handle the current page
-   2       page_rst = @handlePage(ngx, req, rst, proxyPath)
+   4       page_rst = @handlePage(ngx, req, rst, proxyPath)
 
 
          -- set response headers for valid response
-   4     if (page_rst.code >= 200 or page_rst.code < 300)
-***0       headers     = page_rst.headers
-   8       new_headers = @parseHeaders(req)
+***0     if (page_rst.code >= 200 or page_rst.code < 300)
+   1       headers     = page_rst.headers
+***0       new_headers = @parseHeaders(req)
 
            -- override existing response headers
-   1       for k, v in pairs(new_headers)
+***0       for k, v in pairs(new_headers)
 ***0         headers[k] = v unless k == 'content-length'
 
            -- now set the response header
@@ -1334,7 +1337,7 @@
          -- allow template to handle it's own error
          -- and response with appropriate error body
    1     ngx.status = page_rst.code if (page_rst.code)
-   1     ngx.say(page_rst.body) if (page_rst.body)
+***0     ngx.say(page_rst.body) if (page_rst.body)
    1     ngx.exit(ngx.status) if ngx.status
 
      Router
@@ -1887,7 +1890,7 @@
 ***0   :table_extend, :query_string_encode, :applyDefaults,
   11   :string_split, :string_connection_parse, :string_random,
 ***0   :starts_with, :ends_with, :is_ip
-  20 }
+  24 }
 
 ==============================================================================
 /usr/local/opt/openresty/luajit/share/lua/5.1/mooncrafts/vendor/liquid.lua
@@ -5017,10 +5020,10 @@ File                                                                       Hits 
 ./mooncrafts/remotefs.moon                                                 14   8      63.64%
 ./mooncrafts/remoteresolver.moon                                           31   19     62.00%
 ./mooncrafts/resty/liquid.moon                                             5    18     21.74%
-./mooncrafts/resty/router.moon                                             45   152    22.84%
+./mooncrafts/resty/router.moon                                             42   155    21.32%
 ./mooncrafts/sandbox.moon                                                  36   31     53.73%
 ./mooncrafts/url.moon                                                      91   51     64.08%
 ./mooncrafts/util.moon                                                     75   41     64.66%
 /usr/local/opt/openresty/luajit/share/lua/5.1/mooncrafts/vendor/liquid.lua 365  1577   18.80%
 -----------------------------------------------------------------------------------------------
-Total                                                                      918  2128   30.14%
+Total                                                                      915  2131   30.04%
