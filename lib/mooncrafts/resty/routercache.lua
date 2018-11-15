@@ -50,7 +50,7 @@ resolve = function(name)
     return ngx.exit(ngx.status)
   end
   local config = util.from_json(res.body)
-  local base = "https://" .. tostring(aws.options.aws_host) .. "/" .. tostring(opts.aws.aws_s3_path) .. "/" .. tostring(name) .. "/public"
+  local base = "https://" .. tostring(aws.options.aws_host) .. "/" .. tostring(opts.aws.aws_s3_path) .. "/" .. tostring(name) .. "/www"
   if not config.base then
     config.base = base
   end

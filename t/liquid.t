@@ -39,7 +39,7 @@ __DATA__
 		content_by_lua_block {
 			local Liquid   = require("mooncrafts.resty.liquid")
 			local Remotefs = require("mooncrafts.remotefs")
-			local fs = Remotefs({base = "https://raw.githubusercontent.com/niiknow/mooncrafts/master/data/public/"})
+			local fs = Remotefs({base = "https://raw.githubusercontent.com/niiknow/mooncrafts/master/data/www/"})
 			local engine = Liquid(fs)
 			-- this is line 47 which is 15 lines too far
       local var = {

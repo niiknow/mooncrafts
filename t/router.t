@@ -41,7 +41,7 @@ __DATA__
 			local rules = {}
 
 			rules[1] = {["for"]= "/t/*", status= 302, dest= "https://example.com/foo/:splat"}
-			local r = router({name= "data", base= "https://raw.githubusercontent.com/niiknow/mooncrafts/master/data/public", rules= rules})
+			local r = router({name= "data", base= "https://raw.githubusercontent.com/niiknow/mooncrafts/master/data/www", rules= rules})
 			r:handleRequest(ngx)
 		}
 	}

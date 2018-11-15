@@ -56,8 +56,8 @@ resolve = (name) ->
     return ngx.exit(ngx.status)
 
   -- parse json
-  config = util.from_json(res.body)
-  base   = "https://#{aws.options.aws_host}/#{opts.aws.aws_s3_path}/#{name}/public"
+  config      = util.from_json(res.body)
+  base        = "https://#{aws.options.aws_host}/#{opts.aws.aws_s3_path}/#{name}/www"
   config.base = base if not config.base
   router = Router(config)
 
